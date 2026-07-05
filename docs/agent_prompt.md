@@ -25,6 +25,7 @@
 ### 2.1 执行模型
 
 游戏脚本语言有以下特征：
+
 - **标签（Label）**：代码入口点，类似函数名。例：`main:`, `m1:`
 - **线程（Thread）**：通过 `CreateThread("label")` 创建并发执行流
 - **监听器（Listener）**：每帧运行的循环，通过 `CreateListener("label")` 创建
@@ -35,6 +36,7 @@
 ### 2.2 数据类型
 
 只有 5 种基本类型：
+
 - `Number`（整数或浮点）
 - `String`
 - `Boolean`
@@ -46,6 +48,7 @@
 编辑器中的每个方块 = 文档中的一个函数调用或控制结构。
 
 例：
+
 - `DropItem(itemtype="Coat", stage="Residence", x=-26.6, y=-0.1, z=-120)`
 - `If (condition) → True分支 / False分支`
 - `CreateThread("m1")`
@@ -74,7 +77,7 @@ pub fn add_node(&mut self, node: Node) -> Result<()> { ... }
 // 6. 函数参数优先用 &str 而非 String，返回优先用 String
 // 7. 集合类型优先用 HashMap / Vec，避免 LinkedList
 // 8. 单元测试必须放在模块末尾的 #[cfg(test)] mod tests 中
-```
+```text
 
 ### 3.2 模块边界
 
@@ -88,9 +91,10 @@ serializer/  → JSON 读写与版本迁移，依赖 graph
 code_gen/    → 生成 .code 文件，依赖 graph + api
 ui/          → 界面渲染与交互，依赖 graph + api
 app/         → 主循环与状态管理，依赖所有上层模块
-```
+```text
 
 **禁止循环依赖**：
+
 - `api` 不能依赖 `graph`、`serializer`、`code_gen`、`ui`、`app`
 - `graph` 不能依赖 `serializer`、`code_gen`、`ui`、`app`
 - `serializer` 不能依赖 `code_gen`、`ui`、`app`
@@ -99,7 +103,7 @@ app/         → 主循环与状态管理，依赖所有上层模块
 ### 3.3 错误处理策略
 
 | 场景 | 处理方式 |
-|------|---------|
+| ------ | --------- |
 | 用户操作（如删除节点） | 返回 Result，失败时显示 Toast 提示 |
 | 文件加载失败 | 返回 Result，上层显示错误对话框 |
 | 图验证失败 | 收集所有错误，批量显示在底部面板 |
@@ -148,6 +152,7 @@ app/         → 主循环与状态管理，依赖所有上层模块
 ```
 
 > 规则：
+>
 > - `version` 必须存在，加载时检查兼容性；保存时始终写入最新版本
 > - `meta` 直接透传，编辑器不解析内容
 > - `nodes` 中 `id` 全局唯一，`type` 必须存在于节点清单
@@ -162,7 +167,7 @@ app/         → 主循环与状态管理，依赖所有上层模块
 
 ### 5.1 布局
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │ [工具栏]  保存 | 撤销 | 重做 | 导出JSON | 导出.code | 运行预览 │
 ├──────────┬──────────────────────────────────┬──────────────────┤
@@ -234,7 +239,7 @@ pub struct ParamDefinition {
     pub options: Option<Vec<String>>, // 下拉选项（如 StageType 枚举值）
     pub description: Option<String>,  // 参数说明（悬停提示）
 }
-```
+```text
 
 ---
 
@@ -296,7 +301,7 @@ mod tests {
 ### 7.2 推荐测试类型
 
 | 测试类型 | 说明 | 示例 |
-|----------|------|------|
+| ---------- | ------ | ------ |
 | 单元测试 | 单个函数/方法的正确性 | `Node::get_port`、参数默认值 |
 | 集成测试 | 多模块协作 | `Graph → JSON → Graph` 往返 |
 | 属性测试 | 随机输入验证不变量 | `serde_json` 任意合法 JSON 不 panic |
@@ -345,7 +350,7 @@ mod tests {
 2. [ ] 测试通过 `cargo test`
 3. [ ] Clippy 无警告 `cargo clippy`
 4. [ ] 代码格式化 `cargo fmt`
-```
+```text
 
 ---
 

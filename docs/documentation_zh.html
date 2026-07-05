@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="zh-CN">
 	<head>
 		<meta charset="utf-8">
@@ -153,34 +153,34 @@
 			<ul>
 				<li><a href="#General">概述</a>
 					<ul>
-						<li><a href="#File Structure">文件结构</a>
+						<li><a href="#File-Structure">文件结构</a>
 							<ul>
 								<li><a href="#Code">代码</a></li>
 								<li><a href="#Meta">Meta（元数据）</a></li>
 							</ul>
 						</li>
 						<li><a href="#Types">类型</a></li>
-						<li><a href="#Built-In Constants">内置常量</a></li>
-						<li><a href="#Built-In Globals">内置全局变量</a></li>
-						<li><a href="#Built-In Locals">内置局部变量</a></li>
+						<li><a href="#Built-In-Constants">内置常量</a></li>
+						<li><a href="#Built-In-Globals">内置全局变量</a></li>
+						<li><a href="#Built-In-Locals">内置局部变量</a></li>
 						<li><a href="#Operators">运算符</a></li>
-						<li><a href="#Control Structures">控制结构</a></li>
-						<li><a href="#Function Calls">函数调用</a></li>
+						<li><a href="#Control-Structures">控制结构</a></li>
+						<li><a href="#Function-Calls">函数调用</a></li>
 					</ul>
 				</li>
 				<li><a href="#Functions">函数</a>
 					<ul>
-						<li><a href="#General Functions">通用</a></li>
-						<li><a href="#Game Functions">游戏函数</a></li>
-						<li><a href="#Additional Game Functions">附加游戏函数</a></li>
+						<li><a href="#General-Functions">通用</a></li>
+						<li><a href="#Game-Functions">游戏函数</a></li>
+						<li><a href="#Additional-Game-Functions">附加游戏函数</a></li>
 						<li><a href="#Graphics">图形</a></li>
-						<li><a href="#Math Functions">数学</a>
+						<li><a href="#Math-Functions">数学</a>
 							<ul>
-								<li><a href="#Vector Functions">向量</a></li>
+								<li><a href="#Vector-Functions">向量</a></li>
 							</ul>
 						</li>
-						<li><a href="#String Functions">字符串</a></li>
-						<li><a href="#File Functions">文件</a></li>
+						<li><a href="#String-Functions">字符串</a></li>
+						<li><a href="#File-Functions">文件</a></li>
 					</ul>
 				</li>
 				<li><a href="#Objects">对象</a>
@@ -196,7 +196,7 @@
 						<li><a href="#ItemCondition">ItemCondition</a></li>
 						<li><a href="#InteractArea">InteractArea</a></li>
 						<li><a href="#Text">Text</a></li>
-						<li><a href="#Messenger Chat">Messenger Chat</a></li>
+						<li><a href="#Messenger-Chat">Messenger Chat</a></li>
 						<li><a href="#Audio">Audio</a></li>
 						<li><a href="#Gallery">Gallery</a></li>
 						<li><a href="#Snapshot">Snapshot</a></li>
@@ -208,7 +208,7 @@
 					<ul>
 						<li><a href="#Tips">小贴士</a></li>
 						<li><a href="#Examples">示例</a></li>
-						<li><a href="#Game Constants">游戏常量</a>
+						<li><a href="#Game-Constants">游戏常量</a>
 							<ul>
 								<li><a href="#SoundEffect">SoundEffect</a></li>
 								<li><a href="#StageType">StageType</a></li>
@@ -217,16 +217,16 @@
 								<li><a href="#Skill">Skill</a></li>
 								<li><a href="#Item">Item</a></li>
 								<li><a href="#DropItemType">DropItemType</a></li>
-								<li><a href="#Player Data">玩家数据</a></li>
+								<li><a href="#Player-Data">玩家数据</a></li>
 								<li><a href="#AvatarType">AvatarType</a></li>
 								<li><a href="#FixedType">FixedType</a></li>
 							</ul>
 						</li>
-						<li><a href="#Mod Constants">Mod 常量</a>
+						<li><a href="#Mod-Constants">Mod 常量</a>
 							<ul>
 								<li><a href="#ConditonTypes">条件类型</a></li>
 							</ul>
-						</li><li><a href="#Global Variables">全局变量</a>
+						</li><li><a href="#Global-Variables">全局变量</a>
 							<ul>
 								<li><a href="#_state">_state</a></li>
 							</ul>
@@ -241,18 +241,18 @@
 			<div>
 				<h2 id="General">概述</h2>
 				<div>
-					<h3 id="File Structure">文件结构</h3>
+					<h3 id="File-Structure">文件结构</h3>
 					<ul>
 						<li>每个项目在 "CustomMissions2" 文件夹内都有自己的文件夹，而该文件夹位于游戏的根目录中。</li>
 					</ul>
 					<div>
-						<h4 id="Code">代码</h3>
+						<h4 id="Code">代码</h4>
 						<ul>
 							<li>一个项目可以拆分成多个以 ".code" 结尾的文件。</li>
 							<li>所有代码文件在加载时会被合并成一个文件。<br>合并顺序可能是按字母顺序，但你不应依赖这一点，而应确保它们在任意顺序下都能正常工作。</li>
 							<li>编码应为 UTF-8，以确保字符串字符能正确导入游戏。</li>
 						</ul>
-						<h4 id="Meta">Meta（元数据）</h3>
+						<h4 id="Meta">Meta（元数据）</h4>
 						<ul>
 							<li>你可以在项目中包含一个 "meta.json" 文件，用来指定不同语言下的标题、添加描述，并构建一个简单的设置菜单。</li>
 							<li>设置值可以在代码中通过 _settings 全局变量读取。</li>
@@ -337,13 +337,13 @@
 						<li>List</li>
 						<li>Object</li>
 					</ul>
-					<h3 id="Built-In Constants">内置常量</h3>
+					<h3 id="Built-In-Constants">内置常量</h3>
 					<ul>
 						<li>true</li>
 						<li>false</li>
 						<li>null</li>
 					</ul>
-					<h3 id="Built-In Globals">内置全局变量</h3>
+					<h3 id="Built-In-Globals">内置全局变量</h3>
 					<ul>
 						<li>_state
 							<ul>
@@ -401,7 +401,7 @@
 							</ul>
 						</li>
 					</ul>
-					<h3 id="Built-In Locals">内置局部变量</h3>
+					<h3 id="Built-In-Locals">内置局部变量</h3>
 					<ul>
 						<li>_this
 							<ul>
@@ -440,7 +440,7 @@ if list != null <span class="comment">也可正常工作，但如果需要添加
 		Log("Test")	</pre>
 					
 					</div>
-					<h3 id="Control Structures">控制结构</h3>
+					<h3 id="Control-Structures">控制结构</h3>
 					<div>
 						<h4>代码缩进</h4>
 						<ul>
@@ -514,7 +514,7 @@ for i in Range(5,10)
 <span class="comment">8</span>
 <span class="comment">9</span></pre>
 					</div>
-					<h3 id="Function Calls">函数调用</h3>
+					<h3 id="Function-Calls">函数调用</h3>
 					<ul>
 						<li>函数通过标签（label）来定义。</li>
 						<li>调用形式为：labelname(Parameter1, Parameter2, ...)</li>
@@ -539,23 +539,23 @@ function_mult:
 			<div>
 				<h2 id="Functions">函数</h2>
 				<div>
-					<h3 id="General Functions">通用</h3>
+					<h3 id="General-Functions">通用</h3>
 					<div class="f">
-						<span>Log([<span class="var">Output</span>])</span></br>
+						<span>Log([<span class="var">Output</span>])</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>向控制台写入内容。</li>
 						</ul>
 					</div>
 					<div class="f">
-						<span>Global(<span class="var String">VariableName</span>[, <span class="var">Value</span>])</span></br>
+						<span>Global(<span class="var String">VariableName</span>[, <span class="var">Value</span>])</span><br>
 						<div>返回：全局变量的值</div>
 						<ul>
 							<li>可用于在函数内部创建全局变量，或在全局变量被同名局部变量隐藏时访问它。</li>
 						</ul>
 					</div>
 					<div class="f">
-						<span>Local(<span class="var String">VariableName</span>[, <span class="var">Value</span>])</span></br>
+						<span>Local(<span class="var String">VariableName</span>[, <span class="var">Value</span>])</span><br>
 						<div>返回：局部变量的值</div>
 						<ul>
 							<li>大概只有在需要创建一个与更高层上下文中同名的局部变量时才有用。<br>
@@ -563,18 +563,18 @@ function_mult:
 						</ul>
 					</div>
 					<div class="f">
-						<span>GetType(<span class="var">Value</span>)</span></br>
+						<span>GetType(<span class="var">Value</span>)</span><br>
 						<div>返回：<span class="type">String</span></div>
 					</div>
 					<div id="GetLanguage" class="f">
-						<span>GetLanguage()</span></br>
+						<span>GetLanguage()</span><br>
 						<div>返回：<span class="type">String</span></div>
 						<ul>
 							<li>返回值将根据你的设置为以下之一：En、Ja、Ko、Sc、Tc</li>
 						</ul>
 					</div>
 					<div class="f">
-						<span>DumpVariables([<span class="var Number">RecursionCount</span>])</span></br>
+						<span>DumpVariables([<span class="var Number">RecursionCount</span>])</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>将当前作用域及其父作用域中的变量打印到控制台。</li>
@@ -582,7 +582,7 @@ function_mult:
 						</ul>
 					</div>
 					<div class="f">
-						<span>DumpVariable(<span class="var">Variable</span>[, <span class="var Number">RecursionCount</span>])</span></br>
+						<span>DumpVariable(<span class="var">Variable</span>[, <span class="var Number">RecursionCount</span>])</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>将单个变量打印到控制台。</li>
@@ -591,9 +591,9 @@ function_mult:
 						</ul>
 					</div>
 					<div class="f">
-						<span>CallFunction(function = <span class="var String">FunctionName</span>[, parameters = <span class="var List">Parameters</span>])</span></br>
-						<span>CallFunction(<span class="var String">FunctionName</span>[, <span class="var List">Parameters</span>])</span></br>
-						<span>CallFunction(<span class="var List">FunctionReference</span>)</span></br>
+						<span>CallFunction(function = <span class="var String">FunctionName</span>[, parameters = <span class="var List">Parameters</span>])</span><br>
+						<span>CallFunction(<span class="var String">FunctionName</span>[, <span class="var List">Parameters</span>])</span><br>
+						<span>CallFunction(<span class="var List">FunctionReference</span>)</span><br>
 						<div>返回：值（Value）</div>
 						<ul>
 							<li>通过将函数名作为字符串传入，或传入一个包含相关数据的列表来调用函数。</li>
@@ -620,24 +620,24 @@ CallFunction(fn_ref)
 DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 					</div>
 					<div class="f">
-						<span>CallMethod(thread = <span class="var Object">Thread</span>, method = <span class="var String">MethodName</span>[, parameters = <span class="var List">Parameters</span>])</span></br>
-						<span>CallMethod(<span class="var Object">Thread</span>, <span class="var String">MethodName</span>[, <span class="var List">Parameters</span>])</span></br>
-						<span>CallMethod(<span class="var List">MethodReference</span>)</span></br>
+						<span>CallMethod(thread = <span class="var Object">Thread</span>, method = <span class="var String">MethodName</span>[, parameters = <span class="var List">Parameters</span>])</span><br>
+						<span>CallMethod(<span class="var Object">Thread</span>, <span class="var String">MethodName</span>[, <span class="var List">Parameters</span>])</span><br>
+						<span>CallMethod(<span class="var List">MethodReference</span>)</span><br>
 						<div>返回：值（Value）</div>
 						<ul>
 							<li>通过传入一个线程对象和作为字符串的方法名，或传入一个包含相关数据的列表来调用方法。</li>
 						</ul>
 					</div>					
 					<div class="f" id="Color">
-						<span>Color(<span class="var Number">Red</span>, <span class="var Number">Green</span>, <span class="var Number">Blue</span>[, <span class="var Number">Alpha</span>])</span></br>
+						<span>Color(<span class="var Number">Red</span>, <span class="var Number">Green</span>, <span class="var Number">Blue</span>[, <span class="var Number">Alpha</span>])</span><br>
 						<div>返回：<span class="type">List</span></div>
 						<ul>
 							<li>创建一个包含 r、g、b、a 项的列表。</li>
 						</ul>
 					</div>
 					<div class="f" id="Range">
-						<span>Range(<span class="var Number">Stop</span>)</span></br>
-						<span>Range(<span class="var Number">Start</span>, <span class="var Number">Stop</span>[, <span class="var Number">Step</span>])</span></br>
+						<span>Range(<span class="var Number">Stop</span>)</span><br>
+						<span>Range(<span class="var Number">Start</span>, <span class="var Number">Stop</span>[, <span class="var Number">Step</span>])</span><br>
 						<div>返回：<span class="type">List</span></div>
 						<ul>
 							<li>创建一个从 Start 到 Stop、以 Step 为步长递增的数字项列表。</li>
@@ -647,7 +647,7 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					<div class="f">
-						<span>SetEvent(<span class="var String">EventName</span>[, <span class="var">Value</span>])</span></br>
+						<span>SetEvent(<span class="var String">EventName</span>[, <span class="var">Value</span>])</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>设置一个事件，任何项目都可以通过 GetEvent 访问它。</li>
@@ -656,7 +656,7 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					<div class="f">
-						<span>GetEvent(<span class="var String">EventName</span>)</span></br>
+						<span>GetEvent(<span class="var String">EventName</span>)</span><br>
 						<div>返回：<span class="type">List</span> 或 null</div>
 						<ul>
 							<li>检查某个事件是否已被设置（在上一帧中）。</li>
@@ -665,7 +665,7 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 
-					<h3 id="Game Functions">游戏函数</h3>
+					<h3 id="Game-Functions">游戏函数</h3>
 					<div class="f">
 						<span>DropItem(itemtype = <span class="var String">DropItemType</span>, stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>[, rx = <span class="var Number">RotationX</span>, ry = <span class="var Number">RotationY</span>, rz = <span class="var Number">RotationZ</span>, rw = <span class="var Number">RotationW</span>][, compass = <span class="var Boolean">CompassIconVisible</span>])</span><br>
 						<span>DropItem(itemtype = <span class="var String">DropItemType</span>, position = <span class="var List">Position</span>[, compass = <span class="var Boolean">CompassIconVisible</span>])</span><br>
@@ -776,9 +776,9 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						<div>返回：null</div>
 					</div>					
 					<div class="f">
-						<span>SetPlayerData(<span class="var String"><a href="#Player Data">DataName</a></span>, <span class="var Number">DataValue</span>)</span><br>
-						<span>SetPlayerData(<span class="var String"><a href="#Player Data">DataName</a></span>, <span class="var String">DataValue</span>)</span><br>
-						<span>SetPlayerData(<span class="var String"><a href="#Player Data">DataName</a></span>, <span class="var Boolean">DataValue</span>)</span><br>
+						<span>SetPlayerData(<span class="var String"><a href="#Player-Data">DataName</a></span>, <span class="var Number">DataValue</span>)</span><br>
+						<span>SetPlayerData(<span class="var String"><a href="#Player-Data">DataName</a></span>, <span class="var String">DataValue</span>)</span><br>
+						<span>SetPlayerData(<span class="var String"><a href="#Player-Data">DataName</a></span>, <span class="var Boolean">DataValue</span>)</span><br>
 						<span>SetPlayerData("BodyPaintTypeDict", <span class="var String"><a href="#BodyPaintType">BodyPaintType</a></span>, <span class="var Boolean">Active</span>)</span><br>
 						<span>SetPlayerData("HairCustomizeDataDict", <span class="var String"><a href="#HairType">HairType</a></span>, <span class="var String">DataName</span>, <span class="var Number">DataValue</span>)</span><br>
 						<div>返回：null</div>
@@ -964,7 +964,7 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					<div class="f" id="GetAllWaypoints">
-						<span>GetAllWaypoints()</span></br>
+						<span>GetAllWaypoints()</span><br>
 						<div>返回：<span class="type">List</span></div>
 						<ul>
 							<li>获取当前舞台中椅子、自动售货机等的路径点（waypoint）列表。</li>
@@ -972,19 +972,19 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					<div class="f" id="SetSexPosition">
-						<span>SetSexPosition(<span class="var String">SexPosition</span>)</span></br>
+						<span>SetSexPosition(<span class="var String">SexPosition</span>)</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>SexPosition 必须是以下两种体位之一：StandBack、Kijoui</li>
 						</ul>
 					</div>
 					<div class="f" id="DeactivateSex">
-						<span>DeactivateSex()</span></br>
+						<span>DeactivateSex()</span><br>
 						<div>返回：null</div>
 					</div>
 					<div class="f" id="SetSexMenu">
-						<span>SetSexMenu([canfinish = <span class="var Boolean">CanFinish</span>][, canposition = <span class="var Boolean">CanChangePosition</span>])</span></br>
-						<span>SetSexMenu([canfinish = <span class="var Boolean">CanFinish</span>][, canposition = <span class="var List">CanChangeToPosition</span>])</span></br>
+						<span>SetSexMenu([canfinish = <span class="var Boolean">CanFinish</span>][, canposition = <span class="var Boolean">CanChangePosition</span>])</span><br>
+						<span>SetSexMenu([canfinish = <span class="var Boolean">CanFinish</span>][, canposition = <span class="var List">CanChangeToPosition</span>])</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>canfinish：启用/禁用 "Finish"（完成）按钮。</li>
@@ -998,16 +998,16 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					
-					<h3 id="Additional Game Functions">附加游戏函数</h3>
+					<h3 id="Additional-Game-Functions">附加游戏函数</h3>
 					<ul>
 						<li>这些函数用于我为游戏添加的、并非原版游戏组成部分的功能。</li>
 					</ul>
 					<div class="f">
-						<span>ShowBlackscreen([color = <span class="var List"><a href="#Color">Color</a></span>][, delay = <span class="var Number">Delay</span>][, fadein = <span class="var Number">FadeIn</span>][, duration = <span class="var Number">Duration</span>][, fadeout = <span class="var Number">FadeOut</span>])</span></br>
+						<span>ShowBlackscreen([color = <span class="var List"><a href="#Color">Color</a></span>][, delay = <span class="var Number">Delay</span>][, fadein = <span class="var Number">FadeIn</span>][, duration = <span class="var Number">Duration</span>][, fadeout = <span class="var Number">FadeOut</span>])</span><br>
 						<div>返回：null</div>
 					</div>
 					<div class="f">
-						<span>GetSnapshotData(<span class="var String">ImageReference</span>)</span></br>
+						<span>GetSnapshotData(<span class="var String">ImageReference</span>)</span><br>
 						<div>返回：<span class="type">List</span></div>
 						<ul>
 							<li>返回由相机功能拍摄的快照的元数据。</li>
@@ -1015,7 +1015,7 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					<div class="f">
-						<span>GetAllSnapshots([deleted = <span class="var Boolean">ListDeleted</span>][, hidden = <span class="var Boolean">ListHidden</span>])</span></br>
+						<span>GetAllSnapshots([deleted = <span class="var Boolean">ListDeleted</span>][, hidden = <span class="var Boolean">ListHidden</span>])</span><br>
 						<div>返回：<span class="type">List</span></div>
 						<ul>
 							<li>返回一个指向所有快照的引用列表。</li>
@@ -1023,14 +1023,14 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					<div class="f">
-						<span>DeleteSnapshot(<span class="var String">ImageReference</span>)</span></br>
+						<span>DeleteSnapshot(<span class="var String">ImageReference</span>)</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>将图像标记为已删除，这样如果它未被任何存档引用，就会在下次程序启动时被删除。</li>
 						</ul>
 					</div>
 					<div class="f">
-						<span>GetImageReference(<span class="var String">FilePath</span>)</span></br>
+						<span>GetImageReference(<span class="var String">FilePath</span>)</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>FilePath 是相对于你的项目文件夹的路径。</li>
@@ -1039,8 +1039,8 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 
 					<h3 id="Graphics">图形</h3>
 					<div class="f">
-						<span>SetGraphicsOption(<span class="var String">Option</span>, <span class="var Number">Value</span>)</span></br>
-						<span>SetGraphicsOption(<span class="var String">Option</span>, <span class="var Boolean">Value</span>)</span></br>
+						<span>SetGraphicsOption(<span class="var String">Option</span>, <span class="var Number">Value</span>)</span><br>
+						<span>SetGraphicsOption(<span class="var String">Option</span>, <span class="var Boolean">Value</span>)</span><br>
 						<div>返回：null</div>
 						<ul>
 							<li>除 "MotionBlur" 选项需要布尔值外，其余值均为数字。</li>
@@ -1059,22 +1059,22 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 								</ul>							
 							</li>
 						</ul>
-						<span>GetGraphicsOption(<span class="var String">Option</span>)</span></br>
+						<span>GetGraphicsOption(<span class="var String">Option</span>)</span><br>
 						<div>返回：<span class="type">Number</span> 或 <span class="type">Boolean</span></div>						
 					</div>
 					
-					<h3 id="Math Functions">数学</h3>
+					<h3 id="Math-Functions">数学</h3>
 					<div>
 						<h4>标准</h4>
 						<div class="f">
-							<span>Random([[<span class="var Number">minInclusive</span>], <span class="var Number">maxExclusive</span>])</span></br>
+							<span>Random([[<span class="var Number">minInclusive</span>], <span class="var Number">maxExclusive</span>])</span><br>
 							<div>返回：<span class="type">Number</span></div>
 							<ul>
 								<li>如果未提供参数，函数返回一个区间 [0,1) 内的值。</li>
 							</ul>
 						</div>
 						<div class="f">
-							<span>RandomInt([[<span class="var Number">minInclusive</span>], <span class="var Number">maxExclusive</span>])</span></br>
+							<span>RandomInt([[<span class="var Number">minInclusive</span>], <span class="var Number">maxExclusive</span>])</span><br>
 							<div>返回：整数 <span class="type">Number</span></div>
 							<ul>
 								<li>如果未提供参数，函数返回 0 或 1。</li>
@@ -1150,7 +1150,7 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</div>
 					</div>
 					<div>
-						<h4 id="Vector Functions">向量</h4>
+						<h4 id="Vector-Functions">向量</h4>
 						<div class="f" id="Vector">
 							<span>Vector(<span class="var Number">X</span>, <span class="var Number">Y</span>[, <span class="var Number">Z</span>])</span><br>
 							<div>返回：<span class="type">List</span></div>
@@ -1166,11 +1166,11 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 							</ul>
 						</div>
 						<div class="f">
-							<span>Vector3Length(<span class="var List"><a href="#Vector">Vector</a></span></span>)</span><br>
+							<span>Vector3Length(<span class="var List"><a href="#Vector">Vector</a></span>)</span><br>
 							<div>返回：<span class="type">Number</span></div>
 						</div>
 						<div class="f">
-							<span>Vector3SqrLength(<span class="var List"><a href="#Vector">Vector</a></span></span>)</span><br>
+							<span>Vector3SqrLength(<span class="var List"><a href="#Vector">Vector</a></span>)</span><br>
 							<div>返回：<span class="type">Number</span></div>
 						</div>
 						<div class="f">
@@ -1204,27 +1204,27 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</div>
 					</div>
 					
-					<h3 id="String Functions">字符串</h3>
+					<h3 id="String-Functions">字符串</h3>
 					<div class="f">
-						<span>Length(<span class="var String">String</span>)</span></br>
+						<span>Length(<span class="var String">String</span>)</span><br>
 						<div>返回：<span class="type">Number</span></div>
 					</div>
 					<div class="f">
-						<span>Lower(<span class="var String">String</span>)</span></br>
+						<span>Lower(<span class="var String">String</span>)</span><br>
 						<div>返回：<span class="type">String</span></div>
 						<ul>
 							<li>将字符串转换为小写。</li>
 						</ul>
 					</div>
 					<div class="f">
-						<span>Upper(<span class="var String">String</span>)</span></br>
+						<span>Upper(<span class="var String">String</span>)</span><br>
 						<div>返回：<span class="type">String</span></div>
 						<ul>
 							<li>将字符串转换为大写。</li>
 						</ul>
 					</div>
 					<div class="f">
-						<span>Find(<span class="var String">SubString</span>, <span class="var String">String</span>)</span></br>
+						<span>Find(<span class="var String">SubString</span>, <span class="var String">String</span>)</span><br>
 						<div>返回：<span class="type">Number</span></div>
 						<ul>
 							<li>索引从 0 开始。</li>
@@ -1232,9 +1232,9 @@ DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
 						</ul>
 					</div>
 					<div class="f">
-						<span>SubString(<span class="var String">String</span>, start = <span class="var Number">Start</span>[, length = <span class="var Number">Length</span>])</span></br>
-						<span>SubString(<span class="var String">String</span>, start = <span class="var Number">Start</span>, end = <span class="var Number">End</span>)</span></br>
-						<span>SubString(<span class="var String">String</span>, end = <span class="var Number">End</span>[, length = <span class="var Number">Length</span>])</span></br>
+						<span>SubString(<span class="var String">String</span>, start = <span class="var Number">Start</span>[, length = <span class="var Number">Length</span>])</span><br>
+						<span>SubString(<span class="var String">String</span>, start = <span class="var Number">Start</span>, end = <span class="var Number">End</span>)</span><br>
+						<span>SubString(<span class="var String">String</span>, end = <span class="var Number">End</span>[, length = <span class="var Number">Length</span>])</span><br>
 						<div>返回：<span class="type">String</span></div>
 						<ul>
 							<li>索引从 0 开始。</li>
@@ -1250,8 +1250,8 @@ Log(SubString(s, end=9)) <span class="comment">Hello Worl</span>
 Log(SubString(s, end=3, length=3)) <span class="comment">ell</span></pre>
 					</div>
 					<div class="f">
-						<span>Format(<span class="var String">FormatString</span>[, <span class="var">UnnamedParameter1</span>]...)</span></br>
-						<span>Format(<span class="var String">FormatString</span>[, <span class="var List">ListOfUnnamedParameters</span>])</span></br>
+						<span>Format(<span class="var String">FormatString</span>[, <span class="var">UnnamedParameter1</span>]...)</span><br>
+						<span>Format(<span class="var String">FormatString</span>[, <span class="var List">ListOfUnnamedParameters</span>])</span><br>
 						<div>返回：<span class="type">String</span></div>
 						<br>
 						<div>示例：</div>
@@ -1265,23 +1265,23 @@ Log(Format("A {0} has {1} {2}.",list))
 <span class="comment">A cow has 4 legs.</span></pre>
 					</div>
 					<div class="f">
-						<span>ToNumber(<span class="var String">S</span>)</span></br>
+						<span>ToNumber(<span class="var String">S</span>)</span><br>
 						<div>返回：<span class="type">Number</span> 或 null</div>
 						<ul>
 							<li>如果字符串无法转换为数字，则返回 null。</li>
 						</ul>
 					</div>
 					
-					<h3 id="File Functions">文件</h3>
+					<h3 id="File-Functions">文件</h3>
 					<ul>
 						<li><b>所有路径均相对于你的项目目录。</b></li>
 					</ul>
 					<div class="f">
-						<span>FileExists(<span class="var String">Path</span>)</span></br>
+						<span>FileExists(<span class="var String">Path</span>)</span><br>
 						<div>返回：<span class="type">Boolean</span></div>
 					</div>
 					<div class="f">
-						<span>GetFiles([<span class="var String">Path</span>][, subfolders = <span class="var Boolean">SearchSubfolders</span>])</span></br>
+						<span>GetFiles([<span class="var String">Path</span>][, subfolders = <span class="var Boolean">SearchSubfolders</span>])</span><br>
 						<div>返回：<span class="type">List</span></div>
 						<ul>
 							<li>获取所有文件的列表。</li>
@@ -1289,7 +1289,7 @@ Log(Format("A {0} has {1} {2}.",list))
 						</ul>
 					</div>
 					<div class="f">
-						<span>GetFileExtension(<span class="var String">Path</span>)</span></br>
+						<span>GetFileExtension(<span class="var String">Path</span>)</span><br>
 						<div>返回：<span class="type">String</span></div>
 						<ul>
 							<li>返回扩展名（包含句点），若文件没有扩展名则返回空字符串。</li>
@@ -1678,7 +1678,7 @@ lglobal:
 							<div>返回：<span class="type">Number</span></div>
 							<ul>
 								<li>返回玩家所处地带中最后一个区域的距离。</li>
-								<li><b style="color: red">最后一个区域仅在调用 "Inside()" 时才会更新。</b></li>
+								<li><b> style="color: red">最后一个区域仅在调用 "Inside()" 时才会更新。</b></li>
 							</ul>
 							<span>DistanceToNearest()</span><br>
 							<span>DistanceToNearest(stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>)</span><br>
@@ -1714,7 +1714,7 @@ condition2 = CreateCondition("[Exposed_All,AdultToy_KuriRotor,(VibrationLow,Vibr
 								<li>存在用于动作、角色扮演服装、任务等的条件，它们使用一个前缀，后面跟游戏所使用的名称或 id。</li>
 								<li>要获取这些的列表，请在游戏中按 Ctrl+F9，并查看 BepInEx 控制台窗口。</li>
 								<br>							
-								<li>某些条件可以用运算符 &gt;、&gt;=、&lt;、&lt;=、==、!= 与数字进行比较。</li></li>
+								<li>某些条件可以用运算符 &gt;、&gt;=、&lt;、&lt;=、==、!= 与数字进行比较。</li>
 								<br>							
 								<li>你还可以在创建条件时设置一个 ID，并在另一个条件中通过条件类型 "Subcondition" 将其用作子条件。</li>
 								<li>这对 ItemCondition 同样适用。</li>
@@ -1815,7 +1815,7 @@ condition2 = CreateCondition("[Exposed_All,AdultToy_KuriRotor,(VibrationLow,Vibr
 							<div style="display: inline-block; width: 19px"></div>[, facecolor = <span class="var List"><a href="#Color">FaceColor</a></span>][, facedilate = <span class="var Number">FaceDilate</span>]<br>
 							<div style="display: inline-block; width: 19px"></div>[, outlinecolor = <span class="var List"><a href="#Color">OutlineColor</a></span>][, outlinewidth = <span class="var Number">OutlineWidth</span>]<br>
 							<div style="display: inline-block; width: 19px"></div>[, underlaycolor = <span class="var List"><a href="#Color">UnderlayColor</a></span>][, underlaydilate = <span class="var Number">UnderlayDilate</span>][, underlaysoftness = <span class="var Number">UnderlaySoftness</span>][, underlayoffsetx = <span class="var Number">UnderlayOffsetX</span>][, underlayoffsety = <span class="var Number">UnderlayOffsetY</span>]<br>
-							<div style="display: inline-block; width: 19px"></div>[, size = <span class="var Number">Size</span>][, alignment = <span class="var Number">Alignment</span>][, anchorx = <span class="var Number">AnchorX</span>][, anchory = <span class="var Number">AnchorY</span>][, width = <span class="var Number">Width</span>]</span><br>
+							<div style="display: inline-block; width: 19px"></div>[, size = <span class="var Number">Size</span>][, alignment = <span class="var Number">Alignment</span>][, anchorx = <span class="var Number">AnchorX</span>][, anchory = <span class="var Number">AnchorY</span>][, width = <span class="var Number">Width</span>]<br>
 							<div style="display: inline-block; width: 19px"></div>[<span class="var List">ListOfNamedParameters</span>])</span><br>
 							<div>返回：null</div>
 							<ul>
@@ -1825,7 +1825,7 @@ condition2 = CreateCondition("[Exposed_All,AdultToy_KuriRotor,(VibrationLow,Vibr
 						</div>
 					</div>
 
-					<h3 id="Messenger Chat">即时通讯聊天（Messenger Chat）</h3>
+					<h3 id="Messenger-Chat">即时通讯聊天（Messenger Chat）</h3>
 					<div class="f">
 						<h4>Constructors</h4>
 						<div class="f">
@@ -1907,7 +1907,7 @@ condition2 = CreateCondition("[Exposed_All,AdultToy_KuriRotor,(VibrationLow,Vibr
 							<div>返回：<span class="type">Object</span></div>
 							<ul>
 								<li>Gallery 对象用于从经过筛选的照片列表中显示并选择照片。</li>
-								<li>应从 <a href="#Messenger Chat">Messenger</a> 中的按钮触发，以确保玩家确实正在看手机。</li>
+								<li>应从 <a href="#Messenger-Chat">Messenger</a> 中的按钮触发，以确保玩家确实正在看手机。</li>
 								<li>回调函数会为图库中的每张图像被调用一次。
 									<ul>
 										<li>它会被传入一个 <i>data</i> 变量，其中包含该图像的元数据。</li>
@@ -1955,7 +1955,7 @@ condition2 = CreateCondition("[Exposed_All,AdultToy_KuriRotor,(VibrationLow,Vibr
 							<ul>
 								<li>创建一个用于拍摄快照的摄像机。</li>
 								<li>你必须等待下一帧让游戏完成渲染，然后才能保存图像。</li>
-								<li>关于额外的快照函数，另请参见<a href="#Additional Game Functions">附加游戏函数</a>。</li>
+								<li>关于额外的快照函数，另请参见<a href="#Additional-Game-Functions">附加游戏函数</a>。</li>
 								<li>在保存快照后，请通过移除所有引用来销毁该对象，否则会影响性能。</li>
 							</ul>
 						</div>
@@ -2310,7 +2310,7 @@ delaymanager:
 				CallFunction(method)
 			listeners[index] = null</pre>
 					
-					<h3 id="Game Constants">游戏常量</h3>
+					<h3 id="Game-Constants">游戏常量</h3>
 					<div class="f">
 						这里的值是游戏代码中所定义的常量列表。并非全部在使用时都能生效，有些甚至可能导致错误。
 						<h4 id="SoundEffect">SoundEffect</h4>
@@ -2670,7 +2670,7 @@ delaymanager:
 								<li>DildoWall</li>
 							</ul>
 						</div>
-						<h4 id="Player Data">Player Data</h4>
+						<h4 id="Player-Data">Player Data</h4>
 						<div class="f">
 							<b>字符串（String）：</b>
 							<ul>
@@ -2825,7 +2825,7 @@ delaymanager:
 							</ul>
 						</div>						
 					</div>
-					<h3 id="Mod Constants">Mod 常量</h3>
+					<h3 id="Mod-Constants">Mod 常量</h3>
 					<div class="f">
 						<h4 id="ConditonTypes">条件类型</h4>
 						<div style="column-count: 4">
@@ -2919,7 +2919,7 @@ delaymanager:
 							</div>
 						</div>
 					</div>
-					<h3 id="Global Variables">全局变量</h3>
+					<h3 id="Global-Variables">全局变量</h3>
 					<div class="f">
 						<h4 id="_state">_state</h4>
 						<ul style="column-count: 4">
@@ -3137,6 +3137,8 @@ Log(Format("Cleared Missions in \"{0}\": {1}/{2}", stage, _state.Missions[stage]
 					</div>
 				</div>
 			</div>
+		</div>
+	</div>
 		</div>
 	</body>
 </html>

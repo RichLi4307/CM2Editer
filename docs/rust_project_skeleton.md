@@ -4,6 +4,7 @@
 > 用途：定义 Rust 项目目录结构、模块划分和初始代码  
 > 阅读对象：Agent（后端实现）  
 > 相关文档：
+>
 > - 节点清单：[node_types.md](node_types.md)
 > - JSON 规范：[json_schema.md](json_schema.md)
 > - 开发约束：[agent_prompt.md](agent_prompt.md)
@@ -13,7 +14,7 @@
 
 ## 一、目录结构
 
-```
+```text
 CM2Editer/
 ├── Cargo.toml                 # 项目配置
 ├── Cargo.lock                 # 依赖锁定（自动生成）
@@ -131,12 +132,12 @@ pretty_assertions = "1.4"
 opt-level = 3
 lto = true
 strip = true
-```
+```text
 
 ### 依赖说明
 
 | 依赖 | 用途 |
-|------|------|
+| ------ | ------ |
 | `serde` / `serde_json` | JSON 序列化与反序列化 |
 | `thiserror` / `anyhow` | 错误处理 |
 | `tracing` | 结构化日志 |
@@ -391,7 +392,7 @@ impl PortType {
         }
     }
 }
-```
+```text
 
 ### 3.3 src/graph/node.rs — 节点结构
 
@@ -513,7 +514,7 @@ impl Edge {
         }
     }
 }
-```
+```text
 
 ### 3.5 src/graph/graph.rs — 图容器
 
@@ -735,7 +736,7 @@ impl GraphValidator {
         Ok(())
     }
 }
-```
+```text
 
 ### 3.7 src/serializer/json.rs — JSON 序列化
 
@@ -831,7 +832,7 @@ impl JsonSerializer {
 模块划分遵循**单向依赖**原则，避免循环引用。
 
 | 层级 | 职责 | 依赖关系 |
-|------|------|---------|
+| ------ | ------ | --------- |
 | **api** | 静态定义所有节点类型、参数、端口 | 不依赖其他模块 |
 | **graph** | 核心数据结构（节点、边、图） | 依赖 `api::types` |
 | **serializer** | JSON 读写、版本迁移 | 依赖 `graph`；不依赖 `api` |
@@ -856,7 +857,7 @@ impl JsonSerializer {
   ┌─────────┐      ┌─────────┐
   │serializer│      │   app   │
   └─────────┘      └─────────┘
-```
+```text
 
 ---
 
@@ -901,7 +902,7 @@ steps:
   - run: cargo fmt --check
   - run: cargo clippy -- -D warnings
   - run: cargo test
-```
+```text
 
 ---
 
@@ -917,24 +918,24 @@ steps:
 
 ### 阶段 2：序列化与代码生成
 
-4. [ ] 实现 `serializer::migration` — 版本迁移逻辑
-5. [ ] 实现 `code_gen::generator` — 将 Graph 导出为 `.code` 文件
-6. [ ] 实现 `code_gen::formatter` — 缩进与格式化
+1. [ ] 实现 `serializer::migration` — 版本迁移逻辑
+2. [ ] 实现 `code_gen::generator` — 将 Graph 导出为 `.code` 文件
+3. [ ] 实现 `code_gen::formatter` — 缩进与格式化
 
 ### 阶段 3：UI 层
 
-7. [ ] 实现 `ui::canvas` — 无限画布（网格、平移、缩放）
-8. [ ] 实现 `ui::node_renderer` — 节点卡片渲染（标题栏、端口、参数预览）
-9. [ ] 实现 `ui::edge_renderer` — 连线渲染（支持 waypoints）
-10. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
-11. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
-12. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
-13. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
+1. [ ] 实现 `ui::canvas` — 无限画布（网格、平移、缩放）
+2. [ ] 实现 `ui::node_renderer` — 节点卡片渲染（标题栏、端口、参数预览）
+3. [ ] 实现 `ui::edge_renderer` — 连线渲染（支持 waypoints）
+4. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
+5. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
+6. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
+7. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
 
 ### 阶段 4：集成
 
-14. [ ] 集成测试 — 端到端：创建图 → 保存 JSON → 加载 → 验证 → 生成代码
-15. [ ] 示例任务导入测试 — 使用 `docs/examples/new npc type/` 验证序列化与代码生成
+1. [ ] 集成测试 — 端到端：创建图 → 保存 JSON → 加载 → 验证 → 生成代码
+2. [ ] 示例任务导入测试 — 使用 `docs/examples/new npc type/` 验证序列化与代码生成
 
 ---
 

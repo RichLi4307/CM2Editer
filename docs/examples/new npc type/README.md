@@ -3,7 +3,7 @@
 ## 文件说明
 
 | 文件 | 作用 |
-|------|------|
+| ------ | ------ |
 | [main.code](main.code) | 任务脚本源码，包含三个并发线程：主线程、行走线程、全局陌生感控制线程 |
 | [meta.json](meta.json) | 任务元数据，供游戏加载器读取，用于任务选择界面和设置面板 |
 | [README.md](README.md) | 本文档，解释示例结构与 [meta.json](meta.json) 字段含义 |
@@ -14,32 +14,32 @@
 
 ```json
 {
-	"title": {
-		"En": "新NPC类型"
-	},
-	"description": {
-		"En": "settings"
-	},
-	"settings": [
-		{
-			"name": "blind",
-			"title": "NPC陌生感",
-			"type": "Boolean",
-			"default": false
-		},
-		{
-			"type": "Label",
-			"title": "Deactivate \"strangeness\" for all NPCs including those created by the game"
-		}
-	],
-	"defaultactive": false
+ "title": {
+  "En": "新NPC类型"
+ },
+ "description": {
+  "En": "settings"
+ },
+ "settings": [
+  {
+   "name": "blind",
+   "title": "NPC陌生感",
+   "type": "Boolean",
+   "default": false
+  },
+  {
+   "type": "Label",
+   "title": "Deactivate \"strangeness\" for all NPCs including those created by the game"
+  }
+ ],
+ "defaultactive": false
 }
-```
+```text
 
 ### 顶层字段
 
 | 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `title` | Object | 是 | 多语言任务标题，键为语言代码（`En`、`Ja` 等），值为显示文本 |
 | `description` | Object | 是 | 多语言任务描述，结构与 `title` 相同 |
 | `settings` | Array | 否 | 玩家可在游戏内调整的设置项列表 |
@@ -52,7 +52,7 @@
 #### 1. 可配置参数（`Boolean` / `Integer` / `Number` / `String` 等）
 
 | 字段 | 类型 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `name` | String | 参数在脚本中的访问名，如 `_settings.blind` |
 | `title` | String | 显示给玩家的设置名称 |
 | `type` | String | 参数类型，如 `Boolean`、`Integer`、`Number`、`String` |
@@ -109,7 +109,7 @@
 ## 关键 API 回顾
 
 | API | 作用 |
-|-----|------|
+| ----- | ------ |
 | `CreateThread("label")` | 创建并发线程，入口为指定标签 |
 | `CreateListener("label", ...)` | 每帧循环执行标签内代码 |
 | `CreateList()` | 创建空列表（数组/字典） |

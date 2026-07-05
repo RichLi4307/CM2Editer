@@ -4,6 +4,7 @@
 > 来源：基于 CustomMissions2 API 文档全面梳理  
 > 用途：定义编辑器必须支持的全部节点类型，作为开发契约  
 > 相关文档：
+>
 > - JSON 格式：[json_schema.md](json_schema.md)
 > - 项目架构：[rust_project_skeleton.md](rust_project_skeleton.md)
 > - 开发约束：[agent_prompt.md](agent_prompt.md)
@@ -25,7 +26,7 @@
 ## 二、基础控制（Control）
 
 | 节点 | 输入端口 | 输出端口 | 参数 | 说明 |
-|------|---------|---------|------|------|
+| ------ | --------- | --------- | ------ | ------ |
 | `Start` | — | `Flow` | — | 任务入口，每张图必须有且仅有一个 |
 | `Label` | `Flow` | `Flow` | `name: String` | 标签定义，可作为 Goto 目标 |
 | `Goto` | `Flow` | `Flow` | `label: String`, `params: Object` | 跳转到指定标签 |
@@ -42,7 +43,7 @@
 ## 三、通用函数（General Functions）
 
 | 节点 | 输入端口 | 输出端口 | 参数 | 返回类型 | 说明 |
-|------|---------|---------|------|---------|------|
+| ------ | --------- | --------- | ------ | --------- | ------ |
 | `Log` | `Flow` | `Flow` | `output: Any` | — | 控制台输出，用于调试 |
 | `Global` | `Flow` | `Flow` | `name: String`, `value: Any` | `Any` | 读写全局变量；`value` 非空时写入，否则读取 |
 | `Local` | `Flow` | `Flow` | `name: String`, `value: Any` | `Any` | 读写局部变量；作用域为当前线程/标签 |
@@ -64,7 +65,7 @@
 ### 4.1 物品与装备
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `DropItem` | `itemtype: String`, `stage: String`, `position: List`, `rotation: List`, `compass: Boolean` | `String/Number` | 在指定场景掉落物品，返回物品引用或 ID |
 | `CollectItem` | `itemtype: String`, `position: List` | `Boolean` | 捡起指定类型物品 |
 | `SetVibrator` | `strength: Number/String` | — | 设置跳蛋强度；`String` 用于模式名 |
@@ -81,7 +82,7 @@
 ### 4.2 玩家状态
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `SetPlayerPosition` | `position: List`, `rotation: List` | — | 设置玩家位置 |
 | `SetStage` | `stage: String`, `daytime: Boolean` | — | 切换场景 |
 | `SetCamera` | `pitch: Number`, `yaw: Number`, `lock: Boolean` | — | 设置摄像机 |
@@ -96,7 +97,7 @@
 ### 4.3 数值操作（RP/体力/快感等）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `AddCurrentEarnRP` | `value: Number` | `Number` | 增加本次外出赚取RP |
 | `SetCurrentEarnRP` | `value: Number` | `Number` | 设置本次外出赚取RP |
 | `GetCurrentEarnRP` | — | `Number` | 获取本次外出赚取RP |
@@ -119,7 +120,7 @@
 ### 4.4 游戏控制
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CanGameOver` | `value: Boolean` | `Boolean` | 设置/获取是否可游戏结束 |
 | `TriggerGameOver` | — | — | 强制触发游戏结束 |
 | `PlaySoundEffect` | `name: String`, `volume: Number`, `position: List` | — | 播放音效 |
@@ -136,7 +137,7 @@
 ## 五、附加游戏函数（Additional Game Functions）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `ShowBlackscreen` | `color: List`, `delay: Number`, `fadein: Number`, `duration: Number`, `fadeout: Number` | — | 显示黑屏/过渡 |
 | `GetSnapshotData` | `imageRef: String` | `List` | 获取快照元数据 |
 | `GetAllSnapshots` | `deleted: Boolean`, `hidden: Boolean` | `List` | 获取所有快照引用 |
@@ -159,7 +160,7 @@
 ### 7.1 标准数学
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `Random` | `min: Number`, `max: Number` | `Number` | 随机浮点数 |
 | `RandomInt` | `min: Number`, `max: Number` | `Number` | 随机整数 |
 | `Sin` / `Cos` / `Tan` | `angle: Number` | `Number` | 三角函数 |
@@ -172,7 +173,7 @@
 ### 7.2 向量
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `Vector` | `x: Number`, `y: Number`, `z: Number` | `List` | 创建向量 |
 | `Quaternion` | `rx, ry, rz, rw: Number` | `List` | 创建四元数 |
 | `Vector3Length` | `v: List` | `Number` | 向量长度 |
@@ -188,7 +189,7 @@
 ## 八、字符串函数（String）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `Length` | `s: String` | `Number` | 字符串长度 |
 | `Lower` / `Upper` | `s: String` | `String` | 大小写转换 |
 | `Find` | `sub: String`, `s: String` | `Number` | 查找子串索引 |
@@ -201,7 +202,7 @@
 ## 九、文件函数（File）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `FileExists` | `path: String` | `Boolean` | 文件是否存在 |
 | `GetFiles` | `path: String`, `subfolders: Boolean` | `List` | 获取文件列表 |
 | `GetFileExtension` | `path: String` | `String` | 获取文件扩展名 |
@@ -213,7 +214,7 @@
 ### 10.1 List（列表）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateList` | `keyValues: Object` | `List` | 创建列表 |
 | `Copy` | `list: List`, `deepCopy: Boolean` | `List` | 复制列表 |
 | `CreateListFromJson` | `file: String` | `List` | 从 JSON 文件创建列表 |
@@ -227,7 +228,7 @@
 ### 10.2 Thread（线程）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateThread` | `labelName: String`, `params: Any` | `Object` | 创建线程 |
 | `Thread.Goto` | `labelName: String`, `params: Any` | — | 跳转标签 |
 | `Thread.GetLabel` | — | `String` | 获取当前标签 |
@@ -243,7 +244,7 @@
 ### 10.4 MissionPanel（任务面板）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateMissionPanel` | — | `Object` | 创建任务面板 |
 | `MissionPanel.SetText` | `text: String` | — | 设置文本 |
 | `MissionPanel.SetRPText` | `text: String` | — | 设置RP文本 |
@@ -255,7 +256,7 @@
 ### 10.5 MissionMenuItem（任务菜单项）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateMissionMenuItem` | — | `Object` | 创建菜单项 |
 | `MissionMenuItem.SetText` / `GetText` | `text: String` | `String` | 文本 |
 | `MissionMenuItem.SetRPText` / `GetRPText` | `text: String` | `String` | RP文本 |
@@ -271,7 +272,7 @@
 ### 10.6 Area（区域）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateArea` | `type: String`, `stage: String`, `position: List`, `r: Number`, `h: Number`, `outline: Boolean`, `compass: Boolean/String` | `Object` | 创建区域 |
 | `Area.SetVisible` | `visible: Boolean` | — | 设置可见 |
 | `Area.SetColor` | `color: List` | — | 设置颜色 |
@@ -283,7 +284,7 @@
 ### 10.7 Zone（地带）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateZone` | `areas: List` | `Object` | 创建地带（多区域组合） |
 | `Zone.SetVisible` / `SetColor` | 同 Area | — | 同 Area |
 | `Zone.Inside` | `position: List` | `Boolean` | 是否在地带内 |
@@ -314,7 +315,7 @@
 ### 10.11 Text（文本）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateText` | — | `Object` | 创建文本对象 |
 | `Text.SetFace` / `SetOutline` / `SetUnderlay` | 颜色/宽度/偏移等 | — | 设置文本样式 |
 | `Text.SetAnchor` | `x: Number`, `y: Number` | — | 设置锚点 |
@@ -327,7 +328,7 @@
 ### 10.12 Messenger Chat（即时通讯）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateMessengerChat` | `title: String`, `iconText: String`, `iconTextColor: List`, `iconColor: List`, `iconFilename: String` | `Object` | 创建聊天 |
 | `Messenger.Add` | `text: String`, `orientation: String`, `user: String`, `userColor: List`, `silent: Boolean` | — | 添加消息 |
 | `Messenger.Clear` | — | — | 清空 |
@@ -338,7 +339,7 @@
 ### 10.13 Audio（音频）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateAudio` | `filePath: String` | `Object` | 创建音频 |
 | `Audio.Play` | `volume: Number`, `position: List` | — | 播放 |
 | `Audio.Length` | — | `Number` | 获取长度（秒） |
@@ -346,7 +347,7 @@
 ### 10.14 Gallery（图库）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateGallery` | `callback: String`, `condition: Object`, `area: Object`, `zone: Object` | `Object` | 创建图库 |
 | `Gallery.Show` | `multiselect: Boolean` | — | 显示图库 |
 | `Gallery.Confirmed` | — | `Boolean` | 是否确认选择 |
@@ -362,7 +363,7 @@
 ### 10.16 NPC
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateNPC` | `avatarType: String`, `position: List`, `rotation: List`, `body: Number`, `hair: Number`, `face: Number`, `size: Number` / `id: Number` | `Object` | 创建/连接NPC |
 | `NPC.IsAlive` | — | `Boolean` | 是否存活 |
 | `NPC.Respawn` | `position: List`, `rotation: List` | — | 重新生成 |
@@ -388,7 +389,7 @@
 ### 10.17 Input（输入）
 
 | 节点 | 参数 | 返回 | 说明 |
-|------|------|------|------|
+| ------ | ------ | ------ | ------ |
 | `CreateInput` | `button: String`, `modifier: String`, `interaction: String` | `Object` | 创建输入检测 |
 | `Input.WasPressed` | — | `Boolean` | 本帧是否按下 |
 | `Input.WasReleased` | — | `Boolean` | 本帧是否释放 |
@@ -399,8 +400,25 @@
 
 ## 十一、特殊节点（编译期/元数据）
 
+特殊节点用于编辑器内部或编译期处理，不直接对应运行时的 API 调用，但对序列化/代码生成有重要影响。
+
+- `Meta`：用于承载节点级别的元数据（仅编辑器使用），例如注释、作者、版本等，序列化时应放入 `meta` 字段。
+- `Comment`：纯注释节点，编辑器应在导出时忽略此节点，但在 JSON 中保留以便编辑体验（`comments` 字段或 `params` 中的注释键）。
+- `Group`：用于在画布上对节点分组（视觉分组），导出时不影响生成的 `.code`，但应保留位置信息以便还原视图。
+
+实现建议：
+
+- 编辑器在序列化时对特殊节点做显式处理，避免将其误认为可执行节点。
+- 验证器在检查节点类型时，应允许特殊节点存在，但不将其纳入拓扑排序或代码生成路径。
+
+---
+
+## 附注
+
+本文档作为节点类型的活文档（living document），未来会根据 CustomMissions2 API 的变更进行更新。如需补充或纠正某个节点的参数/端口定义，请提交 Issue 或 PR。
+
 | 节点 | 参数 | 说明 |
-|------|------|------|
+| ------ | ------ | ------ |
 | `Meta` | `title: Object`, `description: Object`, `settings: List` | 任务元数据，不生成代码但影响加载器；建议每个图最多一个 |
 | `Comment` | `text: String` | 注释节点，不参与序列化，仅用于画布说明 |
 | `Group` | `title: String`, `color: List` | 分组框，可包含多个节点，用于视觉组织 |
@@ -412,7 +430,7 @@
 颜色用于编辑器节点标题栏，帮助用户快速识别节点类别。
 
 | 分类 | 颜色 | 颜色值（RGBA） | 节点示例 |
-|------|------|---------------|---------|
+| ------ | ------ | --------------- | --------- |
 | 控制流 | 紫色 | `#9C27B0` | Start, If, While, Goto |
 | 通用函数 | 蓝色 | `#2196F3` | Log, CallFunction, Range |
 | 游戏动作 | 绿色 | `#4CAF50` | DropItem, SetStage, PlaySoundEffect |
