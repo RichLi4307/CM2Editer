@@ -36,7 +36,7 @@ impl Port {
 }
 
 /// 节点参数值，支持直接字面量或引用其他节点的输出
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum ParamValue {
     /// 引用另一个节点的输出端口

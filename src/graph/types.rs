@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// 每个变体对应 CustomMissions2 API 中定义的一个函数调用、控制结构
 /// 或对象构造函数/方法
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "PascalCase")]
 pub enum NodeType {
     // ── 控制流 ──

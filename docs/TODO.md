@@ -17,6 +17,8 @@
 | 实现 `graph/edge.rs`（Edge / EdgeEndpoint 结构） | ✅ 完成 | Agent | 2026-07-05 |
 | 实现 `graph/graph.rs`（Graph 容器：增删节点/边） | ✅ 完成 | Agent | 2026-07-05 |
 | 实现 `graph/validation.rs`（图验证器基础） | ✅ 完成 | Agent | 2026-07-05 |
+| 实现 `api/definitions.rs`（节点/端口/参数定义） | ✅ 完成 | Agent | 2026-07-06 |
+| 实现 `api/registry.rs`（节点注册表） | ✅ 完成 | Agent | 2026-07-06 |
 
 ---
 
@@ -41,8 +43,8 @@
 
 - [x] **1.1.1** 实现 `src/error.rs` — `FlowError` 枚举 + `Result<T>` 别名
 - [x] **1.1.2** 实现 `src/graph/types.rs` — `NodeType` 枚举（全部节点）、`PortType` 枚举（含兼容性与颜色）
-- [ ] **1.1.3** 实现 `src/api/mod.rs` + `src/api/definitions.rs` — `NodeDefinition` / `PortDefinition` / `ParamDefinition` 结构
-- [ ] **1.1.4** 实现 `src/api/registry.rs` — 节点注册表（静态定义 → 运行时查询）
+- [x] **1.1.3** 实现 `src/api/mod.rs` + `src/api/definitions.rs` — `NodeDefinition` / `PortDefinition` / `ParamDefinition` 结构
+- [x] **1.1.4** 实现 `src/api/registry.rs` — 节点注册表（静态定义 → 运行时查询）
 
 ### 1.2 图数据结构
 
@@ -211,6 +213,7 @@
 | 2026-07-05 | 1.1.2 | 实现 `graph/types.rs` — NodeType(103种) + PortType | ✅ |
 | 2026-07-05 | 1.2.4 | 实现 `graph/mod.rs` 模块导出 | ✅ |
 | 2026-07-05 | 当前冲刺 | 实现 `graph/node.rs`、`edge.rs`、`graph.rs`、`validation.rs` 及单元测试；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
+| 2026-07-06 | 1.1.3,1.1.4 | 实现 `api/definitions.rs`、`api/registry.rs`、更新 `NodeType`/`ParamValue` 派生；`cargo test` 通过（34 项） | ✅ |
 
 ---
 
