@@ -2,7 +2,12 @@
 
 > 版本：v1.0  
 > 用途：定义 Rust 项目目录结构、模块划分和初始代码  
-> 阅读对象：Agent（后端实现）
+> 阅读对象：Agent（后端实现）  
+> 相关文档：
+> - 节点清单：`docs/node_types.md`
+> - JSON 规范：`docs/json_schema.md`
+> - 开发约束：`docs/agent_prompt.md`
+> - 示例任务：`docs/examples/new npc type/`
 
 ---
 
@@ -23,7 +28,6 @@ CM2Editer/
 │   ├── app.rs                 # 应用主循环 / 状态管理
 │   ├── config.rs              # 配置加载与保存
 │   ├── error.rs               # 全局错误类型定义
-│   ├──
 │   ├── graph/                 # 图数据结构（核心）
 │   │   ├── mod.rs
 │   │   ├── node.rs            # Node 结构体 + 端口
@@ -31,19 +35,16 @@ CM2Editer/
 │   │   ├── graph.rs           # Graph 容器（节点+边集合）
 │   │   ├── types.rs           # 节点类型枚举、端口类型枚举
 │   │   └── validation.rs      # 图验证器（环检测、类型检查等）
-│   ├──
 │   ├── serializer/            # 序列化 / 反序列化
 │   │   ├── mod.rs
 │   │   ├── json.rs            # JSON ↔ Graph 转换
 │   │   └── migration.rs       # 版本迁移逻辑
-│   ├──
 │   ├── code_gen/              # 代码生成（Graph → .code）
 │   │   ├── mod.rs
 │   │   ├── generator.rs       # 主生成器
 │   │   ├── formatter.rs       # 缩进与格式化
 │   │   └── templates/         # 代码模板
 │   │       └── node_templates.json
-│   ├──
 │   ├── ui/                    # UI 层（前端交互）
 │   │   ├── mod.rs
 │   │   ├── canvas.rs          # 画布（无限网格、平移缩放）
@@ -57,21 +58,20 @@ CM2Editer/
 │   │   │   └── status_bar.rs      # 底部：状态栏
 │   │   ├── interaction.rs     # 交互逻辑（拖拽、框选、连线）
 │   │   └── theme.rs           # 主题与颜色配置
-│   ├──
 │   └── api/                   # 游戏 API 定义（节点清单的数据层）
-       ├── mod.rs
-       ├── definitions.rs       # 所有函数/对象的静态定义
-       └── registry.rs          # 节点注册表（运行时查询）
-│
+│       ├── mod.rs
+│       ├── definitions.rs       # 所有函数/对象的静态定义
+│       └── registry.rs          # 节点注册表（运行时查询）
 ├── tests/                     # 集成测试
+│   ├── fixtures/              # 测试数据（示例 JSON、.code 文件）
 │   ├── test_graph.rs
 │   ├── test_serializer.rs
 │   └── test_validation.rs
-│
 └── docs/                      # 文档
-    ├── node_types.md          # 节点清单（你之前生成的）
+    ├── agent_prompt.md
+    ├── node_types.md          # 节点清单
     ├── json_schema.md         # JSON 规范
-    └── ui_spec.md             # UI 设计规范
+    └── rust_project_skeleton.md
 ```
 
 ---
@@ -133,7 +133,21 @@ lto = true
 strip = true
 ```
 
-> 注意：GUI 框架待选定。如果做桌面端，推荐 `egui`（即时模式，开发快）或 `iced`（保留模式，更像 React）。如果嵌入 Web，用 `egui` + `wasm-bindgen`。
+### 依赖说明
+
+| 依赖 | 用途 |
+|------|------|
+| `serde` / `serde_json` | JSON 序列化与反序列化 |
+| `thiserror` / `anyhow` | 错误处理 |
+| `tracing` | 结构化日志 |
+| `clap` | 命令行参数解析 |
+| `uuid` | 全局唯一 ID 生成 |
+| `glam` | 向量、颜色等数值计算 |
+| `egui` / `eframe`（可选） | 即时模式 GUI |
+| `tempfile`（dev） | 测试临时目录 |
+| `pretty_assertions`（dev） | 更易读的测试失败输出 |
+
+> 注意：GUI 框架待选定。如果做桌面端，推荐 `egui`（即时模式，开发快）或 `iced`（保留模式，更像 React）。如果嵌入 Web，用 `egui` + `wasm-bindgen`。若需要原生文件对话框，启用 `rfd`。
 
 ---
 
@@ -386,6 +400,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::types::{NodeType, PortType};
+use super::node::Vec2;
 
 /// 端口定义
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -421,7 +436,7 @@ pub struct Node {
 
 impl Node {
     pub fn new(node_type: NodeType, position: Vec2) -> Self {
-        let id = format!("node_{}", Uuid::new_v4().to_string()[..8].to_string());
+        let id = format!("node_{}", &Uuid::new_v4().to_string()[..8]);
         Self {
             id,
             node_type,
@@ -459,6 +474,8 @@ impl Vec2 {
     pub fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
+
+    pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
 }
 ```
 
@@ -467,6 +484,7 @@ impl Vec2 {
 ```rust
 use serde::{Deserialize, Serialize};
 use super::types::PortType;
+use super::node::Vec2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Edge {
@@ -485,7 +503,7 @@ pub struct EdgeEndpoint {
 
 impl Edge {
     pub fn new(from: EdgeEndpoint, to: EdgeEndpoint, edge_type: PortType) -> Self {
-        let id = format!("edge_{}_{}", from.node_id, to.node_id);
+        let id = format!("edge_{}_{}_{}_{}", from.node_id, from.port_id, to.node_id, to.port_id);
         Self {
             id,
             from,
@@ -501,7 +519,8 @@ impl Edge {
 
 ```rust
 use std::collections::{HashMap, HashSet};
-use super::{Node, Edge, EdgeEndpoint, FlowError, Result};
+use crate::error::{FlowError, Result};
+use super::{Edge, EdgeEndpoint, Node};
 
 #[derive(Debug, Default)]
 pub struct Graph {
@@ -511,19 +530,22 @@ pub struct Graph {
 }
 
 impl Graph {
+    /// 添加节点；若存在相同 ID，则覆盖旧节点
     pub fn add_node(&mut self, node: Node) {
         self.nodes.insert(node.id.clone(), node);
     }
 
+    /// 删除节点，并级联删除与之相连的所有边
     pub fn remove_node(&mut self, node_id: &str) -> Result<()> {
         if !self.nodes.contains_key(node_id) {
             return Err(FlowError::NodeNotFound(node_id.to_string()));
         }
-        // 级联删除相关连线
+
         let edges_to_remove: Vec<String> = self.edges.values()
             .filter(|e| e.from.node_id == node_id || e.to.node_id == node_id)
             .map(|e| e.id.clone())
             .collect();
+
         for edge_id in edges_to_remove {
             self.edges.remove(&edge_id);
         }
@@ -531,17 +553,12 @@ impl Graph {
         Ok(())
     }
 
+    /// 添加边，并验证端点节点与端口存在性
     pub fn add_edge(&mut self, edge: Edge) -> Result<()> {
-        // 验证节点存在
-        if !self.nodes.contains_key(&edge.from.node_id) {
-            return Err(FlowError::NodeNotFound(edge.from.node_id.clone()));
-        }
-        if !self.nodes.contains_key(&edge.to.node_id) {
-            return Err(FlowError::NodeNotFound(edge.to.node_id.clone()));
-        }
-        // 验证端口存在
-        let from_node = self.nodes.get(&edge.from.node_id).unwrap();
-        let to_node = self.nodes.get(&edge.to.node_id).unwrap();
+        let from_node = self.nodes.get(&edge.from.node_id)
+            .ok_or_else(|| FlowError::NodeNotFound(edge.from.node_id.clone()))?;
+        let to_node = self.nodes.get(&edge.to.node_id)
+            .ok_or_else(|| FlowError::NodeNotFound(edge.to.node_id.clone()))?;
 
         if from_node.get_port(&edge.from.port_id, false).is_none() {
             return Err(FlowError::ConnectionError(
@@ -577,8 +594,10 @@ impl Graph {
 ### 3.6 src/graph/validation.rs — 图验证器
 
 ```rust
-use std::collections::{HashSet, VecDeque};
-use super::{Graph, FlowError, Result, PortType};
+use std::collections::{HashMap, HashSet, VecDeque};
+use crate::error::{FlowError, Result};
+use super::types::PortType;
+use super::Graph;
 
 pub struct GraphValidator;
 
@@ -621,8 +640,10 @@ impl GraphValidator {
     /// 检查端口类型兼容性
     fn check_type_compatibility(graph: &Graph) -> Result<()> {
         for edge in graph.edges.values() {
-            let from_node = graph.nodes.get(&edge.from.node_id).unwrap();
-            let to_node = graph.nodes.get(&edge.to.node_id).unwrap();
+            let from_node = graph.nodes.get(&edge.from.node_id)
+                .ok_or_else(|| FlowError::NodeNotFound(edge.from.node_id.clone()))?;
+            let to_node = graph.nodes.get(&edge.to.node_id)
+                .ok_or_else(|| FlowError::NodeNotFound(edge.to.node_id.clone()))?;
 
             let from_port = from_node.get_port(&edge.from.port_id, false)
                 .ok_or_else(|| FlowError::ConnectionError(format!("Port not found: {}", edge.from.port_id)))?;
@@ -720,7 +741,8 @@ impl GraphValidator {
 
 ```rust
 use serde_json::Value;
-use crate::graph::{Graph, Node, Edge, Vec2, FlowError, Result};
+use crate::error::{FlowError, Result};
+use crate::graph::{Edge, Graph, Node};
 use crate::graph::types::PortType;
 
 pub struct JsonSerializer;
@@ -736,16 +758,16 @@ impl JsonSerializer {
         }
 
         let nodes: Vec<Value> = graph.nodes.values()
-            .map(|n| serde_json::to_value(n).unwrap())
-            .collect();
+            .map(|n| serde_json::to_value(n).map_err(FlowError::Json))
+            .collect::<Result<Vec<_>>>()?;
         root.insert("nodes".to_string(), Value::Array(nodes));
 
         let edges: Vec<Value> = graph.edges.values()
-            .map(|e| serde_json::to_value(e).unwrap())
-            .collect();
+            .map(|e| serde_json::to_value(e).map_err(FlowError::Json))
+            .collect::<Result<Vec<_>>>()?;
         root.insert("edges".to_string(), Value::Array(edges));
 
-        let labels = serde_json::to_value(&graph.labels).unwrap();
+        let labels = serde_json::to_value(&graph.labels)?;
         root.insert("labels".to_string(), labels);
 
         Ok(Value::Object(root))
@@ -806,14 +828,35 @@ impl JsonSerializer {
 
 ## 四、模块划分原则
 
+模块划分遵循**单向依赖**原则，避免循环引用。
+
 | 层级 | 职责 | 依赖关系 |
 |------|------|---------|
 | **api** | 静态定义所有节点类型、参数、端口 | 不依赖其他模块 |
-| **graph** | 核心数据结构（节点、边、图） | 依赖 api::types |
-| **serializer** | JSON 读写、版本迁移 | 依赖 graph |
-| **code_gen** | Graph → .code 代码生成 | 依赖 graph, api |
-| **ui** | 用户界面、画布交互 | 依赖 graph, api |
+| **graph** | 核心数据结构（节点、边、图） | 依赖 `api::types` |
+| **serializer** | JSON 读写、版本迁移 | 依赖 `graph`；不依赖 `api` |
+| **code_gen** | 生成 `.code` 文件 | 依赖 `graph`、`api` |
+| **ui** | 用户界面、画布交互 | 依赖 `graph`、`api` |
 | **app** | 应用状态、主循环、事件分发 | 依赖所有上层模块 |
+
+### 依赖图
+
+```text
+           ┌─────┐
+           │ api │
+           └──┬──┘
+              │
+     ┌────────┼────────┐
+     ▼        ▼        ▼
+  ┌──────┐ ┌────┐ ┌──────────┐
+  │graph │ │ ui │ │ code_gen │
+  └──┬───┘ └────┘ └─────┬────┘
+     │                  │
+     ▼                  ▼
+  ┌─────────┐      ┌─────────┐
+  │serializer│      │   app   │
+  └─────────┘      └─────────┘
+```
 
 ---
 
@@ -826,8 +869,11 @@ cargo build
 # 运行
 cargo run
 
-# 测试
+# 运行测试（单元测试 + 集成测试）
 cargo test
+
+# 运行测试并显示输出
+cargo test -- --nocapture
 
 # 发布构建
 cargo build --release
@@ -835,24 +881,61 @@ cargo build --release
 # 格式化代码
 cargo fmt
 
-# 检查
+# 静态检查
 cargo check
 
-# Clippy 静态分析
-cargo clippy
+# Clippy 静态分析（视警告为错误）
+cargo clippy -- -D warnings
+
+# 生成文档
+cargo doc --open
+```
+
+### 推荐 CI 流程
+
+```yaml
+# .github/workflows/ci.yml 示例
+steps:
+  - uses: actions/checkout@v4
+  - uses: dtolnay/rust-toolchain@stable
+  - run: cargo fmt --check
+  - run: cargo clippy -- -D warnings
+  - run: cargo test
 ```
 
 ---
 
 ## 六、下一步任务（给 Agent）
 
-1. [ ] 实现 `api::definitions` — 为每个 NodeType 定义参数模板和端口模板
+按以下顺序实现可降低模块间耦合：
+
+### 阶段 1：数据层
+
+1. [ ] 实现 `api::definitions` — 为每个 `NodeType` 定义参数模板和端口模板
 2. [ ] 实现 `api::registry` — 运行时节点查询（根据类型名获取定义）
-3. [ ] 实现 `ui::canvas` — 无限画布（网格、平移、缩放）
-4. [ ] 实现 `ui::node_renderer` — 节点卡片渲染（标题栏、端口、参数预览）
-5. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
-6. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
-7. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
-8. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
-9. [ ] 实现 `code_gen::generator` — 将 Graph 导出为 .code 文件
-10. [ ] 集成测试 — 端到端：创建图 → 保存 JSON → 加载 → 验证 → 生成代码
+3. [ ] 实现 `graph::validation::check_required_params` — 接入 `api::definitions` 完成必填参数检查
+
+### 阶段 2：序列化与代码生成
+
+4. [ ] 实现 `serializer::migration` — 版本迁移逻辑
+5. [ ] 实现 `code_gen::generator` — 将 Graph 导出为 `.code` 文件
+6. [ ] 实现 `code_gen::formatter` — 缩进与格式化
+
+### 阶段 3：UI 层
+
+7. [ ] 实现 `ui::canvas` — 无限画布（网格、平移、缩放）
+8. [ ] 实现 `ui::node_renderer` — 节点卡片渲染（标题栏、端口、参数预览）
+9. [ ] 实现 `ui::edge_renderer` — 连线渲染（支持 waypoints）
+10. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
+11. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
+12. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
+13. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
+
+### 阶段 4：集成
+
+14. [ ] 集成测试 — 端到端：创建图 → 保存 JSON → 加载 → 验证 → 生成代码
+15. [ ] 示例任务导入测试 — 使用 `docs/examples/new npc type/` 验证序列化与代码生成
+
+---
+
+> 提示：开始实现前，请确保已阅读 `docs/agent_prompt.md` 中的开发约束与 `docs/node_types.md` 中的节点清单。

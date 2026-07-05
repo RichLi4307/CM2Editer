@@ -118,7 +118,7 @@ pub enum NodeType {
     SetCurrentRP,
     /// 获取持有的 RP
     GetCurrentRP,
-    /// 设置 ecstasy（快感）值
+    /// 设置 ecstasy 值
     SetEcstasy,
     /// 增加 ecstasy 值
     AddEcstasy,

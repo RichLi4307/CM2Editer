@@ -2,18 +2,23 @@
 
 > 版本：v1.0  
 > 来源：基于 CustomMissions2 API 文档全面梳理  
-> 用途：定义编辑器必须支持的全部节点类型，作为开发契约
+> 用途：定义编辑器必须支持的全部节点类型，作为开发契约  
+> 相关文档：
+> - JSON 格式：`docs/json_schema.md`
+> - 项目架构：`docs/rust_project_skeleton.md`
+> - 开发约束：`docs/agent_prompt.md`
 
 ---
 
 ## 一、约定
 
 - 每个节点对应文档中的一个**函数调用**、**控制结构**或**对象构造/方法**。
-- 节点类型命名采用 `PascalCase`，与文档中的函数名保持一致。
+- 节点类型命名采用 `PascalCase`，与文档中的函数名保持一致；对象方法使用 `Object.Method` 形式（如 `Area.Inside`）。
 - 端口分为两类：
-  - **执行流（Flow）**：白色，控制执行顺序
-  - **数据端口（Data）**：彩色，传递 Number/String/Boolean/List/Object
+  - **执行流（Flow）**：白色，控制执行顺序，对应 `.code` 中的逐行执行
+  - **数据端口（Data）**：彩色，传递 Number/String/Boolean/List/Object，用于参数动态化
 - 节点按功能分组，对应编辑器左侧面板的分类树。
+- 参数类型中 `Any` 表示接受任意类型；`Object` 通常表示游戏对象引用（Thread/Area/NPC 等）。
 
 ---
 
@@ -29,8 +34,8 @@
 | `For` | `Flow` | `Flow`, `Break: Flow` | `iterable: List` | 遍历列表，变量名 `i` |
 | `Break` | `Flow` | — | — | 提前退出循环 |
 | `Return` | `Flow` | — | `value: Any` | 函数返回，设置 `_result` |
-| `Wait` | `Flow` | `Flow` | `seconds: Number` | 延迟等待（基于 `_timediff`） |
-| `WaitForEvent` | `Flow` | `Flow` | `eventName: String` | 等待 SetEvent 触发 |
+| `Wait` | `Flow` | `Flow` | `seconds: Number` | 延迟等待（基于 `_timediff`，单位为秒） |
+| `WaitForEvent` | `Flow` | `Flow` | `eventName: String` | 阻塞当前线程，直到 `SetEvent` 触发指定事件 |
 
 ---
 
@@ -38,19 +43,19 @@
 
 | 节点 | 输入端口 | 输出端口 | 参数 | 返回类型 | 说明 |
 |------|---------|---------|------|---------|------|
-| `Log` | `Flow` | `Flow` | `output: Any` | — | 控制台输出 |
-| `Global` | `Flow` | `Flow` | `name: String`, `value: Any` | `Any` | 读写全局变量 |
-| `Local` | `Flow` | `Flow` | `name: String`, `value: Any` | `Any` | 读写局部变量 |
-| `GetType` | `Flow` | `Flow` | `value: Any` | `String` | 获取值类型 |
-| `GetLanguage` | `Flow` | `Flow` | — | `String` | 获取当前语言 |
-| `DumpVariables` | `Flow` | `Flow` | `recursion: Number` | — | 打印变量 |
-| `DumpVariable` | `Flow` | `Flow` | `var: Any`, `recursion: Number` | — | 打印单个变量 |
-| `CallFunction` | `Flow` | `Flow` | `function: String`, `params: List` | `Any` | 动态调用函数 |
-| `CallMethod` | `Flow` | `Flow` | `thread: Object`, `method: String`, `params: List` | `Any` | 动态调用方法 |
-| `Color` | `Flow` | `Flow` | `r: Number`, `g: Number`, `b: Number`, `a: Number` | `List` | 创建颜色列表 |
-| `Range` | `Flow` | `Flow` | `start: Number`, `stop: Number`, `step: Number` | `List` | 生成数字范围 |
-| `SetEvent` | `Flow` | `Flow` | `name: String`, `value: Any` | — | 设置跨项目事件 |
-| `GetEvent` | `Flow` | `Flow` | `name: String` | `List` | 获取事件数据 |
+| `Log` | `Flow` | `Flow` | `output: Any` | — | 控制台输出，用于调试 |
+| `Global` | `Flow` | `Flow` | `name: String`, `value: Any` | `Any` | 读写全局变量；`value` 非空时写入，否则读取 |
+| `Local` | `Flow` | `Flow` | `name: String`, `value: Any` | `Any` | 读写局部变量；作用域为当前线程/标签 |
+| `GetType` | `Flow` | `Flow` | `value: Any` | `String` | 获取值类型名（如 `"Number"`、`"String"`） |
+| `GetLanguage` | `Flow` | `Flow` | — | `String` | 获取当前语言代码（如 `"En"`、`"Ja"`） |
+| `DumpVariables` | `Flow` | `Flow` | `recursion: Number` | — | 打印所有变量到日志 |
+| `DumpVariable` | `Flow` | `Flow` | `var: Any`, `recursion: Number` | — | 打印单个变量到日志 |
+| `CallFunction` | `Flow` | `Flow` | `function: String`, `params: List` | `Any` | 动态调用函数名 |
+| `CallMethod` | `Flow` | `Flow` | `thread: Object`, `method: String`, `params: List` | `Any` | 动态调用对象方法 |
+| `Color` | `Flow` | `Flow` | `r: Number`, `g: Number`, `b: Number`, `a: Number` | `List` | 创建颜色列表 `[r, g, b, a]` |
+| `Range` | `Flow` | `Flow` | `start: Number`, `stop: Number`, `step: Number` | `List` | 生成数字范围 `[start, start+step, ...]` |
+| `SetEvent` | `Flow` | `Flow` | `name: String`, `value: Any` | — | 设置跨线程/跨帧事件数据 |
+| `GetEvent` | `Flow` | `Flow` | `name: String` | `List` | 获取事件数据；若无事件返回空列表 |
 
 ---
 
@@ -60,16 +65,16 @@
 
 | 节点 | 参数 | 返回 | 说明 |
 |------|------|------|------|
-| `DropItem` | `itemtype: String`, `stage: String`, `position: List`, `rotation: List`, `compass: Boolean` | `String/Number` | 掉落物品 |
-| `CollectItem` | `itemtype: String`, `position: List` | `Boolean` | 捡起物品 |
-| `SetVibrator` | `strength: Number/String` | — | 设置跳蛋强度 |
-| `SetPiston` | `strength: Number/String` | — | 设置活塞强度 |
+| `DropItem` | `itemtype: String`, `stage: String`, `position: List`, `rotation: List`, `compass: Boolean` | `String/Number` | 在指定场景掉落物品，返回物品引用或 ID |
+| `CollectItem` | `itemtype: String`, `position: List` | `Boolean` | 捡起指定类型物品 |
+| `SetVibrator` | `strength: Number/String` | — | 设置跳蛋强度；`String` 用于模式名 |
+| `SetPiston` | `strength: Number/String` | — | 设置活塞强度；`String` 用于模式名 |
 | `LockHandcuffs` | `handcuffstype: String`, `attachtoobject: Boolean`, `duration: Number` | — | 上锁手铐 |
 | `UnlockHandcuffs` | — | — | 解锁手铐 |
 | `EquipCosplay` | `cosplayKeys: List` | — | 装备角色扮演服装 |
 | `UnequipCosplay` | `cosplayKeys: List` | — | 卸下角色扮演服装 |
-| `UnequipAllCosplay` | — | — | 卸下全部 |
-| `OwnCosplay` | `owns: Boolean`, `cosplayKeys: List` | — | 设置拥有状态 |
+| `UnequipAllCosplay` | — | — | 卸下全部角色扮演服装 |
+| `OwnCosplay` | `owns: Boolean`, `cosplayKeys: List` | — | 设置服装拥有状态 |
 | `EquipAdultToy` | `toyNames: List` | — | 装备成人玩具 |
 | `UnequipAdultToy` | `toyNames: List` | — | 卸下成人玩具 |
 
@@ -104,9 +109,9 @@
 | `SetStamina` | `value: Number` | `Number` | 设置体力 |
 | `AddStamina` | `value: Number` | `Number` | 增加体力 |
 | `GetStamina` | — | `Number` | 获取体力 |
-| `SetMoisture` | `value: Number` | `Number` | 设置膀胱充盈度 |
-| `AddMoisture` | `value: Number` | `Number` | 增加膀胱充盈度 |
-| `GetMoisture` | — | `Number` | 获取膀胱充盈度 |
+| `SetMoisture` | `value: Number` | `Number` | 设置膀胱/湿润度 |
+| `AddMoisture` | `value: Number` | `Number` | 增加膀胱/湿润度 |
+| `GetMoisture` | — | `Number` | 获取膀胱/湿润度 |
 | `SetItemCount` | `item: String`, `count: Number` | `Number` | 设置物品数量 |
 | `AddItemCount` | `item: String`, `count: Number` | `Number` | 增加物品数量 |
 | `GetItemCount` | `item: String` | `Number` | 获取物品数量 |
@@ -396,32 +401,37 @@
 
 | 节点 | 参数 | 说明 |
 |------|------|------|
-| `Meta` | `title: Object`, `description: Object`, `settings: List` | 任务元数据，不生成代码但影响加载器 |
-| `Comment` | `text: String` | 注释节点，不参与序列化 |
-| `Group` | `title: String`, `color: List` | 分组框，可包含多个节点 |
+| `Meta` | `title: Object`, `description: Object`, `settings: List` | 任务元数据，不生成代码但影响加载器；建议每个图最多一个 |
+| `Comment` | `text: String` | 注释节点，不参与序列化，仅用于画布说明 |
+| `Group` | `title: String`, `color: List` | 分组框，可包含多个节点，用于视觉组织 |
 
 ---
 
 ## 十二、节点类型颜色编码（建议）
 
-| 分类 | 颜色 | 节点示例 |
-|------|------|---------|
-| 控制流 | 紫色 `#9C27B0` | Start, If, While, Goto |
-| 通用函数 | 蓝色 `#2196F3` | Log, CallFunction, Range |
-| 游戏动作 | 绿色 `#4CAF50` | DropItem, SetStage, PlaySoundEffect |
-| 数值操作 | 橙色 `#FF9800` | AddCurrentRP, SetEcstasy, GetStamina |
-| 对象构造 | 青色 `#00BCD4` | CreateArea, CreateNPC, CreateThread |
-| 对象方法 | 浅蓝 `#03A9F4` | Area.Inside, NPC.Warp, Text.Add |
-| 数学 | 灰色 `#607D8B` | Random, Sin, Vector3Add |
-| 字符串 | 粉色 `#E91E63` | Format, SubString, ToNumber |
-| 文件 | 棕色 `#795548` | FileExists, GetFiles |
-| 等待/事件 | 黄色 `#FFEB3B` | Wait, WaitForEvent, CreateListener |
-| 特殊 | 灰色 `#757575` | Meta, Comment, Group |
+颜色用于编辑器节点标题栏，帮助用户快速识别节点类别。
+
+| 分类 | 颜色 | 颜色值（RGBA） | 节点示例 |
+|------|------|---------------|---------|
+| 控制流 | 紫色 | `#9C27B0` | Start, If, While, Goto |
+| 通用函数 | 蓝色 | `#2196F3` | Log, CallFunction, Range |
+| 游戏动作 | 绿色 | `#4CAF50` | DropItem, SetStage, PlaySoundEffect |
+| 数值操作 | 橙色 | `#FF9800` | AddCurrentRP, SetEcstasy, GetStamina |
+| 对象构造 | 青色 | `#00BCD4` | CreateArea, CreateNPC, CreateThread |
+| 对象方法 | 浅蓝 | `#03A9F4` | Area.Inside, NPC.Warp, Text.Add |
+| 数学 | 灰色 | `#607D8B` | Random, Sin, Vector3Add |
+| 字符串 | 粉色 | `#E91E63` | Format, SubString, ToNumber |
+| 文件 | 棕色 | `#795548` | FileExists, GetFiles |
+| 等待/事件 | 黄色 | `#FFEB3B` | Wait, WaitForEvent, CreateListener |
+| 特殊 | 灰色 | `#757575` | Meta, Comment, Group |
+
+> 颜色定义同时应写入 `src/ui/theme.rs` 或 `assets/themes/default.json`，保持代码与文档一致。
 
 ---
 
 ## 十三、版本说明
 
 - 本清单基于 API 文档 v1.0 梳理。
-- 新增 API 函数时，按相同格式追加节点定义即可。
+- 新增 API 函数时，按相同格式追加节点定义即可；同时更新 `src/api/definitions.rs` 与 `src/graph/types.rs` 中的 `NodeType` 枚举。
 - 节点参数中的可选值用 `[]` 标出，编辑器 UI 中应体现为「非必填」。
+- 若某节点同时支持读写（如 `Global` / `Local` / `NPC.Stopped`），其参数 `value` 为空时表示读取，非空时表示写入。

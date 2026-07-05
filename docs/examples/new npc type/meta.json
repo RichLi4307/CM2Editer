@@ -1,0 +1,21 @@
+{
+	"title":{
+		"En":"新NPC类型"
+	},
+	"description":{
+		"En":"settings"
+	},
+	"settings":[
+		{
+			"name":"blind",
+			"title":"NPC陌生感",
+			"type":"Boolean",
+			"default":false
+		},
+		{
+			"type":"Label",
+			"title":"Deactivate \"strangeness\" for all NPCs including those created by the game"
+		}		
+	],
+	"defaultactive":false
+}

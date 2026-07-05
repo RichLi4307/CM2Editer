@@ -1,0 +1,272 @@
+# ============================================================
+# 示例任务：新 NPC 类型（New NPC Type）
+# ============================================================
+# 本示例展示如何在 Residence 场景中：
+#   1. 创建一个可交互的 NPC 生成点，支持多种 NPC 类型选择；
+#   2. 创建装备切换交互点（智能手机 / 耳机 / 眼镜）；
+#   3. 创建一个沿路径点行走的 NPC；
+#   4. 为所有 NPC（包括游戏本身生成的）禁用陌生感（strangeness）。
+#
+# 线程结构：
+#   - main   : NPC 生成与装备切换面板
+#   - walk   : 行走 NPC 控制
+#   - blind  : 全局禁用陌生感
+# ============================================================
+
+# ------------------------------------------------------------
+# 启动三个顶层线程，分别对应三个标签入口
+# CreateThread("label") 会创建并发执行流，各线程拥有独立作用域
+# ------------------------------------------------------------
+mainthread = CreateThread("main")       # 主线程：处理 NPC 生成与装备切换
+walkthread = CreateThread("walk")       # 行走线程：控制单个巡逻 NPC
+blindthread = CreateThread("blind")     # 全局陌生感关闭线程
+
+# ============================================================
+# 主线程：NPC 生成与装备切换
+# ============================================================
+main:
+	thread = _this                        # _this 为当前线程对象引用，可用于后续 Thread.Goto 等
+
+	npcs = CreateList()                   # 存储当前已生成的 NPC 对象列表
+
+	# --------------------------------------------------------
+	# 定义 6 种可生成的 NPC 类型，每种类型包含：
+	#   - type        : NPC 类型标识，对应 CreateNPC 的第一个参数
+	#   - count       : 该类型默认生成数量
+	#   - haircount   : 可用发型数量，用于随机发型
+	#   - facecount   : 可用脸型数量，用于随机脸型
+	# --------------------------------------------------------
+	npctypes = CreateList()
+	npctypes.Insert(CreateList(type="NewFemale", count=11, haircount=10, facecount=11))
+	npctypes.Insert(CreateList(type="NewMale", count=5, haircount=6, facecount=5))
+	npctypes.Insert(CreateList(type="PreviousFemale", count=15, haircount=7, facecount=1))
+	npctypes.Insert(CreateList(type="PreviousMale", count=12, haircount=5, facecount=1))
+	npctypes.Insert(CreateList(type="NewOba", count=2, haircount=1, facecount=1))
+	npctypes.Insert(CreateList(type="NewOji", count=3, haircount=1, facecount=1))
+
+	# --------------------------------------------------------
+	# 提取 NPC 类型名字符串，用于 InteractArea 的 options 下拉菜单
+	# --------------------------------------------------------
+	npctypelist = CreateList()
+	i = 0
+	while i < 6
+		npctypelist.Insert(npctypes[i].type)
+		i = i + 1
+
+	# --------------------------------------------------------
+	# 在 Residence 场景中创建球形交互区域
+	# 参数：stage=场景名, x/y/z=中心坐标, r=半径, text=交互提示文本, options=选项列表
+	# 玩家进入该区域并交互后，会返回所选选项的索引（0-based）
+	# --------------------------------------------------------
+	npcspawninteract = CreateInteractArea(
+		stage="Residence",
+		x=-25.27, y=-0.09, z=-116.5,
+		r=0.5,
+		text="Spawn NPCs",
+		options=npctypelist
+	)
+
+	# --------------------------------------------------------
+	# 创建监听器，每个监听器每帧检查指定标签内的条件
+	# - select         : 处理 NPC 生成交互
+	# - toggle_smartphone / headset / glasses : 切换对应装备
+	# --------------------------------------------------------
+	listener = CreateListener("select")
+
+	listener_smartphone = CreateListener(
+		"toggle_smartphone",
+		interact=CreateInteractArea(stage="Residence", x=-27.27, y=-0.09, z=-115.5, r=0.5, text="Toggle Smartphone")
+	)
+
+	listener_headset = CreateListener(
+		"toggle_headset",
+		interact=CreateInteractArea(stage="Residence", x=-27.27, y=-0.09, z=-114.5, r=0.5, text="Toggle Headset")
+	)
+
+	listener_glasses = CreateListener(
+		"toggle_glasses",
+		interact=CreateInteractArea(stage="Residence", x=-27.27, y=-0.09, z=-113.5, r=0.5, text="Toggle Glasses")
+	)
+
+	# --------------------------------------------------------
+	# select 标签：每帧检查 NPC 生成交互区
+	# 当玩家选择某个类型后，按配置数量生成 NPC，并关闭陌生感
+	# --------------------------------------------------------
+	select:
+		index = npcspawninteract.Check()       # 获取玩家选择的选项索引；无交互时返回 null
+
+		if index != null
+			npcs = CreateList()                  # 清空旧 NPC 列表，重新生成一批
+			j = 0
+
+			# 循环生成 count 个该类型的 NPC
+			while j < npctypes[index].count
+				# CreateNPC 参数说明：
+				#   1. type  : NPC 类型字符串
+				#   2. position=Vector(x, y, z)   : 生成位置，沿 z 轴等距排开
+				#   3. rotation=Quaternion(...)   : 朝向（y 轴旋转 -90 度，即面向左侧）
+				#   4. body  : 身体模型索引
+				#   5. size  : 体型缩放
+				#   6. face  : 脸部索引，使用模运算循环可用脸型
+				#   7. hair  : 发型索引，使用模运算循环可用发型
+				newnpc = CreateNPC(
+					npctypes[index].type,
+					position=Vector(-25.67, -0.08, -115.5 + 0.6 * j),
+					rotation=Quaternion(0, -0.707, 0, 0.707),
+					body=j,
+					size=1,
+					face=j % npctypes[index].facecount,
+					hair=j % npctypes[index].haircount
+				)
+
+				newnpc.SkipStrangeness(true)      # 禁用该 NPC 的陌生感系统，避免其因异常行为报警
+				npcs.Insert(newnpc)                # 将 NPC 对象存入列表，供后续装备切换使用
+
+				j = j + 1
+
+	# --------------------------------------------------------
+	# 三个 toggle 标签：每帧检查对应交互区
+	# 当玩家交互时，遍历所有已生成的 NPC，切换对应装备状态
+	# 使用 "!当前值" 实现布尔取反
+	# --------------------------------------------------------
+	toggle_smartphone:
+		if interact.Check()                      # 注意：这里 interact 应为 listener_smartphone 的内嵌交互区
+			i = npcs.Count() - 1
+			while i >= 0
+				npcs[i].Smartphone(!npcs[i].Smartphone())
+				i = i - 1
+
+	toggle_headset:
+		if interact.Check()
+			i = npcs.Count() - 1
+			while i >= 0
+				npcs[i].Headset(!npcs[i].Headset())
+				i = i - 1
+
+	toggle_glasses:
+		if interact.Check()
+			i = npcs.Count() - 1
+			while i >= 0
+				npcs[i].Glasses(!npcs[i].Glasses())
+				i = i - 1
+
+
+# ============================================================
+# 行走线程：创建一个沿指定路径点行走的 NPC
+# ============================================================
+walk:
+	thread = _this
+
+	npc = null                              # 当前行走 NPC 对象引用，初始为空
+
+	# 创建触发交互区，用于生成行走 NPC
+	interact = CreateInteractArea(
+		stage="Residence",
+		x=-25.75, y=-0.09, z=-123.48,
+		r=0.5,
+		text="Spawn Walking NPC"
+	)
+
+	listener = CreateListener("start")      # 监听开始生成事件
+	# listener2 = CreateListener("waitforplayer")  # 已注释：原用于玩家接近检测
+	# listener3 = CreateListener("autorespawn")    # 已注释：原用于自动重生
+
+	# --------------------------------------------------------
+	# start 标签：玩家交互后生成一个面向右侧的 NewMale NPC
+	# 并为其添加两个路径点：
+	#   1. 索引 2 的静态路径点（可通过 GetAllWaypoints() 获取）
+	#   2. 一个自定义坐标作为终点（last=true 表示路径结束）
+	# --------------------------------------------------------
+	start:
+		if interact.Check()
+			npc = CreateNPC(
+				"NewMale",
+				position=Vector(-24.61, -0.08, -124.13),
+				rotation=Quaternion(0, 0.707, 0, 0.707)  # 面向右侧（y 轴旋转 90 度）
+			)
+
+			# 提示：场景中的静态路径点可通过 GetAllWaypoints() 获取。
+			# 由于路径点通常不变，在确定索引后可直接使用静态索引。
+			npc.AddWaypoint(2)
+			npc.AddWaypoint(Vector(-26.77, -0.08, -101.5), last=true)
+
+	# --------------------------------------------------------
+	# waitforplayer 标签：每帧检查玩家与 NPC 的距离
+	# 当距离大于 2.5 时让 NPC 停止行走，小于等于时恢复行走
+	# 这样可模拟 NPC 等待玩家靠近的效果
+	# --------------------------------------------------------
+	waitforplayer:
+		if (npc != null) && (npc.IsAlive())
+			# 计算玩家与 NPC 的 3D 距离，使用 _state.Position（玩家当前位置）
+			newstop = Vector3Distance(_state.Position, npc.GetPosition()) > 2.5
+
+			if npc.Stopped() != newstop
+				npc.Stopped(newstop)
+
+	# --------------------------------------------------------
+	# autorespawn 标签：当 NPC 死亡时自动重生并重新设置路径点
+	# --------------------------------------------------------
+	autorespawn:
+		if (npc != null) && (!npc.IsAlive())
+			npc.Respawn()
+			npc.AddWaypoint(2)
+			npc.AddWaypoint(Vector(-26.77, -0.08, -101.5), last=true)
+
+
+# ============================================================
+# blind 线程：全局禁用所有 NPC 的陌生感
+# ============================================================
+# 该线程监听 _settings.blind 设置（由 meta.json 暴露给玩家的开关）。
+# 当开启时，为所有 ID 小于 1000000 的 NPC 创建副本并禁用陌生感；
+# 当切换场景时，清空已跟踪的 NPC 列表；
+# 当设置值变化时，同步更新所有已跟踪 NPC 的陌生感状态。
+# ============================================================
+blind:
+	npcs = CreateList()                   # 以 NPC ID 为键的映射表（List 支持字符串/整数键）
+	npcslist = CreateList()               # 按插入顺序保存 NPC 对象，用于遍历
+
+	listener = CreateListener("add_new_npcs")
+	listener2 = CreateListener("clean_list")
+
+	# 监听 settings 变化，value 初始值与 _settings.blind 保持一致
+	listener_settings = CreateListener("watchsettings", value=_settings.blind)
+
+	# --------------------------------------------------------
+	# add_new_npcs 标签：每帧检查 _state.NPCs（当前场景所有 NPC 列表）
+	# 为每个新出现的、ID < 1000000 的 NPC 创建连接并禁用陌生感
+	# --------------------------------------------------------
+	add_new_npcs:
+		if _settings.blind
+			index = _state.NPCs.Count() - 1
+			while index >= 0
+				id = _state.NPCs[index].ID        # 获取 NPC 的数值 ID
+
+				# ID < 1000000 的 NPC 通常由游戏本身生成（非玩家/任务创建的普通 NPC）
+				if (id < 1000000) && (npcs[id] == null)
+					npcs[id] = CreateNPC(id)     # 通过 ID 连接到已存在的 NPC 对象
+					npcs[id].SkipStrangeness(true)
+					npcslist.Insert(npcs[id])    # 记录到顺序列表，便于后续批量更新
+
+				index = index - 1
+
+	# --------------------------------------------------------
+	# clean_list 标签：当切换场景时（_stagechanged 为 true），
+	# 清空已跟踪的 NPC 映射与列表，避免跨场景引用失效
+	# --------------------------------------------------------
+	clean_list:
+		if _stagechanged
+			npcs = CreateList()
+			npcslist = CreateList()
+
+	# --------------------------------------------------------
+	# watchsettings 标签：当 _settings.blind 变化时，
+	# 遍历所有已跟踪的存活 NPC，同步更新 SkipStrangeness 状态
+	# --------------------------------------------------------
+	watchsettings:
+		if value != _settings.blind
+			value = _settings.blind            # 记录当前设置值，避免重复触发
+			index = npcslist.Count() - 1
+			while index >= 0
+				if npcslist[index].IsAlive()
+					npcslist[index].SkipStrangeness(value)
+				index = index - 1
