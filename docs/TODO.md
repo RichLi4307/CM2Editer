@@ -2,7 +2,7 @@
 
 > 用途：单人项目管理 + Agent 任务追踪
 > 更新规则：每次 Agent 交付后，由用户（或 Agent）更新对应条目状态
-> 文件位置：`docs/TODO.md`（建议同步到 Git）
+> 文件位置：`docs/TODO.md`
 
 ---
 

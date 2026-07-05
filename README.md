@@ -62,7 +62,7 @@ cargo fmt
 
 # 启动 GUI 编辑器（完成 UI 层后可用）
 cargo run
-```text
+```
 
 > 当前仓库中 GUI 尚未实现，`cargo run` 暂时只进入占位入口。
 > 本编辑器生成的 `.code` 文件要求游戏已安装 Custom Missions v2.2.1 加载器才能运行。

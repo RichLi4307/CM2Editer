@@ -132,7 +132,7 @@ pretty_assertions = "1.4"
 opt-level = 3
 lto = true
 strip = true
-```text
+```
 
 ### 依赖说明
 
@@ -392,7 +392,7 @@ impl PortType {
         }
     }
 }
-```text
+```
 
 ### 3.3 src/graph/node.rs — 节点结构
 
@@ -514,7 +514,7 @@ impl Edge {
         }
     }
 }
-```text
+```
 
 ### 3.5 src/graph/graph.rs — 图容器
 
@@ -736,7 +736,7 @@ impl GraphValidator {
         Ok(())
     }
 }
-```text
+```
 
 ### 3.7 src/serializer/json.rs — JSON 序列化
 
@@ -854,10 +854,10 @@ impl JsonSerializer {
   └──┬───┘ └────┘ └─────┬────┘
      │                  │
      ▼                  ▼
-  ┌─────────┐      ┌─────────┐
-  │serializer│      │   app   │
-  └─────────┘      └─────────┘
-```text
+  ┌──────────┐     ┌─────────┐
+  │serializer│     │   app   │
+  └──────────┘     └─────────┘
+```
 
 ---
 
@@ -902,7 +902,7 @@ steps:
   - run: cargo fmt --check
   - run: cargo clippy -- -D warnings
   - run: cargo test
-```text
+```
 
 ---
 
