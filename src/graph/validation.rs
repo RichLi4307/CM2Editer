@@ -107,6 +107,8 @@ impl GraphValidator {
     /// 检查 Flow 边是否构成有向无环图（DAG）
     ///
     /// 使用 Kahn 算法进行拓扑排序，如果访问节点数少于总节点数，则存在环
+    // UX-DEBT(Phase3): 后端已检测环，但 GUI 拖线时需实时阻止并红边提示。
+    // 当前仅导出时报错，交互体验差。见 docs/interaction_spec.md §3.1
     fn check_no_cycles(graph: &Graph) -> Result<()> {
         // 构建邻接表和入度表（仅考虑 Flow 边）
         let mut adj: HashMap<String, Vec<String>> = HashMap::new();

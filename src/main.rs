@@ -9,6 +9,8 @@ use graph::{
 };
 
 fn main() {
+    // UX-DEBT(Phase3): 当前启动直接进空画布，需评估欢迎页/模板启动。
+    // 见 docs/interaction_spec.md §1.1
     // ── 构建一个完整的 Graph：Start → If → Label → Goto → Log ──
     let mut g = Graph::default();
 
