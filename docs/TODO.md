@@ -23,7 +23,7 @@
 ## Phase 0：项目初始化（地基）
 
 - [x] **0.1** 创建 Git 仓库，提交初始 `.gitignore`（Rust 模板）
-- [x] **0.2** 编写 `Cargo.toml`（依赖：serde、thiserror、uuid、glam 等）
+- [x] **0.2** 编写 `Cargo.toml`（依赖：serde、serde_json、thiserror、uuid；`Vec2` 由自定义结构体实现，未采用 `glam`）
 - [x] **0.3** 创建完整目录结构（`src/graph/`、`src/serializer/`、`src/code_gen/`、`src/ui/`、`src/api/`、`tests/`）
 - [ ] **0.4** 编写 `README.md`（项目简介、构建命令、MIT License）
 - [ ] **0.5** 配置 `rustfmt.toml` / `clippy` 规则（统一代码风格）
