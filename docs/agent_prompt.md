@@ -167,23 +167,7 @@ app/         → 主循环与状态管理，依赖所有上层模块
 
 ### 5.1 布局
 
-```text
-┌────────────────────────────────────────────────────────────────┐
-│ [工具栏]  保存 | 撤销 | 重做 | 导出JSON | 导出.code | 运行预览 │
-├──────────┬──────────────────────────────────┬──────────────────┤
-│          │                                  │                  │
-│  节点库  │      无限画布                    │    属性面板      │
-│  (左栏)  │      (网格背景)                  │    (右栏)        │
-│  [搜索]  │                                  │                  │
-├──────────┤      节点 + 连线                 │  选中节点参数    │
-│  分类A   │                                  │                  │
-│  ├ 节点1 │                                  ├──────────────────┤
-│  └ 节点2 │                                  │ 输入框/下拉/开关 │
-│          │                                  │                  │
-├──────────┴──────────────────────────────────┴──────────────────┤
-│       [底部]  JSON预览 | 错误列表 | 状态栏                     │
-└────────────────────────────────────────────────────────────────┘
-```
+四栏布局：顶部工具栏 | 左栏节点库 | 中央无限画布 | 右栏属性面板 | 底部 JSON 预览/错误列表/状态栏
 
 ### 5.2 节点外观
 
@@ -245,60 +229,9 @@ pub struct ParamDefinition {
 
 ## 七、测试要求
 
-每个模块必须包含单元测试，并在 CI 中通过 `cargo test`。
+每个模块必须包含单元测试，并在 CI 中通过 `cargo test`。测试模板见 `docs/TODO.md` 末尾的快速参考。
 
-### 7.1 最小测试覆盖
-
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_add_node() {
-        let mut graph = Graph::default();
-        let node = Node::new(NodeType::Log, Vec2::new(0.0, 0.0));
-        graph.add_node(node.clone());
-        assert_eq!(graph.nodes.len(), 1);
-        assert!(graph.nodes.contains_key(&node.id));
-    }
-
-    #[test]
-    fn test_cycle_detection() {
-        let mut graph = Graph::default();
-        let n1 = Node::new(NodeType::Start, Vec2::ZERO);
-        let n2 = Node::new(NodeType::Log, Vec2::ZERO);
-        let n3 = Node::new(NodeType::Log, Vec2::ZERO);
-
-        graph.add_node(n1.clone());
-        graph.add_node(n2.clone());
-        graph.add_node(n3.clone());
-
-        // 创建环：n1 → n2 → n3 → n1
-        graph.add_edge(Edge::new(
-            EdgeEndpoint { node_id: n1.id.clone(), port_id: "out".to_string() },
-            EdgeEndpoint { node_id: n2.id.clone(), port_id: "in".to_string() },
-            PortType::Flow,
-        )).unwrap();
-
-        graph.add_edge(Edge::new(
-            EdgeEndpoint { node_id: n2.id.clone(), port_id: "out".to_string() },
-            EdgeEndpoint { node_id: n3.id.clone(), port_id: "in".to_string() },
-            PortType::Flow,
-        )).unwrap();
-
-        graph.add_edge(Edge::new(
-            EdgeEndpoint { node_id: n3.id.clone(), port_id: "out".to_string() },
-            EdgeEndpoint { node_id: n1.id.clone(), port_id: "in".to_string() },
-            PortType::Flow,
-        )).unwrap();
-
-        assert!(GraphValidator::validate(&graph).is_err());
-    }
-}
-```
-
-### 7.2 推荐测试类型
+### 7.1 推荐测试类型
 
 | 测试类型 | 说明 | 示例 |
 | ---------- | ------ | ------ |
@@ -307,7 +240,7 @@ mod tests {
 | 属性测试 | 随机输入验证不变量 | `serde_json` 任意合法 JSON 不 panic |
 | 快照测试 | 代码生成输出稳定 | `.code` 输出对比 |
 
-### 7.3 测试数据
+### 7.2 测试数据
 
 - 使用 `tests/fixtures/` 存放示例 JSON 和 `.code` 文件
 - 不要依赖真实文件路径，使用 `tempfile` 创建临时目录
@@ -330,31 +263,7 @@ mod tests {
 
 ---
 
-## 九、任务分配模板（给 Agent 发任务时复制）
-
-```markdown
-请实现以下功能：
-
-**模块**：`src/xxx/xxx.rs`
-**依赖**：`graph::types`, `graph::node`
-**输入**：...
-**输出**：...
-**约束**：
-- 使用 Result 错误处理，禁止 unwrap
-- 写文档注释
-- 包含单元测试
-- 不引入 unsafe
-
-**验收标准**：
-1. [ ] 编译通过 `cargo check`
-2. [ ] 测试通过 `cargo test`
-3. [ ] Clippy 无警告 `cargo clippy`
-4. [ ] 代码格式化 `cargo fmt`
-```text
-
----
-
-## 十、参考资源
+## 九、参考资源
 
 - [节点清单](node_types.md)
 - [JSON 规范](json_schema.md)

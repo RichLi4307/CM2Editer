@@ -103,7 +103,7 @@
 
 **Phase 2 验收标准：**
 
-- 示例任务（如 `new npc type`）能导入为 Graph，再导出为 `.code`，语义一致
+- 所有 4 个示例任务（`NPC_type`、`Test`、`MessengerExample`、`drop bra and panties`）能导入为 Graph，再导出为 `.code`，语义一致
 - JSON 保存/加载不丢数据
 
 ---
@@ -180,7 +180,7 @@
 ## Phase 4：集成测试与打磨
 
 - [ ] **4.1** 端到端测试：创建图 → 保存 JSON → 加载 → 验证 → 生成 `.code`
-- [ ] **4.2** 用 `docs/examples/new npc type/` 完整验证序列化与代码生成
+- [ ] **4.2** 用 `docs/examples/` 全部 4 个示例完整验证序列化与代码生成
 - [ ] **4.3** 性能测试：100+ 节点画布不卡顿
 - [ ] **4.4** 边界测试：空图、单节点、全折叠、全展开
 - [ ] **4.5** 错误处理：加载损坏 JSON 时友好提示（不 panic）
