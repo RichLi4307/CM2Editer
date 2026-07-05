@@ -92,7 +92,6 @@ CM2Editer/
 - [docs/agent_prompt.md](docs/agent_prompt.md)：开发约束、JSON 契约与 UI 设计规范。
 - [docs/node_types.md](docs/node_types.md)：全部节点类型清单。
 - [docs/json_schema.md](docs/json_schema.md)：编辑器保存的 JSON 格式定义。
-- [docs/examples/new npc type/](docs/examples/new%20npc%20type/)：示例任务。
 - [docs/rust_project_skeleton.md](docs/rust_project_skeleton.md)：Rust 项目骨架说明。
 
 ## 免责声明 / 独立声明
