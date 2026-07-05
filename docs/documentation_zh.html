@@ -1,0 +1,3142 @@
+
+<html lang="zh-CN">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>CM2Editer 文档（中文）</title>
+		<style>
+			table, th, td {
+				border: 1px solid black;
+				border-collapse: collapse;
+			}
+			ul {
+				padding-left: 20px;
+				list-style-type: disc;
+			}
+			ul ul {
+				list-style-type: square;
+			}			
+			td {
+				padding: 2px;
+			}
+			.f > span {
+				font-weight: bold;
+				white-space: nowrap;
+			}
+			div.f { margin-bottom: 1em; }
+			.content {
+				margin-left: 200px;
+			}
+			.content div { margin-left: 1em; }
+
+			.tableofcontents {
+				position: fixed;
+				top: 0;
+				left: 0;
+				height: 100%;
+				width: 190px;
+				background: linear-gradient(90deg,rgba(224, 224, 224, 1) 0%, rgba(224, 224, 224, 1) 80%, rgba(192, 192, 192, 1) 100%);
+				overflow-y: scroll;
+				scrollbar-width: thin;
+			}
+
+			.tableofcontents div {
+				margin-left: 1em;
+			}
+
+			.type { color: #488; }
+			.code {
+				background-color: #FFF8D0;
+				border: 1px solid #000;
+				padding: 1px;
+				font-family: monospace;
+			}
+			pre.code {
+				tab-size: 4;
+				margin-left: 1em;
+				padding: 5px;
+			}
+			.comment {
+				font-style: italic;
+				color: #444;
+			}
+			.comment::before {
+				content: "#"
+			}
+			h2 {
+				background: linear-gradient(0deg,rgba(224, 224, 224, 1) 0%, rgba(160, 160, 160, 1) 50%, rgba(224, 224, 224, 1) 100%);
+			}
+			h3 {
+				background: linear-gradient(0deg,rgba(240, 240, 255, 1) 0%, rgba(192, 192, 208, 1) 50%, rgba(240, 240, 255, 1) 100%);
+			}
+			h4 {
+				background: linear-gradient(0deg,rgba(240, 255, 240, 1) 0%, rgba(192, 208, 192, 1) 50%, rgba(240, 255, 240, 1) 100%);
+			}
+			.separator {
+				margin-bottom: 1em;
+				height: 3px;
+				background: linear-gradient(0deg,rgba(240, 240, 255, 1) 0%, rgba(192, 192, 208, 1) 50%, rgba(240, 240, 255, 1) 100%);
+			}
+			.spoilerbutton {
+				background: linear-gradient(0deg,rgba(214, 214, 214, 1) 0%, rgba(164, 164, 164, 1) 50%, rgba(214, 214, 214, 1) 100%);
+				padding: 3px 10px;
+			}
+			.spoilercontent {
+				border: 1px solid #BBB;
+				background-color: #EEE;
+			}
+		</style>
+		<script>
+
+			function ChangeStyle() {
+				var elements = document.getElementsByClassName("var");
+				for (var i=0; i<elements.length; i++) {
+					if (elements[i].classList.contains("Number")) {
+						elements[i].innerHTML = "&lt;<span class=\"type\">Number</span> "+elements[i].innerHTML+"&gt;";
+					}
+					else if (elements[i].classList.contains("String")) {
+						elements[i].innerHTML = "&lt;<span class=\"type\">String</span> "+elements[i].innerHTML+"&gt;";
+					}
+					else if (elements[i].classList.contains("Boolean")) {
+						elements[i].innerHTML = "&lt;<span class=\"type\">Boolean</span> "+elements[i].innerHTML+"&gt;";
+					}
+					else if (elements[i].classList.contains("List")) {
+						elements[i].innerHTML = "&lt;<span class=\"type\">List</span> "+elements[i].innerHTML+"&gt;";
+					}
+					else if (elements[i].classList.contains("Object")) {
+						elements[i].innerHTML = "&lt;<span class=\"type\">Object</span> "+elements[i].innerHTML+"&gt;";
+					}
+					else {
+						elements[i].innerHTML = "&lt;"+elements[i].innerHTML+"&gt;";
+					}
+				}
+			}
+			function ToggleDisplay(button, content) {
+				if (content.style.display == "none") {
+					content.style.display = "";
+					button.innerHTML = "Hide";
+				}
+				else {
+					content.style.display = "none";
+					button.innerHTML = "Show";
+				}
+			}
+			function InitSpoilers(){
+				var elements = document.getElementsByClassName("spoiler");
+				for (var i=0; i<elements.length; i++) {
+					var element = elements[i];
+
+					var button = document.createElement("div");
+					button.style.display = "inline-block";
+					button.classList.add("spoilerbutton");
+					button.innerHTML = "Show";
+
+					var content = document.createElement("div");
+					content.style.display = "none";
+					content.classList.add("spoilercontent");
+					while (element.children.length>0)
+					{
+						content.appendChild(element.children[0]);
+					}
+					button.addEventListener("click", (event) => { ToggleDisplay(button, content); })
+
+					elements[i].appendChild(button);
+					elements[i].appendChild(content);
+				}
+			}
+		</script>
+	</head>
+	<body onload="ChangeStyle(); InitSpoilers();">
+		<div class="tableofcontents">
+			<span style="font-size: larger; font-weight: bold; margin: 5px">目录</span>
+			<br>
+			<ul>
+				<li><a href="#General">概述</a>
+					<ul>
+						<li><a href="#File Structure">文件结构</a>
+							<ul>
+								<li><a href="#Code">代码</a></li>
+								<li><a href="#Meta">Meta（元数据）</a></li>
+							</ul>
+						</li>
+						<li><a href="#Types">类型</a></li>
+						<li><a href="#Built-In Constants">内置常量</a></li>
+						<li><a href="#Built-In Globals">内置全局变量</a></li>
+						<li><a href="#Built-In Locals">内置局部变量</a></li>
+						<li><a href="#Operators">运算符</a></li>
+						<li><a href="#Control Structures">控制结构</a></li>
+						<li><a href="#Function Calls">函数调用</a></li>
+					</ul>
+				</li>
+				<li><a href="#Functions">函数</a>
+					<ul>
+						<li><a href="#General Functions">通用</a></li>
+						<li><a href="#Game Functions">游戏函数</a></li>
+						<li><a href="#Additional Game Functions">附加游戏函数</a></li>
+						<li><a href="#Graphics">图形</a></li>
+						<li><a href="#Math Functions">数学</a>
+							<ul>
+								<li><a href="#Vector Functions">向量</a></li>
+							</ul>
+						</li>
+						<li><a href="#String Functions">字符串</a></li>
+						<li><a href="#File Functions">文件</a></li>
+					</ul>
+				</li>
+				<li><a href="#Objects">对象</a>
+					<ul>
+						<li><a href="#List">List</a></li>
+						<li><a href="#Thread">Thread</a></li>
+						<li><a href="#Listener">Listener</a></li>
+						<li><a href="#MissionPanel">MissionPanel</a></li>
+						<li><a href="#MissionMenuItem">MissionMenuItem</a></li>
+						<li><a href="#Area">Area</a></li>
+						<li><a href="#Zone">Zone</a></li>
+						<li><a href="#Condition">Condition</a></li>
+						<li><a href="#ItemCondition">ItemCondition</a></li>
+						<li><a href="#InteractArea">InteractArea</a></li>
+						<li><a href="#Text">Text</a></li>
+						<li><a href="#Messenger Chat">Messenger Chat</a></li>
+						<li><a href="#Audio">Audio</a></li>
+						<li><a href="#Gallery">Gallery</a></li>
+						<li><a href="#Snapshot">Snapshot</a></li>
+						<li><a href="#NPC">NPC</a></li>
+						<li><a href="#Input">Input</a></li>
+					</ul>
+				</li>
+				<li><a href="#Appendix">附录</a>
+					<ul>
+						<li><a href="#Tips">小贴士</a></li>
+						<li><a href="#Examples">示例</a></li>
+						<li><a href="#Game Constants">游戏常量</a>
+							<ul>
+								<li><a href="#SoundEffect">SoundEffect</a></li>
+								<li><a href="#StageType">StageType</a></li>
+								<li><a href="#Action">Action</a></li>
+								<li><a href="#AdultToy">AdultToy</a></li>
+								<li><a href="#Skill">Skill</a></li>
+								<li><a href="#Item">Item</a></li>
+								<li><a href="#DropItemType">DropItemType</a></li>
+								<li><a href="#Player Data">玩家数据</a></li>
+								<li><a href="#AvatarType">AvatarType</a></li>
+								<li><a href="#FixedType">FixedType</a></li>
+							</ul>
+						</li>
+						<li><a href="#Mod Constants">Mod 常量</a>
+							<ul>
+								<li><a href="#ConditonTypes">条件类型</a></li>
+							</ul>
+						</li><li><a href="#Global Variables">全局变量</a>
+							<ul>
+								<li><a href="#_state">_state</a></li>
+							</ul>
+						</li>
+					</ul>
+				</li>
+			</ul>
+		</div>
+
+		<div class="content">
+			<h1>API</h1>
+			<div>
+				<h2 id="General">概述</h2>
+				<div>
+					<h3 id="File Structure">文件结构</h3>
+					<ul>
+						<li>每个项目在 "CustomMissions2" 文件夹内都有自己的文件夹，而该文件夹位于游戏的根目录中。</li>
+					</ul>
+					<div>
+						<h4 id="Code">代码</h3>
+						<ul>
+							<li>一个项目可以拆分成多个以 ".code" 结尾的文件。</li>
+							<li>所有代码文件在加载时会被合并成一个文件。<br>合并顺序可能是按字母顺序，但你不应依赖这一点，而应确保它们在任意顺序下都能正常工作。</li>
+							<li>编码应为 UTF-8，以确保字符串字符能正确导入游戏。</li>
+						</ul>
+						<h4 id="Meta">Meta（元数据）</h3>
+						<ul>
+							<li>你可以在项目中包含一个 "meta.json" 文件，用来指定不同语言下的标题、添加描述，并构建一个简单的设置菜单。</li>
+							<li>设置值可以在代码中通过 _settings 全局变量读取。</li>
+						</ul>
+						<pre class="code">
+{
+	"title":{
+		"En":"Test",
+		"Ja":"テスト"
+	},
+	"description":{
+		"En":"This is a description"
+	},
+	"settings":[
+		{
+			"type":"Label",
+			"title":"These settings don't do anything"
+		},
+		{
+			"name":"range",
+			"title":"Range Integer",
+			"type":"Integer",
+			"minvalue":0,
+			"maxvalue":100,
+			"default":50
+		},
+		{
+			"name":"range2",
+			"title":"Range Float",
+			"type":"Float",
+			"minvalue":0,
+			"maxvalue":5,
+			"default":5
+		},
+		{
+			"name":"checked",
+			"title":"Boolean Value",
+			"type":"Boolean",
+			"default":true
+		},
+		{
+			"name":"text",
+			"title":"Text Input",
+			"type":"String",
+			"default":""
+		},
+		{
+			"name":"enum",
+			"title":"Options",
+			"type":"Enum",
+			"options":[
+				"Option 1",
+				"Option 2",
+				"Option 3"
+			],
+			"default":0
+		}
+	]
+}</pre>						
+						<ul>
+							<li><i>title</i>、<i>description</i> 以及 <i>Enum</i> 的选项，必须是普通字符串，或者是以语言代码命名各元素的对象。（另见 <a href="#GetLanguage">GetLanguage</a>）</li>
+							<li>如果你没有为某种语言指定翻译，它会默认使用列表中的第一项。（示例中为 "En"）</li>
+							<li>这一点对设置项同样适用。</li>							
+						</ul>
+						<ul>
+							<li><i>settings</i> 是一个可选的对象数组。</li>
+							<li>设置项的 <i>name</i> 决定了你在代码中通过全局 _settings 列表访问它时所用的名称。（例如 "_settings.range"）</li>
+							<li>可用的设置类型有：Label、Integer、Float、Boolean、String、Enum</li>
+							<li><i>Integer</i> 和 <i>Float</i> 会创建一个滑块，因此你还应指定 <i>minvalue</i> 和 <i>maxvalue</i></li>
+							<li><i>Enum</i> 会创建一个选择器，你可以在各选项间循环切换，但 _settings 中的值将是一个数字</li>
+							<li><i>Boolean</i> 会创建一个复选框，<i>String</i> 则创建一个单行文本输入框。</li>
+							<li><i>Label</i> 只是给设置菜单添加一段说明文字，因此它不需要 <i>name</i>。</li>
+							<li><i>default</i> 以对应的类型指定初始值。</li>
+							<li>设置会随每个存档保存，在游戏存档时写入。</li>
+						</ul>
+					</div>
+					<h3 id="Types">类型</h3>
+					<ul>
+						<li>Number</li>
+						<li>String</li>
+						<li>Boolean</li>
+						<li>List</li>
+						<li>Object</li>
+					</ul>
+					<h3 id="Built-In Constants">内置常量</h3>
+					<ul>
+						<li>true</li>
+						<li>false</li>
+						<li>null</li>
+					</ul>
+					<h3 id="Built-In Globals">内置全局变量</h3>
+					<ul>
+						<li>_state
+							<ul>
+								<li>包含大量值的列表，如条件状态、位置、任务、物品和角色扮演服装。参见 <a href="#_state">附录</a></li>
+								<li>不要用它来修改值，而应使用现有的函数</li>
+								<li>该列表仅在每帧之前更新。因此当你以其他方式修改某个值时，它不会立即反映在列表中。</li>
+							</ul>
+						</li>
+						<li>_stagechanged
+							<ul>
+								<li>本帧与上一帧之间场景是否发生了变化</li>
+							</ul>
+						</li>
+						<li>_timediff
+							<ul>
+								<li>自上一帧以来经过的游戏内时间</li>
+								<li>会考虑时间被减速或暂停的情况</li>
+							</ul>
+						</li>
+						<li>_time
+							<ul>
+								<li>累计时间，已计入减速和暂停</li>
+							</ul>
+						</li>
+						<li>_save
+							<ul>
+								<li>读写该列表中的项目，以创建持久化的存档状态。</li>
+								<li>对象（List 除外）无法被保存</li>
+							</ul>
+						</li>
+						<li>_settings
+							<ul>
+								<li>读取你可以通过智能手机图形界面修改的设置的值。</li>
+								<li>关于如何设置菜单，请参见 <a href="#Meta">Meta</a>。</li>
+							</ul>
+						</li>
+						<li>_mod
+							<ul>
+								<li>一个可以填入数据的列表，其数据可被其他项目访问。</li>
+								<li>不允许存放对象（List 除外），它们会被移除。</li>
+								<li>关于如何从另一个项目访问这些数据，请参见 "_mods"。</li>
+							</ul>
+						</li>
+						<li>_mods
+							<ul>
+								<li>所有已激活项目的列表。</li>
+								<li>以数字为索引的项目以字符串形式包含项目名称（文件夹名），因此你可以遍历所有已激活的项目。</li>
+								<li>以项目名称为索引的项目是列表，包含相应项目通过 _mod 也能访问到的数据。</li>
+								<li>对象（List 除外）无法被共享，会被移除。</li>								
+							</ul>
+						</li>
+						<li>_name
+							<ul>
+								<li>项目自身的名称，与它在 _mods 中使用的名称相同。</li>
+							</ul>
+						</li>
+					</ul>
+					<h3 id="Built-In Locals">内置局部变量</h3>
+					<ul>
+						<li>_this
+							<ul>
+								<li>对当前线程的引用</li>
+							</ul>
+						</li>
+					</ul>
+
+					<h3 id="Operators">运算符</h3>
+					<div>
+						<table>
+							<tr><td>幂运算</td><td>**</td></tr>
+							<tr><td>逻辑非</td><td>!</td></tr>
+							<tr><td>一元正号和负号</td><td>+, -</td></tr>
+							<tr><td>乘法、除法、整数除法（向下取整）、取余（取模）</td><td>*, /, //, %</td></tr>
+							<tr><td>加法和减法</td><td>+, -</td></tr>
+							<tr><td>IN</td><td>in</td></tr>
+							<tr><td>小于、小于等于、大于、大于等于</td><td>&lt;, &lt;=, &gt;, &gt;=</td></tr>
+							<tr><td>等于、不等于</td><td>==, !=</td></tr>
+							<tr><td>按位与 (AND)</td><td>&</td></tr>
+							<tr><td>按位异或 (XOR)</td><td>^</td></tr>
+							<tr><td>按位或 (OR)</td><td>|</td></tr>
+							<tr><td>逻辑与</td><td>&&</td></tr>
+							<tr><td>逻辑或</td><td>||</td></tr>
+							<tr><td>赋值</td><td>=, +=, -=, *=, /=</td></tr>
+						</table><br>
+						& 和 && 的区别在于：& 总是对两个表达式都求值，而 && 仅在必要时才对第二个表达式求值。<br>
+						| 和 || 的区别与此相同。
+						<pre class="code">
+if (list != null) & (list[0] == 1) <span class="comment">如果 list 未定义则崩溃</span>
+	Log("Test")
+if (list != null) && (list[0] == 1) <span class="comment">可正常工作</span>
+	Log("Test")
+if list != null <span class="comment">也可正常工作，但如果需要添加 else/elseif 会更麻烦</span>
+	if list[0] == 1
+		Log("Test")	</pre>
+					
+					</div>
+					<h3 id="Control Structures">控制结构</h3>
+					<div>
+						<h4>代码缩进</h4>
+						<ul>
+							<li>代码缩进用于确定代码的结构。</li>
+							<li>在标签（label）或 If 语句之后的行使用单个制表符（Tab），以表示该代码属于它们。</li>
+						</ul>
+						<h4>标签（labels）</h4>
+						<ul>
+							<li>标签用于创建自定义函数，以及作为线程的入口点。</li>
+							<li>标签名称之后跟一个冒号（":"）。</li>
+							<li>与 Python 不同，If 语句和 While 循环<b>不</b>使用冒号。</li>
+							<li>标签可以嵌套。</li>
+						</ul>
+						<pre class="code">
+Log(welcome_msg(name = "Player"))
+
+welcome_msg:
+	_result = "Welcome "+name
+						</pre>
+						<h4>变量作用域</h4>
+						<ul>
+							<li>函数和线程会为局部变量创建各自的作用域。</li>
+							<li>函数和线程可以访问在更高作用域中定义的变量。</li>
+							<li>如果你向函数或线程传递一个带名称的参数，它会隐藏更高作用域中同名的变量。</li>
+							<li>使用同一标签的多个线程会创建各自的变量实例，但共享其父作用域中的变量。</li>
+						</ul>
+						<pre class="code">
+name = "Player"
+function1(id=1)
+function1(id=2)
+
+function1:
+	sqr = id*id
+	Log(name+id+": sqr="+sqr)
+
+<span class="comment">输出：</span>
+<span class="comment">Player1: sqr=1</span>
+<span class="comment">Player2: sqr=4</span></pre>
+						<h4>if、elseif、else</h4>
+						<pre class="code">
+if x == 0
+	Log("zero")
+elseif x &lt; 0
+	Log("less than zero")
+else
+	Log("greater than zero")</pre>
+						<h4>while</h4>
+						<ul>
+							<li>你可以使用 <i>break</i> 语句提前退出循环。</li>
+						</ul>
+						<pre class="code">
+Log("count down")
+i = 10
+while i>=0
+	Log(i)
+	i = i-1</pre>
+						<h4>for</h4>
+						<ul>
+							<li>遍历列表中的各个值。</li>
+							<li>若要遍历一个数字范围，你可以使用 <a href="#Range">Range</a> 函数创建一个临时列表。</li>
+							<li>你可以使用 <i>break</i> 语句提前退出循环。</li>
+						</ul>
+						<pre class="code">
+for i in Range(5,10)
+	Log(i)
+
+<span class="comment">输出：</span>
+<span class="comment">5</span>
+<span class="comment">6</span>
+<span class="comment">7</span>
+<span class="comment">8</span>
+<span class="comment">9</span></pre>
+					</div>
+					<h3 id="Function Calls">函数调用</h3>
+					<ul>
+						<li>函数通过标签（label）来定义。</li>
+						<li>调用形式为：labelname(Parameter1, Parameter2, ...)</li>
+						<li>参数可以是具名的，也可以是匿名的。</li>
+						<li>匿名参数通过列表 <i>_args</i> 访问。</li>
+						<li>函数返回变量 _result 的值（若未设置，则 _result 为 null）。</li>
+						<li>你可以使用 <i>return</i> 语句提前退出函数。如果在 <i>return</i> 后跟一个表达式，它会隐式地将 _result 设为该值。</li>
+					</ul>
+					<pre class="code">
+variable1 = function_add(2, 3)
+Log(variable1) <span class="comment">Output: 5</span>
+variable2 = function_mult(a=2, b=3)
+Log(variable2) <span class="comment">Output: 6</span>
+
+function_add:
+	_result = _args[0]+_args[1]
+
+function_mult:
+	return a * b</pre>
+				</div>
+			</div>
+			<div>
+				<h2 id="Functions">函数</h2>
+				<div>
+					<h3 id="General Functions">通用</h3>
+					<div class="f">
+						<span>Log([<span class="var">Output</span>])</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>向控制台写入内容。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>Global(<span class="var String">VariableName</span>[, <span class="var">Value</span>])</span></br>
+						<div>返回：全局变量的值</div>
+						<ul>
+							<li>可用于在函数内部创建全局变量，或在全局变量被同名局部变量隐藏时访问它。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>Local(<span class="var String">VariableName</span>[, <span class="var">Value</span>])</span></br>
+						<div>返回：局部变量的值</div>
+						<ul>
+							<li>大概只有在需要创建一个与更高层上下文中同名的局部变量时才有用。<br>
+							否则你总是会访问那个已经存在的变量。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>GetType(<span class="var">Value</span>)</span></br>
+						<div>返回：<span class="type">String</span></div>
+					</div>
+					<div id="GetLanguage" class="f">
+						<span>GetLanguage()</span></br>
+						<div>返回：<span class="type">String</span></div>
+						<ul>
+							<li>返回值将根据你的设置为以下之一：En、Ja、Ko、Sc、Tc</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>DumpVariables([<span class="var Number">RecursionCount</span>])</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>将当前作用域及其父作用域中的变量打印到控制台。</li>
+							<li>使用 RecursionCount 可进一步递归输出列表的内容。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>DumpVariable(<span class="var">Variable</span>[, <span class="var Number">RecursionCount</span>])</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>将单个变量打印到控制台。</li>
+							<li>主要在配合 RecursionCount 用于列表时才有用。</li>
+							<li>使用 RecursionCount 可递归地进一步输出列表的内容。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>CallFunction(function = <span class="var String">FunctionName</span>[, parameters = <span class="var List">Parameters</span>])</span></br>
+						<span>CallFunction(<span class="var String">FunctionName</span>[, <span class="var List">Parameters</span>])</span></br>
+						<span>CallFunction(<span class="var List">FunctionReference</span>)</span></br>
+						<div>返回：值（Value）</div>
+						<ul>
+							<li>通过将函数名作为字符串传入，或传入一个包含相关数据的列表来调用函数。</li>
+						</ul>
+						<div>示例：</div>
+						<pre class="code">
+fn_parameters = CreateList(a = 2, b = 3)
+fn_names = CreateList("fn_add","fn_mult","fn_power",length=3)
+i = 0
+while i&lt;fn_names.length
+	Log(CallFunction(fn_names[i], fn_parameters))
+	i = i + 1
+
+fn_add:
+	_result = a+b
+fn_mult:
+	_result = a*b
+fn_power:
+	_result = a**b</pre>
+							<pre class="code">
+fn_ref = CreateList(function="DropItem", parameters=CreateList(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120))
+CallFunction(fn_ref)
+<span class="comment">等同于</span>
+DropItem(itemtype="Coat", stage="Residence", x=-26.60, y=-0.10, z=-120)</pre>
+					</div>
+					<div class="f">
+						<span>CallMethod(thread = <span class="var Object">Thread</span>, method = <span class="var String">MethodName</span>[, parameters = <span class="var List">Parameters</span>])</span></br>
+						<span>CallMethod(<span class="var Object">Thread</span>, <span class="var String">MethodName</span>[, <span class="var List">Parameters</span>])</span></br>
+						<span>CallMethod(<span class="var List">MethodReference</span>)</span></br>
+						<div>返回：值（Value）</div>
+						<ul>
+							<li>通过传入一个线程对象和作为字符串的方法名，或传入一个包含相关数据的列表来调用方法。</li>
+						</ul>
+					</div>					
+					<div class="f" id="Color">
+						<span>Color(<span class="var Number">Red</span>, <span class="var Number">Green</span>, <span class="var Number">Blue</span>[, <span class="var Number">Alpha</span>])</span></br>
+						<div>返回：<span class="type">List</span></div>
+						<ul>
+							<li>创建一个包含 r、g、b、a 项的列表。</li>
+						</ul>
+					</div>
+					<div class="f" id="Range">
+						<span>Range(<span class="var Number">Stop</span>)</span></br>
+						<span>Range(<span class="var Number">Start</span>, <span class="var Number">Stop</span>[, <span class="var Number">Step</span>])</span></br>
+						<div>返回：<span class="type">List</span></div>
+						<ul>
+							<li>创建一个从 Start 到 Stop、以 Step 为步长递增的数字项列表。</li>
+							<li><b>不包含 Stop 值。</b></li>
+							<li>若未指定，Start 默认值为 0。</li>
+							<li>若未指定，Step 默认值为 1。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>SetEvent(<span class="var String">EventName</span>[, <span class="var">Value</span>])</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>设置一个事件，任何项目都可以通过 GetEvent 访问它。</li>
+							<li>该事件仅在下一帧有效。</li>
+							<li>你可以通过设置第二个参数来传递数据，包括列表，但<b>不包括</b>对象。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>GetEvent(<span class="var String">EventName</span>)</span></br>
+						<div>返回：<span class="type">List</span> 或 null</div>
+						<ul>
+							<li>检查某个事件是否已被设置（在上一帧中）。</li>
+							<li>返回一个以数字为索引的列表，包含由 SetEvent 传递的数据。如果没有传递数据，也可能包含 null 值。</li>
+							<li>如果事件未被设置，函数返回 null。</li>
+						</ul>
+					</div>
+
+					<h3 id="Game Functions">游戏函数</h3>
+					<div class="f">
+						<span>DropItem(itemtype = <span class="var String">DropItemType</span>, stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>[, rx = <span class="var Number">RotationX</span>, ry = <span class="var Number">RotationY</span>, rz = <span class="var Number">RotationZ</span>, rw = <span class="var Number">RotationW</span>][, compass = <span class="var Boolean">CompassIconVisible</span>])</span><br>
+						<span>DropItem(itemtype = <span class="var String">DropItemType</span>, position = <span class="var List">Position</span>[, compass = <span class="var Boolean">CompassIconVisible</span>])</span><br>
+						<div>返回：<span class="type">String</span> 或 <span class="type">Number</span> 或 null</div>
+						<ul>
+							<li>返回值为 DropItemType，若函数失败则为 null。</li>
+							<li>对于可以有多个掉落实例的假阳具，它可能会返回一个数字，以区分不同的实例。</li>
+							<li>无论哪种情况，你都可以使用返回值来重新捡起掉落的物品。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>CollectItem(itemtype = <span class="var String">DropItemType</span>[, stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>])</span><br>
+						<span>CollectItem(itemtype = <span class="var String">DropItemType</span>[, position = <span class="var List">Position</span>])</span><br>
+						<span>CollectItem(itemtype = <span class="var Number">DropItemType</span>)</span><br>
+						<div>返回：<span class="type">Boolean</span></div>
+						<ul>
+							<li>如果你指定了位置（包括舞台/场景），当存在多个相同基础类型的物品时，你可以选择要捡起哪一个。</li>
+							<li>如果不指定，你可以使用 DropItem 函数的返回值；如果它不是第一个实例，该值也可能是一个数字。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>SetVibrator(<span class="var Number">VibratorStrength</span>)</span><br>
+						<span>SetVibrator(<span class="var String">VibratorStrength</span>)</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>如果使用字符串，可用的值为：Off、Low、High、Random</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>SetPiston(<span class="var Number">PistonStrength</span>)</span><br>
+						<span>SetPiston(<span class="var String">PistonStrength</span>)</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>如果使用字符串，可用的值为：Off、Low、Medium、High、Random</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>LockHandcuffs(handcuffstype = <span class="var String">HandcuffsType</span>[, attachtoobject = <span class="var Boolean">AttachToObject</span>][, duration = <span class="var Number">DurationInSeconds</span>])</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>HandcuffsType 必须是以下值之一：Handcuff、KeyHandcuff、TimerHandcuff</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>UnlockHandcuffs()</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>EquipCosplay(<span class="var String">CosplayNameKey1</span>[, <span class="var String">CosplayNameKey2</span>]...)</span><br>
+						<span>EquipCosplay(<span class="var List">ListOfCosplayNameKeys1</span>[, <span class="var List">ListOfCosplayNameKeys2</span>]...)</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>UnequipCosplay(<span class="var String">CosplayNameKey1</span>[, <span class="var String">CosplayNameKey2</span>]...)</span><br>
+						<span>UnequipCosplay(<span class="var List">ListOfCosplayNameKeys1</span>[, <span class="var List">ListOfCosplayNameKeys2</span>]...)</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>UnequipAllCosplay()</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>OwnCosplay(owns = <span class="var Boolean">NewOwn</span>, <span class="var String">CosplayNameKey1</span>[, <span class="var String">CosplayNameKey2</span>]...)</span><br>
+						<span>OwnCosplay(owns = <span class="var Boolean">NewOwn</span>, <span class="var List">ListOfCosplayNameKeys1</span>[, <span class="var List">ListOfCosplayNameKeys2</span>]...)</span><br>
+						<div>返回：null</div>
+					</div>
+
+					<div class="f">
+						<span>EquipAdultToy(<span class="var String"><a href="#AdultToy">AdultToyName1</a></span>[, <span class="var String"><a href="#AdultToy">AdultToyName2</a></span>]...)</span><br>
+						<span>EquipAdultToy(<span class="var List">ListOfAdultToyNames1</span>[, <span class="var List">ListOfAdultToyNames2</span>]...)</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>UnequipAdultToy(<span class="var String"><a href="#AdultToy">AdultToyName1</a></span>[, <span class="var String"><a href="#AdultToy">AdultToyName2</a></span>]...)</span><br>
+						<span>UnequipAdultToy(<span class="var List">ListOfAdultToyNames1</span>[, <span class="var List">ListOfAdultToyNames2</span>]...)</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>SetPlayerPosition([x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>][, rx = <span class="var Number">RotationX</span>, ry = <span class="var Number">RotationY</span>, rz = <span class="var Number">RotationZ</span>, rw = <span class="var Number">RotationW</span>])</span><br>
+						<span>SetPlayerPosition([position = <span class="var List">Position</span>][, rotation = <span class="var List">Rotation</span>])</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>SetStage([<span class="var String"><a href="#StageType">StageType</a></span>][, daytime = <span class="var Boolean">DayTime</span>])</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>SetCamera([pitch = <span class="var Number">Pitch</span>][, yaw = <span class="var Number">Yaw</span>][, lock = <span class="var Boolean">LockCamera</span>])</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>设置当前摄像机的方向（第一人称或第三人称）。</li>
+							<li>Pitch 和 yaw 的值以度为单位。</li>
+							<li>第一人称摄像机没有 yaw，因为它与玩家模型绑定。</li>
+							<li>设置 "lock=true" 可阻止玩家引起的旋转。别忘了稍后通过以 lock=false 调用该函数来解除锁定。</li>
+							<li>在某些事件中，游戏可能会自行改变锁定状态。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>SetAction(<span class="var String"><a href="#Action">Action</a></span>)</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>SetFutanari(<span class="var Boolean">FutanariActive</span>)</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>SetSkill(<span class="var String"><a href="#Skill">Skill</a></span>, <span class="var Boolean">Enabled</span>)</span><br>
+						<div>返回：null</div>
+					</div>					
+					<div class="f">
+						<span>SetPlayerData(<span class="var String"><a href="#Player Data">DataName</a></span>, <span class="var Number">DataValue</span>)</span><br>
+						<span>SetPlayerData(<span class="var String"><a href="#Player Data">DataName</a></span>, <span class="var String">DataValue</span>)</span><br>
+						<span>SetPlayerData(<span class="var String"><a href="#Player Data">DataName</a></span>, <span class="var Boolean">DataValue</span>)</span><br>
+						<span>SetPlayerData("BodyPaintTypeDict", <span class="var String"><a href="#BodyPaintType">BodyPaintType</a></span>, <span class="var Boolean">Active</span>)</span><br>
+						<span>SetPlayerData("HairCustomizeDataDict", <span class="var String"><a href="#HairType">HairType</a></span>, <span class="var String">DataName</span>, <span class="var Number">DataValue</span>)</span><br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>SetSkillShortcut(<span class="var Number">Slot</span>, <span class="var Number">ActionIndex</span>)</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>槽位索引范围为 0 到 7。</li>
+						</ul>
+						<table>
+							<tr><th>索引</th><th>动作</th><th>索引</th><th>动作</th></tr>
+							<tr><td>0</td><td>自动奔跑</td><td>16</td><td>阴茎</td></tr>
+							<tr><td>1</td><td>追逐</td><td>17</td><td>仰卧单腿抬起</td></tr>
+							<tr><td>2</td><td>假阳具</td><td>18</td><td>腋下蹲姿</td></tr>
+							<tr><td>3</td><td>跳蛋开关</td><td>19</td><td>高叉姿势</td></tr>
+							<tr><td>4</td><td>手铐</td><td>20</td><td>挺胯</td></tr>
+							<tr><td>5</td><td>活塞机开关</td><td>21</td><td>自慰</td></tr>
+							<tr><td>6</td><td>时间停止</td><td>22</td><td>三腿自慰</td></tr>
+							<tr><td>7</td><td>排尿</td><td>23</td><td>仰卧自慰</td></tr>
+							<tr><td>8</td><td>张腿口交</td><td>24</td><td>趴跪自慰</td></tr>
+							<tr><td>9</td><td>一字劈叉平衡</td><td>25</td><td>玩弄乳头</td></tr>
+							<tr><td>10</td><td>下跪谢罪</td><td>26</td><td>玩弄阴蒂</td></tr>
+							<tr><td>11</td><td>扭臀</td><td>27</td><td>抚摸</td></tr>
+							<tr><td>12</td><td>手胸罩</td><td>28</td><td>张腿排尿</td></tr>
+							<tr><td>13</td><td>阿黑颜双剪刀手</td><td>29</td><td>站立排尿</td></tr>
+							<tr><td>14</td><td>O型腿四肢着地</td><td>30</td><td>翘腿排尿</td></tr>
+							<tr><td>15</td><td>张腿行走</td></tr>
+						</table>
+					</div>					
+					<div class="f">
+						<span>GetSkillShortcut(<span class="var Number">Slot</span>)</span><br>
+						<div>返回：<span class="type">Number</span></div>
+					</div>					
+					
+					<div class="f">
+						<span>GetRandomPosition(<span class="var Number">minRange</span>)</span><br>
+						<div>返回：<span class="type">List</span></div>
+						<ul>
+							<li>使用游戏的 StageRandomPositionManager，它会从当前舞台的一组预设位置列表中提供一个随机位置。</li>
+							<li>如果没有有效位置，则返回 null。</li>
+						</ul>
+					</div>
+					<div class="separator"></div>
+					<div class="f">
+						<span>AddCurrentEarnRP(<span class="var Number">RPValue</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的 RP 值 newRP）</div>
+						<ul>
+							<li>增加本次外出中当前已赚取的 RP。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>SetCurrentEarnRP(<span class="var Number">RPValue</span>)</span><br>
+						<div>返回：<span class="type">Number</span> newRP</div>
+					</div>
+					<div class="f">
+						<span>GetCurrentEarnRP()</span><br>
+						<div>返回：<span class="type">Number</span>（当前 RP 值 currentRP）</div>
+					</div>
+					<div class="f">
+						<span>AddCurrentRP(<span class="var Number">RPValue</span>)</span><br>
+						<div>返回：<span class="type">Number</span> newRP</div>
+						<ul>
+							<li>增加当前持有的 RP 总量。</li>
+							<li>不要与 AddCurrentEarnRP 混淆。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>SetCurrentRP(<span class="var Number">RPValue</span>)</span><br>
+						<div>返回：<span class="type">Number</span> newRP</div>
+					</div>
+					<div class="f">
+						<span>GetCurrentRP()</span><br>
+						<div>返回：<span class="type">Number</span> currentRP</div>
+					</div>
+					<div class="f">
+						<span>SetEcstasy(<span class="var Number">Value</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的值 newValue）</div>
+					</div>
+					<div class="f">
+						<span>AddEcstasy(<span class="var Number">Value</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的值 newValue）</div>
+					</div>
+					<div class="f">
+						<span>GetEcstasy()</span><br>
+						<div>返回：<span class="type">Number</span>（值 Value）</div>
+					</div>
+					<div class="f">
+						<span>SetStamina(<span class="var Number">Value</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的值 newValue）</div>
+						<ul>
+							<li>你可以通过 _state.StaminaMax 变量获取最大体力值。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>AddStamina(<span class="var Number">Value</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的值 newValue）</div>
+					</div>
+					<div class="f">
+						<span>GetStamina()</span><br>
+						<div>返回：<span class="type">Number</span>（值 Value）</div>
+					</div>
+					<div class="f">
+						<span>SetMoisture(<span class="var Number">Value</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的值 newValue）</div>
+						<ul>
+							<li>设置玩家膀胱的充盈程度。</li>
+						</ul>						
+					</div>
+					<div class="f">
+						<span>AddMoisture(<span class="var Number">Value</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的值 newValue）</div>
+					</div>
+					<div class="f">
+						<span>GetMoisture()</span><br>
+						<div>返回：<span class="type">Number</span>（值 Value）</div>
+					</div>
+					<div class="f">
+						<span>SetItemCount(<span class="var String">Item</span>, <span class="var Number">newCount</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的数量 newCount）</div>
+					</div>
+					<div class="f">
+						<span>AddItemCount(<span class="var String">Item</span>, <span class="var Number">addCount</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（新的数量 newCount）</div>
+					</div>
+					<div class="f">
+						<span>GetItemCount(<span class="var String">Item</span>)</span><br>
+						<div>返回：<span class="type">Number</span>（数量 Count）</div>
+					</div>
+					
+					<div class="f">
+						<span>CanGameOver([<span class="var Boolean">Value</span>])</span><br>
+						<div>返回：<span class="type">Boolean</span></div>
+						<ul>
+							<li>如果设为 false，则在被 NPC 发现时不会触发游戏结束（game over）。</li>
+							<li>你可以通过 _state.FoundNPC 获取发现玩家的 NPC 的 ID（即使没有触发游戏结束）。
+								<ul>
+									<li>每个 NPC 只触发一次，且仅在一帧内有效。</li>
+									<li>若未触发，_state.FoundNPC 为 -1。</li>
+								</ul>
+							</li>								
+						</ul>
+					</div>
+					<div class="f">
+						<span>TriggerGameOver()</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>即使你拥有防止被抓的技能，它也依然有效。</li>
+							<li>该条件与 _stage.GameOver 将保持为 true，直到你再次离开家。</li>
+						</ul>
+					</div>
+					
+					<div class="f">
+						<span>PlaySoundEffect(<span class="var String">SoundEffectName</span>[, volume = <span class="var Number">Volume</span>][, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>])</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>SoundEffectName 必须是<a href="#SoundEffect">此处</a>定义的值之一。（并非全部都能生效）</li>
+							<li>Volume 取值范围为 0 到 1。</li>
+							<li>如果你不需要 3D 音效，可以省略 x、y、z 的值。</li>
+						</ul>
+					</div>
+
+					<div class="f">
+						<span>SetStageRankLimit(<span class="var String">StageType</span>, <span class="var Number">Rank</span>)</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>更改等级限制以禁用通往该舞台的所有传送门。</li>
+							<li>快速旅行也将被禁用。</li>
+							<li>如果你传入小于 0 的 Rank 值，等级要求将重置为默认值。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>GetStageRankLimit(<span class="var String">StageType</span>)</span><br>
+						<div>返回：<span class="type">Number</span></div>
+					</div>
+					<div class="f">
+						<span>SetPortalEnabled(<span class="var String">StageType</span>, <span class="var Boolean">Enabled</span>)</span><br>
+						<div>返回：null</div>
+						<ul>
+							<li>启用/禁用通往指定舞台的传送门。</li>
+							<li>不过你仍然可以快速旅行到该舞台。</li>
+							<li>当你前往另一个舞台时会重置。</li>
+						</ul>
+					</div>
+					<div class="f" id="GetAllWaypoints">
+						<span>GetAllWaypoints()</span></br>
+						<div>返回：<span class="type">List</span></div>
+						<ul>
+							<li>获取当前舞台中椅子、自动售货机等的路径点（waypoint）列表。</li>
+							<li>每一项都包含 <i>Type</i>、<i>RouteInteractType</i> 和 <i>Position</i> 值，因此你可以识别它们并在 <a href="#NPC">NPC 对象</a>中使用。</li>
+						</ul>
+					</div>
+					<div class="f" id="SetSexPosition">
+						<span>SetSexPosition(<span class="var String">SexPosition</span>)</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>SexPosition 必须是以下两种体位之一：StandBack、Kijoui</li>
+						</ul>
+					</div>
+					<div class="f" id="DeactivateSex">
+						<span>DeactivateSex()</span></br>
+						<div>返回：null</div>
+					</div>
+					<div class="f" id="SetSexMenu">
+						<span>SetSexMenu([canfinish = <span class="var Boolean">CanFinish</span>][, canposition = <span class="var Boolean">CanChangePosition</span>])</span></br>
+						<span>SetSexMenu([canfinish = <span class="var Boolean">CanFinish</span>][, canposition = <span class="var List">CanChangeToPosition</span>])</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>canfinish：启用/禁用 "Finish"（完成）按钮。</li>
+							<li>canposition: 
+								<ul>
+									<li>若为布尔值，则启用/禁用所有体位按钮。</li>
+									<li>若为列表，键应为整数索引（从 0 开始），值为布尔值。</li>
+									<li>最简单的方式是使用 <span class="code">CreateList(true,false)</span> 或类似写法，它会隐式地创建这些索引。</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+					
+					<h3 id="Additional Game Functions">附加游戏函数</h3>
+					<ul>
+						<li>这些函数用于我为游戏添加的、并非原版游戏组成部分的功能。</li>
+					</ul>
+					<div class="f">
+						<span>ShowBlackscreen([color = <span class="var List"><a href="#Color">Color</a></span>][, delay = <span class="var Number">Delay</span>][, fadein = <span class="var Number">FadeIn</span>][, duration = <span class="var Number">Duration</span>][, fadeout = <span class="var Number">FadeOut</span>])</span></br>
+						<div>返回：null</div>
+					</div>
+					<div class="f">
+						<span>GetSnapshotData(<span class="var String">ImageReference</span>)</span></br>
+						<div>返回：<span class="type">List</span></div>
+						<ul>
+							<li>返回由相机功能拍摄的快照的元数据。</li>
+							<li>其结构与 _state 全局变量相同，但去掉了任务状态、已拥有的角色扮演服装等一些值，因为这些在图像中不可见。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>GetAllSnapshots([deleted = <span class="var Boolean">ListDeleted</span>][, hidden = <span class="var Boolean">ListHidden</span>])</span></br>
+						<div>返回：<span class="type">List</span></div>
+						<ul>
+							<li>返回一个指向所有快照的引用列表。</li>
+							<li>默认情况下不包含已删除和已隐藏的快照。将 <i>deleted</i> 和/或 <i>hidden</i> 设为 true 可将它们包含在列表中。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>DeleteSnapshot(<span class="var String">ImageReference</span>)</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>将图像标记为已删除，这样如果它未被任何存档引用，就会在下次程序启动时被删除。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>GetImageReference(<span class="var String">FilePath</span>)</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>FilePath 是相对于你的项目文件夹的路径。</li>
+						</ul>
+					</div>
+
+					<h3 id="Graphics">图形</h3>
+					<div class="f">
+						<span>SetGraphicsOption(<span class="var String">Option</span>, <span class="var Number">Value</span>)</span></br>
+						<span>SetGraphicsOption(<span class="var String">Option</span>, <span class="var Boolean">Value</span>)</span></br>
+						<div>返回：null</div>
+						<ul>
+							<li>除 "MotionBlur" 选项需要布尔值外，其余值均为数字。</li>
+							<li>这些值会被四舍五入为整数，因为游戏使用整数，但你可以传入浮点数。</li>
+							<li>选项列表：
+								<ul>
+									<li>MotionBlur</li>
+									<li>Brightness</li>
+									<li>Contrast</li>
+									<li>ColorTemperature</li>
+									<li>BloomStrength</li>
+									<li>BloomBiasDark</li>
+									<li>BloomBiasLight</li>
+									<li>CameraAngle1st</li>
+									<li>CameraAngle3rd</li>
+								</ul>							
+							</li>
+						</ul>
+						<span>GetGraphicsOption(<span class="var String">Option</span>)</span></br>
+						<div>返回：<span class="type">Number</span> 或 <span class="type">Boolean</span></div>						
+					</div>
+					
+					<h3 id="Math Functions">数学</h3>
+					<div>
+						<h4>标准</h4>
+						<div class="f">
+							<span>Random([[<span class="var Number">minInclusive</span>], <span class="var Number">maxExclusive</span>])</span></br>
+							<div>返回：<span class="type">Number</span></div>
+							<ul>
+								<li>如果未提供参数，函数返回一个区间 [0,1) 内的值。</li>
+							</ul>
+						</div>
+						<div class="f">
+							<span>RandomInt([[<span class="var Number">minInclusive</span>], <span class="var Number">maxExclusive</span>])</span></br>
+							<div>返回：整数 <span class="type">Number</span></div>
+							<ul>
+								<li>如果未提供参数，函数返回 0 或 1。</li>
+							</ul>
+						</div>
+						<div class="f">
+							<span>Sin(<span class="var Number">Angle</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Cos(<span class="var Number">Angle</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Tan(<span class="var Number">Angle</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Asin(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Acos(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Atan(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Floor(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Ceil(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Sign(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Abs(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Trunc(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Round(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>LogN(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Log2(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Log10(<span class="var Number">Value</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Min(<span class="var Number">Value1</span>[, <span class="var Number">Value2</span>]...)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Max(<span class="var Number">Value1</span>[, <span class="var Number">Value2</span>]...)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+					</div>
+					<div>
+						<h4 id="Vector Functions">向量</h4>
+						<div class="f" id="Vector">
+							<span>Vector(<span class="var Number">X</span>, <span class="var Number">Y</span>[, <span class="var Number">Z</span>])</span><br>
+							<div>返回：<span class="type">List</span></div>
+							<ul>
+								<li>创建一个包含 x、y、z 项的列表。</li>
+							</ul>
+						</div>
+						<div class="f" id="Quaternion">
+							<span>Quaternion(<span class="var Number">RX</span>, <span class="var Number">RY</span>, <span class="var Number">RZ</span>, <span class="var Number">RW</span>)</span><br>
+							<div>返回：<span class="type">List</span></div>
+							<ul>
+								<li>创建一个包含 rx、ry、rz、rw 项的列表。</li>
+							</ul>
+						</div>
+						<div class="f">
+							<span>Vector3Length(<span class="var List"><a href="#Vector">Vector</a></span></span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3SqrLength(<span class="var List"><a href="#Vector">Vector</a></span></span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3Add(<span class="var List"><a href="#Vector">Vector1</a></span>, <span class="var List"><a href="#Vector">Vector2</a></span>)</span><br>
+							<div>返回：<span class="type">List</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3Sub(<span class="var List"><a href="#Vector">Vector1</a></span>, <span class="var List"><a href="#Vector">Vector2</a></span>)</span><br>
+							<div>返回：<span class="type">List</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3Scale(<span class="var List"><a href="#Vector">Vector</a></span>, <span class="var Number">Scalar</span>)</span><br>
+							<span>Vector3Scale(<span class="var Number">Scalar</span>, <span class="var List"><a href="#Vector">Vector</a></span>)</span><br>
+							<div>返回：<span class="type">List</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3Dot(<span class="var List"><a href="#Vector">Vector1</a></span>, <span class="var List"><a href="#Vector">Vector2</a></span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3Cross(<span class="var List"><a href="#Vector">Vector1</a></span>, <span class="var List"><a href="#Vector">Vector2</a></span>)</span><br>
+							<div>返回：<span class="type">List</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3Rotate(<span class="var List"><a href="#Quaternion">Quaternion</a></span>, <span class="var List"><a href="#Vector">Vector</a></span>)</span><br>
+							<div>返回：<span class="type">List</span></div>
+						</div>
+						<div class="f">
+							<span>Vector3Distance(<span class="var List"><a href="#Vector">Vector1</a></span>, <span class="var List"><a href="#Vector">Vector2</a></span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+					</div>
+					
+					<h3 id="String Functions">字符串</h3>
+					<div class="f">
+						<span>Length(<span class="var String">String</span>)</span></br>
+						<div>返回：<span class="type">Number</span></div>
+					</div>
+					<div class="f">
+						<span>Lower(<span class="var String">String</span>)</span></br>
+						<div>返回：<span class="type">String</span></div>
+						<ul>
+							<li>将字符串转换为小写。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>Upper(<span class="var String">String</span>)</span></br>
+						<div>返回：<span class="type">String</span></div>
+						<ul>
+							<li>将字符串转换为大写。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>Find(<span class="var String">SubString</span>, <span class="var String">String</span>)</span></br>
+						<div>返回：<span class="type">Number</span></div>
+						<ul>
+							<li>索引从 0 开始。</li>
+							<li>如果未找到子字符串，则返回 -1。</li>
+						</ul>
+					</div>
+					<div class="f">
+						<span>SubString(<span class="var String">String</span>, start = <span class="var Number">Start</span>[, length = <span class="var Number">Length</span>])</span></br>
+						<span>SubString(<span class="var String">String</span>, start = <span class="var Number">Start</span>, end = <span class="var Number">End</span>)</span></br>
+						<span>SubString(<span class="var String">String</span>, end = <span class="var Number">End</span>[, length = <span class="var Number">Length</span>])</span></br>
+						<div>返回：<span class="type">String</span></div>
+						<ul>
+							<li>索引从 0 开始。</li>
+							<li>结果包含 <i>end</i> 位置处的字符。</li>
+						</ul>
+						<pre class="code">
+s = "Hello World"
+Log(Length(s)) <span class="comment">11</span>
+Log(SubString(s, start=4)) <span class="comment">o World</span>
+Log(SubString(s, start=4, length=5)) <span class="comment">o Wor</span>
+Log(SubString(s, start=4, end=9)) <span class="comment">o Worl</span>
+Log(SubString(s, end=9)) <span class="comment">Hello Worl</span>
+Log(SubString(s, end=3, length=3)) <span class="comment">ell</span></pre>
+					</div>
+					<div class="f">
+						<span>Format(<span class="var String">FormatString</span>[, <span class="var">UnnamedParameter1</span>]...)</span></br>
+						<span>Format(<span class="var String">FormatString</span>[, <span class="var List">ListOfUnnamedParameters</span>])</span></br>
+						<div>返回：<span class="type">String</span></div>
+						<br>
+						<div>示例：</div>
+						<pre class="code">
+Log(Format("Number with 3 decimals: {0:F3}",1/7))
+list = CreateList("cow",4,"legs")
+Log(Format("A {0} has {1} {2}.",list))
+
+<span class="comment">输出：</span>
+<span class="comment">Number with 3 decimals: 0.143</span>
+<span class="comment">A cow has 4 legs.</span></pre>
+					</div>
+					<div class="f">
+						<span>ToNumber(<span class="var String">S</span>)</span></br>
+						<div>返回：<span class="type">Number</span> 或 null</div>
+						<ul>
+							<li>如果字符串无法转换为数字，则返回 null。</li>
+						</ul>
+					</div>
+					
+					<h3 id="File Functions">文件</h3>
+					<ul>
+						<li><b>所有路径均相对于你的项目目录。</b></li>
+					</ul>
+					<div class="f">
+						<span>FileExists(<span class="var String">Path</span>)</span></br>
+						<div>返回：<span class="type">Boolean</span></div>
+					</div>
+					<div class="f">
+						<span>GetFiles([<span class="var String">Path</span>][, subfolders = <span class="var Boolean">SearchSubfolders</span>])</span></br>
+						<div>返回：<span class="type">List</span></div>
+						<ul>
+							<li>获取所有文件的列表。</li>
+							<li>如果未指定路径，默认为项目的根目录。</li>							
+						</ul>
+					</div>
+					<div class="f">
+						<span>GetFileExtension(<span class="var String">Path</span>)</span></br>
+						<div>返回：<span class="type">String</span></div>
+						<ul>
+							<li>返回扩展名（包含句点），若文件没有扩展名则返回空字符串。</li>
+						</ul>						
+					</div>					
+				</div>
+			</div>
+			<div>
+				<h2 id="Objects">对象</h2>
+				<ul>
+					<li>当对象的引用计数为零时，它们会被自动销毁。</li>
+				</ul>
+				<div>
+
+					<h3 id="List">List</h3>
+					<div class="f">
+						<h4>构造函数</h4>
+						<div class="f">
+							<span>CreateList([Name1 = <span class="var">Value1</span>][, Name2 = <span class="var">Value2</span>]...)</span> or<br>
+							<span>CreateList([<span class="var">Value1</span>][, <span class="var">Value2</span>]...)</span><br>
+							或 <span>同时使用具名和匿名参数的组合形式</span>
+							<div>返回：<span class="type">List</span></div>
+							<ul>
+								<li>列表是值的集合。</li>
+								<li>值可以通过不同方式访问。
+									<pre class="code">
+list1 = CreateList()
+list1["name"] = "Player"
+Log(list1.name)</pre>
+								</li>
+								<li>所有索引都会被转换为字符串。</li>
+								<li>对于整数索引，还有一些额外的函数。</li>
+								<ul>
+									<li>列表仍然可以拥有其他索引。</li>
+								</ul>
+							</ul>
+							<span>Copy(<span class="var List">ListToCopy</span>[, <span class="var Boolean">deepCopy</span>])</span><br>
+							<div>返回：<span class="type">List</span></div>
+							<br>
+							<span>CreateListFromJson(file = <span class="var String">FilePath</span>)</span><br>
+							<div>返回：<span class="type">List</span></div>							
+						</div>
+						<h4>方法</h4>
+						<div class="f">
+							<span>Insert([index = <span class="var Number">InsertAt</span>][, <span class="var">Value1</span>][, <span class="var">Value2</span>]...)</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>如果未定义 index，值将被追加到末尾。</li>
+							</ul>
+							<span>Remove([index = <span class="var Number">RemoveFrom</span>][, count = <span class="var Number">Count</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>如果未定义 index，将从末尾移除值。</li>
+								<li>如果未定义 count，count 将为 1。</li>
+								<li>被移除项之后的值将被移动到空出的索引处。</li>
+							</ul>
+							<span>Count()</span><br>
+							<div>返回：<span class="type">Number</span></div>
+							<ul>
+								<li>如果从 0 开始的索引中存在间隙，返回值将只是该间隙的索引。</li>
+							</ul>
+							<span>Contains(<span class="var">Value</span>)</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果列表包含 Value 则返回 true，否则返回 false。</li>
+							</ul>
+							<span>IndexOf(<span class="var">Value</span>)</span><br>
+							<div>返回：<span class="type">String</span> 或 null</div>
+							<ul>
+								<li>如果 Value 存在于列表中，返回其首次出现的键，否则返回 null。</li>
+								<li>键始终是字符串，即使某些项是以数字作为索引设置的，因为它们在内部会被转换并以字符串形式存储。</li>
+							</ul>
+							<span>Keys([<span class="var Boolean">IncludeAll</span>])</span><br>
+							<div>返回：<span class="type">List</span></div>
+							<ul>
+								<li>返回一个包含该列表所有键的新列表。</li>
+								<li>默认情况下<b>不包含</b>已整理的数字索引，因为你可以直接用循环遍历它们。如果你需要它们，请传入 true 作为参数。</li>
+								<li>返回列表的索引从 0 开始，因此你可以遍历它们。
+									<pre class="code">
+list = CreateList(key1 = "1", key2 = "2")
+keys = list.Keys()
+i = 0
+while i &lt; keys.Count()
+	Log(keys[i])
+	i+=1
+
+<span class="comment">输出：</span>
+<span class="comment">key1</span>
+<span class="comment">key2</span></pre>
+								</li>
+							</ul>
+						</div>
+					</div>
+
+					<h3 id="Thread">线程（Thread）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateThread(<span class="var String">labelName</span>[, <span class="var">Named_Or_Unnamed_Parameter</span>]...)</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>创建新线程时，其代码会运行一次。</li>
+								<li>使用 Goto 更改标签后，指定标签的代码会在下一帧运行一次。</li>
+								<li>使用监听器（Listener）等待条件满足，并调用 Goto 前进到下一个标签。</li>
+								<li>当标签被更改时，旧的上下文会被销毁，对 <span class="type">Objects</span> 的引用也会被删除。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Goto(<span class="var String">labelName</span>[, <span class="var">Named_Or_Unnamed_Parameter</span>]...)</span><br>
+							<div>返回：null</div>
+							<pre class="code">
+thread = CreateThread("m1")
+
+m1:
+	Log("start timer")
+	listener = CreateListener("l", waittime = 5)
+	l:
+		if duration == null
+			duration = 0
+		duration = duration + _timediff
+		if duration&gt;=waittime
+			thread.Goto("m2")
+m2:
+	Log("5 seconds have passed")</pre>
+								<span>GetLabel()</span><br>
+								<div>返回：<span class="type">String</span></div>
+								<br>
+								<span>调用用户自定义函数：</span><br>
+								<pre class="code">
+test = CreateThread("m")
+test.Output() <span class="comment">输出：Hello World!</span>
+
+m:
+	text = "Hello World!"
+	Output:
+		Log(text)
+</pre>
+						</div>
+					</div>
+
+					<h3 id="Listener">监听器（Listener）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateListener(<span class="var String">labelName</span>[, <span class="var">Named_Or_Unnamed_Parameter</span>]...)</span><br>
+							<span>CreateListenerLocal(<span class="var String">labelName</span>[, <span class="var">Named_Or_Unnamed_Parameter</span>]...)</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>监听器与线程类似，但它们的代码每一帧都会运行。</li>
+								<li>变量会在下一帧保留其值。</li>
+								<li>有两个函数可用于创建监听器：CreateListener 和 CreateListenerLocal。</li>
+								<li>CreateListener 在代码定义所在的作用域中创建监听器。</li>
+								<li>CreateListenerLocal 在你调用该函数所在的作用域中创建监听器。
+									<ul>
+										<li>这使得创建共享代码更加容易，而无需传递所有需要的变量。</li>
+										<li>但当父作用域被销毁时，监听器也会被销毁，即使仍存在对它的引用。</li>
+									</ul>
+								</li>
+							</ul>
+							<pre class="code">
+thread = CreateThread("m1")
+
+m1:
+	localvariable = "local1"
+	listener = CreateListener("l", nextcheckpoint = "m2")
+	l:
+		Log(localvariable)
+		thread.Goto(nextcheckpoint)
+m2:
+	localvariable = "local2"
+	listener = CreateListener("lglobal", nextcheckpoint = "m3")
+m3:
+	localvariable = "local3"
+	listener = CreateListenerLocal("lglobal", nextcheckpoint = "m4")
+m4:
+	thread = null
+
+lglobal:
+	Log(localvariable)
+	thread.Goto(nextcheckpoint)
+
+<span class="comment">输出：</span>
+<span class="comment">local1</span>
+<span class="comment">null</span>
+<span class="comment">local3</span></pre>
+						</div>
+					</div>
+
+					<h3 id="MissionPanel">MissionPanel</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateMissionPanel()</span><br>
+							<div>返回：<span class="type">Object</span></div>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>SetText(<span class="var String">Text</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetRPText(<span class="var String">Text</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetVisible(<span class="var Boolean">Visible</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetGaugeVisible(<span class="var Boolean">Visible</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetGaugeProgress(<span class="var Number">Progress</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>GetText()</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<br>
+							<span>GetRPText()</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<br>
+							<span>GetVisible()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<br>
+							<span>GetGaugeVisible()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<br>
+							<span>GetGaugeProgress()</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+					</div>
+
+					<h3 id="MissionMenuItem">MissionMenuItem</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateMissionMenuItem()</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>为任务菜单创建一个项目（即按 Tab 并点击 Missions 时出现的那个菜单）。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>SetText(<span class="var String">Text</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>GetText()</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<br>
+							<span>SetRPText(<span class="var String">Text</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>GetRPText()</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<br>
+							<span>SetCleared(<span class="var Boolean">ClearedMarker</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>GetCleared()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<br>
+							<span>SetMark(<span class="var Boolean">Mark</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>GetMark()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<br>
+							<span>SetClears(<span class="var Number">Clears</span>)</span><br>
+							<span>SetClears(<span class="var String">Clears</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>GetClears()</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<br>
+							<span>SetMaxRP(<span class="var Number">MaxRP</span>)</span><br>
+							<span>SetMaxRP(<span class="var String">MaxRP</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>GetMaxRP()</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<br>
+							<span>AutoColor(<span class="var Boolean">Value</span>)</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果设为 true，SetMaxRP（使用数字参数时）还会根据游戏的配色方案更改背景色和文字颜色。</li>
+							</ul>							
+							<span>SetBackgroundColor(<span class="var List"><a href="#Color">Color1</a></span>, <span class="var List"><a href="#Color">Color2</a></span>)</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>之所以有两种颜色，是因为它是渐变色。</li>
+								<li>The values used by the base game are:
+									<ul>
+										<li>White: Color(1.000, 1.000, 1.000, 1.000), Color(0.358, 0.358, 0.358, 1.000)</li>
+										<li>Green: Color(0.495, 1.000, 0.521, 1.000), Color(0.000, 0.434, 0.024, 1.000)</li>
+										<li>Blue: Color(0.429, 0.644, 1.000, 1.000), Color(0.000, 0.379, 1.000, 1.000)</li>
+										<li>Purple: Color(0.788, 0.458, 1.000, 1.000), Color(0.607, 0.000, 1.000, 1.000)</li>
+										<li>Gold: Color(1.000, 0.751, 0.325, 1.000), Color(0.604, 0.378, 0.000, 1.000)</li>
+										<li>Red: Color(1.000, 0.306, 0.306, 1.000), Color(0.651, 0.000, 0.000, 1.000)</li>
+									</ul>
+								</li>
+							</ul>
+							<span>SetMaxRPColor(<span class="var List"><a href="#Color">Color1</a></span>, <span class="var List"><a href="#Color">Color2</a></span>)</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>之所以有两种颜色，是因为它是渐变色。</li>								
+							</ul>
+							<span>SetStages(<span class="var String">Stage1</span>,[<span class="var String">Stage2</span>]...)</span><br>
+							<span>SetStages(<span class="var List">Stages</span>)</span><br>
+							<div>返回：null</div>
+						</div>
+					</div>
+
+					<h3 id="Area">区域（Area）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateArea(type = "sphere", stage = <span class="var String">StageName</span>, x = <span class="var Number">CenterX</span>, y = <span class="var Number">CenterY</span>, z = <span class="var Number">CenterZ</span>, r = <span class="var Number">Radius</span>[, outline = <span class="var Boolean">OutlineVisible</span>][, compass = <span class="var Boolean">CompassIconVisible</span>])</span><br>
+							<span>CreateArea(type = "sphere", stage = <span class="var String">StageName</span>, x = <span class="var Number">CenterX</span>, y = <span class="var Number">CenterY</span>, z = <span class="var Number">CenterZ</span>, r = <span class="var Number">Radius</span>[, outline = <span class="var Boolean">OutlineVisible</span>][, compass = <span class="var String">CompassIconFilename</span>])</span><br>
+							<span>CreateArea(type = "cylinder", stage = <span class="var String">StageName</span>, x = <span class="var Number">CenterX</span>, y = <span class="var Number">CenterY</span>, z = <span class="var Number">CenterZ</span>, r = <span class="var Number">Radius</span>, h = <span class="var Number">Height</span>[, outline = <span class="var Boolean">OutlineVisible</span>][, compass = <span class="var Boolean">CompassIconVisible</span>])</span><br>
+							<span>CreateArea(type = "cylinder", stage = <span class="var String">StageName</span>, x = <span class="var Number">CenterX</span>, y = <span class="var Number">CenterY</span>, z = <span class="var Number">CenterZ</span>, r = <span class="var Number">Radius</span>, h = <span class="var Number">Height</span>[, outline = <span class="var Boolean">OutlineVisible</span>][, compass = <span class="var String">CompassIconFilename</span>])</span><br>
+							<span>CreateArea(type = "cuboid", stage = <span class="var String">StageName</span>, x1 = <span class="var Number">StartX</span>, y1 = <span class="var Number">StartY</span>, z1 = <span class="var Number">StartZ</span>, x2 = <span class="var Number">EndX</span>, y2 = <span class="var Number">EndY</span>, z2 = <span class="var Number">EndZ</span>, w = <span class="var Number">Width</span>, h = <span class="var Number">Height</span>[, outline = <span class="var Boolean">OutlineVisible</span>][, compass = <span class="var Boolean">CompassIconVisible</span>])</span><br>
+							<span>CreateArea(type = "cuboid", stage = <span class="var String">StageName</span>, x1 = <span class="var Number">StartX</span>, y1 = <span class="var Number">StartY</span>, z1 = <span class="var Number">StartZ</span>, x2 = <span class="var Number">EndX</span>, y2 = <span class="var Number">EndY</span>, z2 = <span class="var Number">EndZ</span>, w = <span class="var Number">Width</span>, h = <span class="var Number">Height</span>[, outline = <span class="var Boolean">OutlineVisible</span>][, compass = <span class="var String">CompassIconFilename</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>参数 "compass" 可以是布尔值或字符串。
+									<ul>
+										<li>默认值为 True。</li>
+										<li>如果你传入一个包含图像路径（相对于项目文件夹）的字符串，就可以将指南针图标设为自定义图像。</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>SetVisible(<span class="var Boolean">Visible</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetColor(<span class="var Number">Red</span>, <span class="var Number">Green</span>, <span class="var Number">Blue</span>[, <span class="var Number">Alpha</span>])</span><br>
+							<span>SetColor(<span class="var List"><a href="#Color">Color</a></span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetOutline(<span class="var Boolean">Visible</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetCompass(<span class="var Boolean">Visible</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>Inside()</span><br>
+							<span>Inside(stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>)</span><br>
+							<span>Inside(<span class="var List">Position</span>)</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<br>
+							<span>Distance()</span><br>
+							<span>Distance(stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>)</span><br>
+							<span>Distance(<span class="var List">Position</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+					</div>
+
+					<h3 id="Zone">地带（Zone）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateZone([<span class="var Object">Area1</span>][, <span class="var Object">Area2</span>]...)</span><br>
+							<span>CreateZone([<span class="var List">ListOfAreas</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>SetVisible(<span class="var Boolean">Visible</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetColor(<span class="var Number">Red</span>, <span class="var Number">Green</span>, <span class="var Number">Blue</span>[, <span class="var Number">Alpha</span>])</span><br>
+							<span>SetColor(<span class="var List"><a href="#Color">Color</a></span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>Inside()</span><br>
+							<span>Inside(stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>)</span><br>
+							<span>Inside(<span class="var List">Position</span>)</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果未指定位置，则使用玩家的位置。</li>
+							</ul>
+							<span>DistanceToLastPosition()</span><br>
+							<span>DistanceToLastPosition(stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>)</span><br>
+							<span>DistanceToLastPosition(<span class="var List">Position</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+							<ul>
+								<li>返回玩家所处地带中最后一个区域的距离。</li>
+								<li><b style="color: red">最后一个区域仅在调用 "Inside()" 时才会更新。</b></li>
+							</ul>
+							<span>DistanceToNearest()</span><br>
+							<span>DistanceToNearest(stage = <span class="var String">StageName</span>, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>)</span><br>
+							<span>DistanceToNearest(<span class="var List">Position</span>)</span><br>
+							<div>返回：<span class="type">Number</span></div>
+						</div>
+					</div>
+
+					<h3 id="Condition">条件（Condition）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateCondition(<span class="var String">Condition</span>[, id = <span class="var String">ID</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>条件使用简短而简单的语法，来创建对玩家状态更复杂的组合，这些状态也可以通过 _state 全局变量访问。</li>
+								<li>关于所有条件类型的列表，请参见<a href="#ConditonTypes">附录：条件</a>。</li>
+								<li>要用逻辑与（AND）组合多个条件类型，请用方括号包住以逗号分隔的列表。</li>
+								<li>要用逻辑或（OR）组合多个条件类型，请用圆括号包住以逗号分隔的列表。</li>
+								<li>要对某个值取反，请在它前面加上一个感叹号。</li>
+								<li>没有异或（XOR），但你可以通过组合其他运算符来重现其效果。</li>
+							</ul>
+							示例：
+							<pre class="code">
+<span class="comment">创建一个条件：你必须暴露正面和背面，但不能完全裸体。</span>
+<span class="comment">方括号表示所有条件都必须为真，而感叹号对 Exposed_All 取反，因此它必须为假才能满足整体要求。</span>
+condition1 = CreateCondition("[Exposed_Front,Exposed_Hip,!Exposed_All]")
+
+<span class="comment">创建一个条件：你必须裸体、使用已启动的阴蒂跳蛋，并对壁挂式假阳具执行一个动作。</span>
+condition2 = CreateCondition("[Exposed_All,AdultToy_KuriRotor,(VibrationLow,VibrationHigh,VibrationRandom),(Action_UseDildoWallPussy1,Action_UseDildoWallAnal1,Action_UseDildoWallFella1)]")
+</pre>
+							<ul>
+								<li>存在用于动作、角色扮演服装、任务等的条件，它们使用一个前缀，后面跟游戏所使用的名称或 id。</li>
+								<li>要获取这些的列表，请在游戏中按 Ctrl+F9，并查看 BepInEx 控制台窗口。</li>
+								<br>							
+								<li>某些条件可以用运算符 &gt;、&gt;=、&lt;、&lt;=、==、!= 与数字进行比较。</li></li>
+								<br>							
+								<li>你还可以在创建条件时设置一个 ID，并在另一个条件中通过条件类型 "Subcondition" 将其用作子条件。</li>
+								<li>这对 ItemCondition 同样适用。</li>
+								<li>只要条件比对 _state 变量中单个值的简单比较更复杂，你就应尽量使用预先准备好的条件。</li>
+								<li>避免在监听器中创建条件，而应在创建监听器时将条件传入，以获得更好的性能。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Check()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+						</div>
+					</div>
+
+					<h3 id="ItemCondition">ItemCondition</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateItemCondition(itemtype = <span class="var String">ItemType</span>, zone = <span class="var Object">Zone</span>[, id = <span class="var String">ID</span>])</span><br>
+							<span>CreateItemCondition(itemtype = <span class="var String">ItemType</span>, area = <span class="var Object">Area</span>[, id = <span class="var String">ID</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Check()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+						</div>
+					</div>
+
+					<h3 id="InteractArea">InteractArea</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateInteractArea(stage = <span class="var String">StageName</span>, x = <span class="var Number">CenterX</span>, y = <span class="var Number">CenterY</span>, z = <span class="var Number">CenterZ</span>, r = <span class="var Number">Radius</span>, text = <span class="var String">Text</span>[, options = <span class="var List">OptionTexts</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>"options"（如果定义了）必须是一个字符串列表，索引从 0 开始。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Check()</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 <span class="type">Number</span> 或 null</div>
+							<ul>
+								<li>如果 InteractArea 创建时<b>没有</b>使用 options，返回值将是一个布尔值，表示本帧是否与其发生了交互。</li>
+								<li>如果 InteractArea 定义了 options，返回值将是所选选项的索引，或 <b>null（如果未发生交互）</b>。</li>
+							</ul>
+						</div>
+					</div>
+
+					<h3 id="Text">Text</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateText()</span><br>
+							<div>返回：<span class="type">Object</span></div>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>SetFace([color = <span class="var List"><a href="#Color">FaceColor</a></span>][, dilate = <span class="var Number">FaceDilate</span>])</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetOutline([color = <span class="var List"><a href="#Color">OutlineColor</a></span>][, width = <span class="var Number">OutlineWidth</span>])</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetUnderlay([color = <span class="var List"><a href="#Color">UnderlayColor</a></span>][, dilate = <span class="var Number">UnderlayDilate</span>][, softness = <span class="var Number">UnderlaySoftness</span>][, offsetx = <span class="var Number">UnderlayOffsetX</span>][, offsety = <span class="var Number">UnderlayOffsetY</span>])</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetAnchor(<span class="var Number">AnchorX</span>, <span class="var Number">AnchorY</span>)</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>取值范围为 0 到 1。</li>
+								<li>原点位于左下角。</li>
+							</ul>
+							<span>SetAlignment(<span class="var String">Alignment</span>)</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>对齐方式取值：TopLeft、Top、TopRight、Right、BottomRight、Bottom、BottomLeft、Left、Center</li>
+							</ul>
+							<span>SetSize(<span class="var Number">Size</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetWidth(<span class="var Number">Width</span>)</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetFrontLayer(<span class="var Boolean">InFrontlayer</span>)</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>前景层中的文本会显示在黑屏之上。</li>
+							</ul>
+							<span>Clear()</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>清空显示队列。</li>
+								<li>当存在不会过期的文本时尤其有用。</li>
+							</ul>
+							<span>Add([text = <span class="var Number">Text</span>][, delay = <span class="var Number">Delay</span>][, fadein = <span class="var Number">FadeIn</span>][, fadeout = <span class="var Number">FadeOut</span>][, duration = <span class="var Number">Duration</span>]<br>
+							<div style="display: inline-block; width: 19px"></div>[, facecolor = <span class="var List"><a href="#Color">FaceColor</a></span>][, facedilate = <span class="var Number">FaceDilate</span>]<br>
+							<div style="display: inline-block; width: 19px"></div>[, outlinecolor = <span class="var List"><a href="#Color">OutlineColor</a></span>][, outlinewidth = <span class="var Number">OutlineWidth</span>]<br>
+							<div style="display: inline-block; width: 19px"></div>[, underlaycolor = <span class="var List"><a href="#Color">UnderlayColor</a></span>][, underlaydilate = <span class="var Number">UnderlayDilate</span>][, underlaysoftness = <span class="var Number">UnderlaySoftness</span>][, underlayoffsetx = <span class="var Number">UnderlayOffsetX</span>][, underlayoffsety = <span class="var Number">UnderlayOffsetY</span>]<br>
+							<div style="display: inline-block; width: 19px"></div>[, size = <span class="var Number">Size</span>][, alignment = <span class="var Number">Alignment</span>][, anchorx = <span class="var Number">AnchorX</span>][, anchory = <span class="var Number">AnchorY</span>][, width = <span class="var Number">Width</span>]</span><br>
+							<div style="display: inline-block; width: 19px"></div>[<span class="var List">ListOfNamedParameters</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>向显示队列添加一段文本。</li>
+								<li>duration &lt; 0 表示无限时长，文本只有在调用 Clear() 时才会被移除。</li>
+							</ul>
+						</div>
+					</div>
+
+					<h3 id="Messenger Chat">即时通讯聊天（Messenger Chat）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateMessengerChat(<span class="var String">Title</span>)</span><br>
+							<span>CreateMessengerChat(<span class="var String">Title</span>[, icontext = <span class="var String">IconText</span>][, icontextcolor = <span class="var List"><a href="#Color">IconTextColor</a></span>][, iconcolor = <span class="var List"><a href="#Color">IconColor</a></span>])</span><br>
+							<span>CreateMessengerChat(<span class="var String">Title</span>[, iconfilename = <span class="var String">IconFilename</span>][, iconcolor = <span class="var List"><a href="#Color">IconBorderColor</a></span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>IconColor 默认为蓝色，IconTextColor 默认为白色。</li>
+								<li>IconText 应尽量简短，否则文字会小到无法看清。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Add(<span class="var String">Text</span>, <span class="var String">Orientation</span>[, user = <span class="var String">Username</span>[, usercolor = <span class="var List"><a href="#Color">UsernameColor</a></span>]][, silent = <span class="var Boolean">SilentAdd</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>Orientation 必须是 "Left" 或 "Right"。</li>
+								<li>可以定义 Username 来创建群聊。</li>
+								<li>将 "silent" 设为 true，可在不触发新消息通知的情况下添加消息行。（在你想加载已保存的进度时可能有用。）</li>
+							</ul>
+							<span>Clear()</span><br>
+							<div>返回：null</div>
+							<br>
+							<span>SetButtons(<span class="var String">Caption1</span>[, <span class="var String">Caption2</span>]... [, ids = <span class="var List">ButtonIds</span>])</span><br>
+							<span>SetButtons(<span class="var List">Captions</span>[, ids = <span class="var List">ButtonIds</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>接受匿名字符串参数或字符串列表，并为聊天创建按钮。</li>
+								<li>通过列表 "ids"，你可以为 "Clicked" 方法指定自定义返回值。</li>
+							</ul>
+							<span>Clicked()</span><br>
+							<div>返回：null 或 <span class="type">Number</span> 或 Value</div>
+							<ul>
+								<li>如果上一帧没有按下任何按钮，返回 null。</li>
+								<li>如果按下了某个按钮且设置了 "ids"，则返回相应的值。</li>
+								<li>否则返回该按钮的编号（编号从 0 开始）。</li>
+							</ul>
+							<span>Opened()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果聊天当前可见，则返回 true。</li>
+							</ul>
+						</div>
+					</div>
+
+					<h3 id="Audio">Audio</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateAudio(<span class="var String">FilePath</span>)</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>FilePath 是相对于你的项目文件夹的路径。</li>
+								<li>支持的文件格式为 WAVE (.wav)、Ogg Vorbis (.ogg) 和 MP3 (.mp3)。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Play([volume = <span class="var Number">Volume</span>][, x = <span class="var Number">PositionX</span>, y = <span class="var Number">PositionY</span>, z = <span class="var Number">PositionZ</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>Volume 取值范围为 0 到 1。</li>
+								<li>如果你不需要 3D 音效，可以省略 x、y、z 的值。</li>
+							</ul>
+							<span>Length()</span><br>
+							<div>返回：<span class="type">Number</span></div>
+							<ul>
+								<li>返回音频片段的长度（以秒为单位）。</li>
+							</ul>
+						</div>
+					</div>
+
+					<h3 id="Gallery">图库（Gallery）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateGallery([<span class="var String">CallbackFunction</span>][,<span class="var Object">Condition</span>][,<span class="var Object">Area</span>][,<span class="var Object">Zone</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>Gallery 对象用于从经过筛选的照片列表中显示并选择照片。</li>
+								<li>应从 <a href="#Messenger Chat">Messenger</a> 中的按钮触发，以确保玩家确实正在看手机。</li>
+								<li>回调函数会为图库中的每张图像被调用一次。
+									<ul>
+										<li>它会被传入一个 <i>data</i> 变量，其中包含该图像的元数据。</li>
+										<li>如果你想在图库中显示该图像，请将 <i>_result</i> 设为 true。</li>
+									</ul>
+								</li>
+								<li>You can also use <a href="#Condition">Conditions</a> and <a href="#Area">Areas</a> or <a href="#Zone">Zones</a>
+									<ul>
+										<li>必须全部为真，才能将图像添加到图库中。</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Show([multiselect = <span class="var Boolean">MultiSelect</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>默认情况下关闭多选。</li>
+							</ul>
+							
+						</div>
+						<div class="f">
+							<span>Confirmed()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>当选择被确认时返回 true。</li>
+							</ul>
+						</div>
+						<div class="f">
+							<span>GetSelection()</span><br>
+							<div>返回：<span class="type">List</span></div>
+							<ul>
+								<li>返回一个包含所选图像引用的列表。</li>
+							</ul>
+						</div>
+					</div>
+
+					<h3 id="Snapshot">快照（Snapshot）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateSnapshot(position = <span class="var List"><a href="#Vector">Position</a></span>, direction = <span class="var List"><a href="#Vector">Direction</a></span>[, width = <span class="var Number">Width</span>, height = <span class="var Number">Height</span>][, fov = <span class="var Number">FieldOfView</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>创建一个用于拍摄快照的摄像机。</li>
+								<li>你必须等待下一帧让游戏完成渲染，然后才能保存图像。</li>
+								<li>关于额外的快照函数，另请参见<a href="#Additional Game Functions">附加游戏函数</a>。</li>
+								<li>在保存快照后，请通过移除所有引用来销毁该对象，否则会影响性能。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>Save([hidden = <span class="var Boolean">Hidden</span>])</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<ul>
+								<li>返回图像引用。</li>
+								<li>隐藏的图像不会显示在图库中，但你可以在 Messenger 中使用它们。</li>
+							</ul>
+						</div>
+					</div>
+					
+					<h3 id="NPC">NPC</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateNPC(<span class="var String"><a href="#AvatarType">AvatarType</a></span>, position = <span class="var List"><a href="#Vector">Position</a></span>, rotation = <span class="var List"><a href="#Quaternion">Rotation</a></span>[, body = <span class="var Number">BodyIndex</span>][, hair = <span class="var Number">HairIndex</span>][, face = <span class="var Number">FaceIndex</span>][, size = <span class="var Number">Size</span>])</span><br>
+							<span>CreateNPC(<span class="var Number">ID</span>)</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>在指定位置创建一个指定类型的 NPC。</li>
+								<li>默认情况下 NPC 静止不动，但会对玩家做出反应。</li>
+								<li>每种 AvatarType 可用的服装数量（BodyIndex）各不相同。</li>
+								<li>当你切换舞台时 NPC 会被移除，但 NPC 对象仍然存在，你可以重新生成它们。</li>
+								<li>大小在 1 左右为正常值。</li>
+								<li>根据类型不同，可用的身体/服装、发型和面孔的数量各不相同：
+									<table style="margin-top: 1em">
+										<tr><th>AvatarType</th><th>身体数</th><th>发型数</th><th>面孔数</th></tr>
+										<tr><td>NewFemale</td><td>11</td><td>10</td><td>11</td></tr>
+										<tr><td>NewMale</td><td>5</td><td>6</td><td>5</td></tr>
+										<tr><td>PreviousFemale</td><td>15</td><td>7</td><td>1</td></tr>
+										<tr><td>PreviousMale</td><td>12</td><td>5</td><td>1</td></tr>
+										<tr><td>NewOba</td><td>2</td><td>1</td><td>1</td></tr>
+										<tr><td>NewOji</td><td>3</td><td>1</td><td>1</td></tr>									
+									</table>								
+								</li>
+								<br>
+								<li>使用带 ID 的构造函数来连接到一个已存在的 NPC，例如由游戏创建的那些。</li>
+								<li>并非所有函数都可用于游戏自身创建的 NPC，例如更改路线、停止或重新生成。</li>
+							</ul>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>IsAlive()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>返回该 NPC 是否仍然存在。</li>
+							</ul>
+							<span>Respawn([position = <span class="var List"><a href="#Vector">Position</a></span>][, rotation = <span class="var List"><a href="#Quaternion">Rotation</a></span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>以相同的外观和位置重新生成该 NPC。</li>
+								<li>你可以指定 position/rotation 以改变其原始值。</li>
+							</ul>
+							<span>Warp([position = <span class="var List"><a href="#Vector">Position</a></span>][, rotation = <span class="var List"><a href="#Quaternion">Rotation</a></span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>立即改变 NPC 的位置。</li>
+							</ul>
+							
+							<span>AddWaypoint(<span class="var List"><a href="#Vector">Position</a></span>[, <span class="var List"><a href="#Quaternion">Rotation</a></span>][, last = <span class="var Boolean">Last</span>])</span><br>
+							<span>AddWaypoint(<span class="var Number">WaypointIndex</span>[, last = <span class="var Boolean">Last</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>让 NPC 走到某个位置。</li>
+								<li>如果之前已经添加了一些点，NPC 会按顺序经过它们。</li>
+								<li>如果你以 "last = true" 添加一个路径点，NPC 到达该点后将消失。</li>
+								<li>你还可以通过将索引作为参数，来添加一些与椅子或自动售货机等物体相关联的路径点。
+									<ul>
+										<li>关于列表，请参见 <a href="#GetAllWaypoints">GetAllWaypoints</a> 函数。</li>
+									</ul>
+								</li>
+							</ul>
+							<span>ClearWaypoints()</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>移除所有路径点并让 NPC 停下。</li>
+							</ul>
+							<span>Stopped([<span class="var Boolean">NewStopped</span>])</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<ul>
+								<li>在不移除路径点的情况下停止 NPC，或让其重新行走。</li>
+								<li>返回 NPC 是否已停止，若其不存在则返回 null。</li>
+							</ul>
+							<span>Finished()</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<ul>
+								<li>返回 NPC 是否已到达其路径终点，若其不存在则返回 null。</li>
+							</ul>							
+							<span>GetID()</span><br>
+							<div>返回：<span class="type">Number</span></div>
+							<ul>
+								<li>返回该 NPC 的 ID。</li>
+								<li>如果 NPC 被重新生成，其 ID 将会改变。</li>
+							</ul>
+							<span>GetType()</span><br>
+							<div>返回：<span class="type">String</span></div>
+							<br>
+							<span>Strangeness([<span class="var Number">NewStrangeness</span>])</span><br>
+							<div>返回：<span class="type">Number</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 的警觉度（在游戏代码中称为 strangeness）。</li>
+								<li>返回 NPC 当前的警觉度。</li>
+							</ul>
+							<span>SkipStrangeness([<span class="var Boolean">NewSkip</span>])</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 是否对你的暴露行为做出反应。</li>
+								<li>返回 NPC 是否手持智能手机，若其不存在则返回 null。</li>
+							</ul>
+							<span>Smartphone([<span class="var Boolean">NewSmartphone</span>])</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 是否手持智能手机。</li>
+								<li>返回 NPC 是否手持智能手机，若其不存在则返回 null。</li>
+							</ul>
+							<span>Headset([<span class="var Boolean">NewHeadset</span>])</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 是否佩戴头戴式耳机。</li>
+								<li>返回 NPC 是否佩戴头戴式耳机，若其不存在则返回 null。</li>
+								<li><b>AvatarType <i>NewOba</i> 和 <i>NewOji</i> 没有头戴式耳机。</b></li>
+							</ul>
+							<span>Glasses([<span class="var Boolean">NewStopped</span>])</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 是否佩戴眼镜。</li>
+								<li>返回 NPC 是否佩戴眼镜，若其不存在则返回 null。</li>
+								<li><b>AvatarType <i>NewOba</i>、<i>NewOji</i>、<i>PreviousFemale</i> 和 <i>PreviousMale</i> 没有眼镜，或无法切换眼镜。</b></li>
+							</ul>							
+							<span>Size([<span class="var Number">NewSize</span>])</span><br>
+							<div>返回：<span class="type">Number</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 的大小。</li>
+								<li>返回 NPC 的大小，若其不存在则返回 null。</li>
+							</ul>							
+							<span>Speed([<span class="var Number">NewWalkingSpeed</span>])</span><br>
+							<div>返回：<span class="type">Number</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 的行走速度。</li>
+								<li><b>动画速度不会随之调整！</b></li>
+								<li>返回 NPC 的行走速度，若其不存在则返回 null。</li>
+							</ul>
+							<span>Penis([<span class="var Number">PenisState</span>])</span><br>
+							<div>返回：<span class="type">Number</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 阴茎的可见性。</li>
+								<li>PenisState 的值可以是以下整数之一：
+									<ul>
+										<li>0 - 阴茎隐藏</li>
+										<li>1 - 疲软的阴茎</li>
+										<li>2 - 勃起的阴茎</li>
+									</ul>
+								</li>
+								<li>返回 NPC 当前的阴茎状态，若其不存在则返回 null。</li>
+							</ul>							
+							<span>PenisScale([<span class="var Number">Scale</span>])</span><br>
+							<div>返回：<span class="type">Number</span> 或 null</div>
+							<ul>
+								<li>如果设置了参数，则改变 NPC 阴茎的缩放比例。</li>
+								<li>返回 NPC 阴茎当前的缩放比例，若其不存在则返回 null。</li>
+							</ul>							
+							<span>SeesPlayer()</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<br>
+							<span>SeesFlashing()</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<br>
+							<span>GetPosition()</span><br>
+							<div>返回：<span class="type">List</span> 或 null</div>
+							<br>
+							<span>GetState()</span><br>
+							<div>返回：<span class="type">String</span> 或 null</div>
+							<ul>
+								<li>游戏中的状态为以下值之一：Idle、FoundStranger、TurnAround、FadeOut、Stagger、Interact、WaitToken、TraceSexPlayer</li>
+							</ul>
+							<span>ActivateSex()</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>要同时更改性爱体位，请使用全局函数 <a href="#SetSexPosition">SetSexPosition</a>。</li>
+								<li>要停用，你可以使用全局函数 <a href="#DeactivateSex">DeactivateSex</a>。</li>
+								<li>即使关闭了诱惑（Seduction）技能也依然有效。</li>
+							</ul>
+							<span>TracePlayer([<span class="var Boolean">Value</span>])</span><br>
+							<div>返回：<span class="type">Boolean</span> 或 null</div>
+							<ul>
+								<li>使用游戏内置系统（诱惑技能所使用的那个）来开启或关闭跟随玩家的行为。</li>
+							</ul>
+							<span>CanGameOver([<span class="var Boolean">Value</span>])</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果设为 false，则在被该 NPC 发现时不会触发游戏结束。</li>
+								<li>You can get the ID of the NPC that found the player (even if no game over is triggered) with _state.FoundNPC
+									<ul>
+										<li>每个 NPC 只触发一次，且仅在一帧内有效。</li>
+										<li>若未触发，_state.FoundNPC 为 -1。</li>
+									</ul>
+								</li>								
+							</ul>
+							<span>PlayAction([<span class="var String">ActionName</span>])</span><br>
+							<div>返回：null</div>
+							<ul>
+								<li>为 NPC 播放一段动画。有些只播放一次，有些会循环并需要手动停止。</li>
+								<li>动作列表：
+									<table>
+										<tr><th>ActionName</th><th>备注</th></tr>
+										<tr><td>NoAction <b>或</b> None</td><td>重置或取消动作</td></tr>
+										<tr><td>HandOver</td><td></td></tr>
+										<tr><td>BuyMachine</td><td></td></tr>
+										<tr><td>ConbiniCrouch</td><td>使用 ConbiniStand 重新站起，虽然 NoAction 也可以，但会跳过动画</td></tr>
+										<tr><td>ConbiniRegiScan</td><td>持续性</td></tr>
+										<tr><td>ConbiniStand</td><td></td></tr>
+										<tr><td>ConbiniTakeGoods</td><td></td></tr>
+										<tr><td>FoundStranger</td><td>持续性</td></tr>
+										<tr><td>HandWash</td><td>持续性</td></tr>
+										<tr><td>Worry</td><td>持续性</td></tr>
+										<tr><td>MalePeeing</td><td>持续性</td></tr>
+									</table>
+								</li>
+							</ul>
+							
+						</div>
+					</div>
+					<h3 id="Input">输入（Input）</h3>
+					<div class="f">
+						<h4>Constructors</h4>
+						<div class="f">
+							<span>CreateInput(<span class="var String">Button</span>[, modifier = <span class="var String">ModifierButton</span>][, interaction = <span class="var String">Interaction</span>])</span><br>
+							<span>CreateInput(<span class="var String">Button</span>[, modifier1 = <span class="var String">ModifierButton1</span>, modifier2 = <span class="var String">ModifierButton2</span>][, interaction = <span class="var String">Interaction</span>])</span><br>
+							<div>返回：<span class="type">Object</span></div>
+							<ul>
+								<li>创建一个用于检测用户输入的对象。</li>
+								<li>Button、ModifierButton 和 Interaction 都是字符串，遵循 Unity 的 InputSystem 所使用的语法。</li>								
+							</ul>							
+							示例：
+							<pre class="code">
+input1 = CreateInput("&lt;Keyboard&gt;/space", interaction="hold(duration=0.5)")
+input2 = CreateInput("&lt;Keyboard&gt;/F", modifier="&lt;Keyboard&gt;/shift")
+listener = CreateListener("waitforinput")
+
+waitforinput:
+	if input1.WasPerformed()
+		Log("Long press [Space]")
+	if input2.WasPerformed()
+		Log("Pressed [Shift]+[F]")</pre>
+						</div>
+						<h4>Methods</h4>
+						<div class="f">
+							<span>WasPressed()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果按钮和修饰键在本帧被按下，则返回 true。</li>
+								<li>仅当至少有一个按钮此前未被按下时才会触发。因此在你松开某个按钮之前，它不会再次触发。</li>
+								<li>如果你定义了 interaction，此函数不会将其纳入考虑。请参见 "WasPerformed()"。</li>
+							</ul>
+							<span>WasReleased()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果某个按钮被松开且此前所有必需的按钮都已被按下，则返回 true。</li>
+							</ul>
+							<span>WasPerformed()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果你定义了某个 interaction（例如要求按住某个按钮），则在所需时长过去后，此函数返回 true。</li>
+								<li>关于其他 interaction 的更多信息，请参见 Unity 文档。</li>
+							</ul>
+							<span>IsPressed()</span><br>
+							<div>返回：<span class="type">Boolean</span></div>
+							<ul>
+								<li>如果按钮和修饰键（如果有）当前全部处于按下状态，则返回 true。</li>
+								<li>"WasPressed" 只触发一次，而只要所有必需的按钮都处于按下状态，此函数每一帧都会触发。</li>
+							</ul>
+						</div>
+										
+				</div>
+			</div>
+			<div>
+			</div>
+			<div>
+				<h2 id="Appendix">附录</h2>
+				<div>
+					<h3 id="Tips">技巧</h3>
+					<div class="f"><pre class="code">
+<span class="comment">更快</span>
+if value == 0
+	...
+<span class="comment">更慢</span>
+if (value == 0)
+	...</pre>
+				<pre class="code">
+<span class="comment">更快</span>
+list["0"] = "test"
+<span class="comment">更慢</span>
+list[0] = "test"</pre>
+				<pre class="code">
+<span class="comment">更快</span>
+list.arg1 = "test"
+<span class="comment">更慢</span>
+list["arg1"] = "test"</pre>
+					</div>
+					<h3 id="Examples">示例实现</h3>
+					<div class="f"><pre class="code">
+<span class="comment">一个用于在延迟后执行代码的函数的实现</span>
+
+thread = CreateThread("main")
+
+main:
+	Log("DelayExample: Init")
+	Delay(_this, "delayed1", 5)
+	Delay(_this, "delayed2", 8)
+	Delay("delayed_function", 6)
+	_this.Goto("next")
+	
+	next:
+		Log("DelayExample: Next Label")		
+	delayed1:
+		Log("DelayExample: Delay 1")
+	delayed2:
+		Log("DelayExample: Delay 2")
+
+delayed_function:
+	Log("DelayExample: Delayed Function")
+
+<span class="comment">参数：(thread, methodname, delay) 或 (functionname, delay)</span>
+Delay:	
+	if delaymanager == null
+		Global("delaymanager", CreateThread("delaymanager"))
+	if GetType(_args[0]) == "Object"
+		delaymanager.AddMethod(thread = _args[0], method = _args[1], delay = _args[2])
+	else
+		delaymanager.AddMethod(thread = null, method = _args[0], delay = _args[1])
+
+delaymanager:
+	listeners = CreateList()
+	
+	AddMethod:
+		index = 0
+		while listeners[index] != null
+			index+=1
+	
+		newlistener = CreateListener("ListenerMethods", thread = thread, method = method, delay = delay, index = index)
+		listeners[index] = newlistener
+		
+	ListenerMethods:
+		delay -= _timediff
+		if delay &lt;= 0
+			if thread != null
+				CallMethod(thread, method)
+			else
+				CallFunction(method)
+			listeners[index] = null</pre>
+					
+					<h3 id="Game Constants">游戏常量</h3>
+					<div class="f">
+						这里的值是游戏代码中所定义的常量列表。并非全部在使用时都能生效，有些甚至可能导致错误。
+						<h4 id="SoundEffect">SoundEffect</h4>
+						<div class="f">
+							<ul style="column-count: 4;">
+								<li>NoType</li>
+								<li>FootStepHeel</li>
+								<li>FootStepHeelJog</li>
+								<li>ClothesSound</li>
+								<li>ClothesDrop</li>
+								<li>HeartBeat</li>
+								<li>FootStepHeelCrouch</li>
+								<li>Kuchu</li>
+								<li>Shiofuki</li>
+								<li>DokinHigh</li>
+								<li>DokinLow</li>
+								<li>Ok</li>
+								<li>Close</li>
+								<li>BuyMachine1</li>
+								<li>BuyMachine2</li>
+								<li>Drink</li>
+								<li>PeeNormal</li>
+								<li>Equip</li>
+								<li>SleepBed</li>
+								<li>Failed</li>
+								<li>Picking</li>
+								<li>Unlock</li>
+								<li>AttachHandcuffs</li>
+								<li>RankUp</li>
+								<li>SuburbsDaytime</li>
+								<li>SyburbsNight</li>
+								<li>MyRoom</li>
+								<li>KillTime</li>
+								<li>BaibuLow</li>
+								<li>BaibuHigh</li>
+								<li>Barefoot</li>
+								<li>FootStepSneaker</li>
+								<li>BraAttach</li>
+								<li>BraDetach</li>
+								<li>PantsDetach</li>
+								<li>VibratorSwitch</li>
+								<li>Breath1</li>
+								<li>Breath2</li>
+								<li>SlowIn</li>
+								<li>SlowOut</li>
+								<li>Gogogo</li>
+								<li>Reinforce</li>
+								<li>CommonEquip</li>
+								<li>ShoppingMallBgm</li>
+								<li>Piston</li>
+								<li>PutDildo</li>
+								<li>CollectAll</li>
+								<li>Buy</li>
+								<li>UiSelect</li>
+								<li>UiDecide</li>
+								<li>UiCancel</li>
+								<li>UiSlideOpen</li>
+								<li>UiSlideClose</li>
+								<li>OpenDoor</li>
+								<li>CloseDoor</li>
+								<li>Pinpon</li>
+								<li>CarIdling</li>
+								<li>CarStart</li>
+								<li>CarStop</li>
+								<li>CarPass</li>
+								<li>BgmParkDayTime</li>
+								<li>BgmParkNight</li>
+								<li>FootStepGrass</li>
+								<li>FootStepGravel</li>
+								<li>ToiletDoorOpen</li>
+								<li>ToiletDoorClose</li>
+								<li>ToiletFutaOpen</li>
+								<li>ToiletFutaClose</li>
+								<li>FootStepMetal</li>
+								<li>MentalAlert</li>
+								<li>Drone</li>
+								<li>ShopDoor</li>
+								<li>ShoppingMallNight</li>
+								<li>ElevatorMove</li>
+								<li>ElevatorOpen</li>
+								<li>ElevatorClose</li>
+								<li>ElevatorBell</li>
+								<li>Regi</li>
+								<li>MansionPostReceiveOpen</li>
+								<li>MansionPostReceiveClose</li>
+								<li>ToiletPeeWater</li>
+								<li>ToiletHandWash</li>
+								<li>ToiletLock</li>
+								<li>ToiletUnlock</li>
+								<li>ToiletWater</li>
+								<li>BgmFashionShop</li>
+								<li>CurtainOpen</li>
+								<li>CurtainClose</li>
+								<li>WasherOpen</li>
+								<li>WasherClose</li>
+								<li>WasherStart</li>
+								<li>WasherLoop</li>
+								<li>WasherBeep</li>
+								<li>Syasei</li>
+								<li>TimeStop</li>
+								<li>FootStepSneakerJog</li>
+								<li>Rotor</li>
+								<li>UICompleteMission</li>
+							</ul>
+						</div>
+						<h4 id="StageType">StageType</h4>
+						<div class="f">
+							<ul>
+								<li>None</li>
+								<li>Apart</li>
+								<li>Convenience</li>
+								<li>FashionShop</li>
+								<li>Residence</li>
+								<li>ShoppingMall</li>
+								<li>StationFront</li>
+								<li>Park</li>
+								<li>Mansion</li>
+							</ul>
+							其他已定义但未在游戏中使用的值有：
+							<ul>
+								<li>TokyoStreet</li>
+								<li>Suburbs</li>
+								<li>Street</li>
+								<li>City</li>
+								<li>BarberShop</li>
+								<li>Laundry</li>
+								<li>Underpass</li>
+							</ul>
+						</div>
+						<h4 id="Action">Action</h4>
+						<div class="f">
+							<ul style="column-count: 4;">
+								<li>None</li>
+								<li>OldOnaniNormal</li>
+								<li>OldGanimataWalk</li>
+								<li>Pinpon</li>
+								<li>ConbiniTakeGoods</li>
+								<li>CrouchCry</li>
+								<li>EatMedicine</li>
+								<li>SadHandcuffAtMap</li>
+								<li>SwitchTimeStop</li>
+								<li>SwitchPistonMachine</li>
+								<li>PickingCoat</li>
+								<li>Pick</li>
+								<li>Drop</li>
+								<li>ChangeClothes</li>
+								<li>DroppingClothes</li>
+								<li>HandOver</li>
+								<li>InsertAnalPlug</li>
+								<li>ExtractAnalPlug</li>
+								<li>CommonEquip</li>
+								<li>IntoWasher</li>
+								<li>TakeFromWasher</li>
+								<li>UseBuyMachine</li>
+								<li>DrinkWater</li>
+								<li>PeeNormal</li>
+								<li>TakeOffPants</li>
+								<li>TakeOnPants</li>
+								<li>TakeOffBra</li>
+								<li>TakeOnBra</li>
+								<li>Sad</li>
+								<li>AttachHandcuffs</li>
+								<li>PutHandcuffsOnMap</li>
+								<li>HandcuffsAtMap</li>
+								<li>UnlockHandcuffsAtMap</li>
+								<li>AttachEyeMask</li>
+								<li>SwitchVibrator</li>
+								<li>PickUpItem</li>
+								<li>SitDown</li>
+								<li>StandUp</li>
+								<li>PutDildoFloor</li>
+								<li>PutDildoWall</li>
+								<li>UseDildoFloorPussy1</li>
+								<li>UseDildoFloorPussy2</li>
+								<li>UseDildoFloorPussy3</li>
+								<li>UseDildoFloorPussy4</li>
+								<li>UseDildoFloorPussy5</li>
+								<li>UseDildoFloorAnal1</li>
+								<li>UseDildoFloorAnal2</li>
+								<li>UseDildoFloorAnal3</li>
+								<li>UseDildoFloorAnal4</li>
+								<li>UseDildoFloorAnal5</li>
+								<li>UseDildoFloorFella1</li>
+								<li>UseDildoFloorFella2</li>
+								<li>UseDildoFloorFella3</li>
+								<li>UseDildoFloorFella4</li>
+								<li>UseDildoFloorFella5</li>
+								<li>UseDildoWallPussy1</li>
+								<li>UseDildoWallPussy2</li>
+								<li>UseDildoWallPussy3</li>
+								<li>UseDildoWallPussy4</li>
+								<li>UseDildoWallPussy5</li>
+								<li>UseDildoWallAnal1</li>
+								<li>UseDildoWallAnal2</li>
+								<li>UseDildoWallAnal3</li>
+								<li>UseDildoWallAnal4</li>
+								<li>UseDildoWallAnal5</li>
+								<li>UseDildoWallFella1</li>
+								<li>UseDildoWallFella2</li>
+								<li>UseDildoWallFella3</li>
+								<li>UseDildoWallFella4</li>
+								<li>UseDildoWallFella5</li>
+								<li>UseDildoFloorWaitPussy</li>
+								<li>UseDildoFloorWaitAnal</li>
+								<li>UseDildoFloorWaitFella</li>
+								<li>UseDildoWallWaitPussy</li>
+								<li>UseDildoWallWaitAnal</li>
+								<li>UseDildoWallWaitFella</li>
+								<li>UseDildoFloorPussyEcstasyA</li>
+								<li>UseDildoFloorAnalEcstasyA</li>
+								<li>UseDildoFloorFellaEcstasyA</li>
+								<li>UseDildoWallPussyEcstasyA</li>
+								<li>UseDildoWallAnalEcstasyA</li>
+								<li>UseDildoWallFellaEcstasyA</li>
+								<li>PickDildo</li>
+								<li>SitDildo</li>
+								<li>SitDildoPut</li>
+								<li>SitDildoPick</li>
+								<li>SitDildoMoveAnal</li>
+								<li>SitDildoMovePussy</li>
+								<li>PickDildoWall</li>
+								<li>GanimataWalk</li>
+								<li>AhegaoDoublePiece</li>
+								<li>HipShake</li>
+								<li>GanimataHip</li>
+								<li>KaikyakuFella</li>
+								<li>Dogeza</li>
+								<li>DogTintin</li>
+								<li>IBalance</li>
+								<li>WakimiseCrouch</li>
+								<li>MituasiOnani</li>
+								<li>Tebura</li>
+								<li>PeeKaikyaku</li>
+								<li>PeeDog</li>
+								<li>ChikubiRotate</li>
+								<li>OnaniYotuashi</li>
+								<li>OnaniNeGanimata</li>
+								<li>OnaniNormal</li>
+								<li>NeKataashiage</li>
+								<li>OnaniArmKuri</li>
+								<li>OnaniSikoru</li>
+								<li>GanimataKoshiHeko</li>
+								<li>Haigure</li>
+								<li>PeeStand</li>
+								<li>DogezaUpHead</li>
+								<li>PoseEnd</li>
+								<li>SexStandBack</li>
+								<li>SexKijoui</li>
+							</ul>
+						</div>
+						<h4 id="AdultToy">AdultToy</h4>
+						<div class="f">
+							<ul>
+								<li>AnalPlug</li>
+								<li>Vibrator</li>
+								<li>EyeMask</li>
+								<li>Handcuff</li>
+								<li>KeyHandcuff</li>
+								<li>TimerHandcuff</li>
+								<li>TitRotor</li>
+								<li>KuriRotor</li>
+								<li>PistonFuta</li>
+								<li>PistonAnal</li>
+								<li>PistonPussy</li>
+							</ul>
+						</div>
+						<h4 id="Skill">Skill</h4>
+						<div class="f">
+							<ul style="column-count: 4;">
+								<li>None</li>
+								<li>Mental</li>
+								<li>Stamina</li>
+								<li>CoatLevel</li>
+								<li>Flasher</li>
+								<li>Raper</li>
+								<li>ContinueMission</li>
+								<li>Slow</li>
+								<li>NpcDirect</li>
+								<li>Sneak</li>
+								<li>AutoSlow</li>
+								<li>FixFps</li>
+								<li>MaxAccessoryNum</li>
+								<li>AutoBaretaSlow</li>
+								<li>HideStrangeUi</li>
+								<li>NoFastTravel</li>
+								<li>Perspective</li>
+								<li>MyPace</li>
+								<li>TimeStop</li>
+								<li>CantDash</li>
+								<li>DisableHideCostume</li>
+								<li>FixTps</li>
+								<li>Exhibitionism</li>
+								<li>Sex</li>
+								<li>AutoAddMoisture</li>
+								<li>NoReinforceEffect</li>
+								<li>GanimataWalk</li>
+								<li>AhegaoDoublePiece</li>
+								<li>HipShake</li>
+								<li>GanimataHip</li>
+								<li>KaikyakuFella</li>
+								<li>Dogeza</li>
+								<li>DogTintin</li>
+								<li>IBalance</li>
+								<li>WakimiseCrouch</li>
+								<li>MituasiOnani</li>
+								<li>Tebura</li>
+								<li>PeeKaikyaku</li>
+								<li>PeeDog</li>
+								<li>ChikubiRotate</li>
+								<li>OnaniYotuashi</li>
+								<li>OnaniNeGanimata</li>
+								<li>OnaniNormal</li>
+								<li>NeKataashiage</li>
+								<li>OnaniArmKuri</li>
+								<li>Sikoru</li>
+								<li>GanimataKoshiHeko</li>
+								<li>Haigure</li>
+								<li>PeeStand</li>
+							</ul>
+						</div>
+						<h4 id="Item">Item</h4>
+						<div class="f">
+							<ul style="column-count: 4">
+								<li>None</li>
+								<li>Water</li>
+								<li>Dildo</li>
+								<li>InvisiblePotion</li>
+								<li>FutanariPotion</li>
+								<li>FutanariInversePotion</li>
+								<li>BodyPaint</li>
+								<li>InvisibleInversePotion</li>
+								<li>InvisiblePotionReusable</li>
+								<li>BodyPaintReusable</li>
+								<li>BodyPaintWasher</li>
+								<li>HandcuffKey</li>
+								<li>VibeRemocon</li>
+								<li>DroneController</li>
+								<li>DebugEarnRp</li>
+								<li>DebugEarnMental</li>
+								<li>DebugEarnRp2</li>
+								<li>DebugEarnExp</li>
+								<li>DebugEarnExp2</li>
+							</ul>
+						</div>
+						<h4 id="DropItemType">DropItemType</h4>
+						<div class="f">
+							<ul style="column-count: 1">
+								<li>None</li>
+								<li>Coat</li>
+								<li>Hoodie</li>
+								<li>Basket</li>
+								<li>Pants</li>
+								<li>Bra</li>
+								<li>HandcuffKey</li>
+								<li>VibeRemocon</li>
+								<li>DildoFloor</li>
+								<li>DildoWall</li>
+							</ul>
+						</div>
+						<h4 id="Player Data">Player Data</h4>
+						<div class="f">
+							<b>字符串（String）：</b>
+							<ul>
+								<li id="HairType">CurrentHair
+									<ul>
+										<li>None</li>
+										<li>Short</li>
+										<li>Bob</li>
+										<li>Wolf</li>
+										<li>SideBob</li>
+										<li>FairyTwin</li>
+										<li>HalfTwin</li>
+										<li>ElegantLong</li>
+										<li>PrincesWave</li>
+										<li>Pony</li>
+										<li>MafuHair</li>
+										<li>Lynn</li>
+										<li>Himari</li>
+										<li>Invert</li>
+										<li>Natsu</li>
+										<li>Nekomimi</li>
+										<li>Shu</li>
+										<li>Yuki</li>
+										<li>WavePony</li>
+										<li>LovelyMedium</li>
+										<li>StraightLong</li>
+										<li>WaveLong</li>
+										<li>StraightBob</li>
+									</ul>
+								</li><br>								
+							</ul>
+							<b>整数（Integer）：</b>
+							<ul style="column-count: 4">
+								<li>CustomizeArm</li>
+								<li>CustomizeBoobs</li>
+								<li>CustomizeButt</li>
+								<li>CustomizeCheekFat</li>
+								<li>CustomizeChinLength</li>
+								<li>CustomizeEarElf</li>
+								<li>CustomizeEyeBlowColorB</li>
+								<li>CustomizeEyeBlowColorG</li>
+								<li>CustomizeEyeBlowColorR</li>
+								<li>CustomizeEyeDist</li>
+								<li>CustomizeEyeHeight</li>
+								<li>CustomizeEyeLashColorB</li>
+								<li>CustomizeEyeLashColorG</li>
+								<li>CustomizeEyeLashColorR</li>
+								<li>CustomizeEyeLeftPattern</li>
+								<li>CustomizeEyeOpenness</li>
+								<li>CustomizeEyePattern</li>
+								<li>CustomizeEyeSize</li>
+								<li>CustomizeFutanariKitouSize</li>
+								<li>CustomizeFutanariSaoSize</li>
+								<li>CustomizeFutanariStraight</li>
+								<li>CustomizeFutanariTamaSize</li>
+								<li>CustomizeFutanariWidth</li>
+								<li>CustomizeHead</li>
+								<li>CustomizeHeight</li>
+								<li>CustomizeHitomiSize</li>
+								<li>CustomizeHyperBoobs</li>
+								<li>CustomizeInmou1</li>
+								<li>CustomizeInmou2</li>
+								<li>CustomizeInmouColorB</li>
+								<li>CustomizeInmouColorG</li>
+								<li>CustomizeInmouColorR</li>
+								<li>CustomizeLegInterval</li>
+								<li>CustomizeLoliFace</li>
+								<li>CustomizeLowerLeg</li>
+								<li>CustomizeLowerLegLength</li>
+								<li>CustomizeMatsugeLength</li>
+								<li>CustomizeMatsugeThick</li>
+								<li>CustomizeMayuDog</li>
+								<li>CustomizeMayuThick</li>
+								<li>CustomizeNeck</li>
+								<li>CustomizeNeckThick</li>
+								<li>CustomizeNipple</li>
+								<li>CustomizeShoulder</li>
+								<li>CustomizeSkinColor</li>
+								<li>CustomizeSkinColorB</li>
+								<li>CustomizeSkinColorG</li>
+								<li>CustomizeSkinColorR</li>
+								<li>CustomizeSuperBoobs</li>
+								<li>CustomizeTareme</li>
+								<li>CustomizeThighs</li>
+								<li>CustomizeThighsLength</li>
+								<li>CustomizeUpperBody</li>
+								<li>CustomizeUpperBody2</li>
+								<li>CustomizeUpperBodyLength</li>
+								<li>CustomizeUpperBodyLength2</li>
+								<li>CustomizeWaist</li>
+							</ul>
+							<b>布尔值（Boolean）：</b>
+							<ul>
+								<li>CustomIsSkinColorFree</li>
+								<li>CustomizeAdjustHeight</li>
+								<li>CustomizeEyeDark</li>
+								<li>CustomizeFutanariTamaVisible</li>
+								<li>CustomizeOddEye</li>
+								<li>CustomizeYaeba</li>
+							</ul>
+							<b>特殊（Special）：</b>
+							<ul style="column-count: 4">
+								<li id="BodyPaintType" style="break-inside: avoid;">BodyPaintTypeDict
+									<ul>
+										<li>Inmon</li>
+										<li>Rakugaki</li>
+										<li>TattooDark</li>
+										<li>TattooFlower1</li>
+										<li>TattooFlower2</li>
+										<li>TattooLotus</li>
+										<li>TattooSatanism</li>
+										<li>TattooSlave</li>
+										<li>BodyOil</li>
+										<li>RubberSuit</li>
+									</ul>
+								</li>
+								<li style="break-inside: avoid;">HairCustomizeDataDict
+									<ul>
+										<li>R</li>
+										<li>G</li>
+										<li>B</li>
+										<li>ShadeColor</li>
+										<li>TextureId</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+						<h4>NPC</h4>
+						<div class="f">
+							<b id="AvatarType">AvatarType</b>
+							<ul>
+								<li>NewFemale</li>
+								<li>NewMale</li>
+								<li>NewOji</li>
+								<li>NewOba</li>
+								<li>PreviousFemale</li>
+								<li>PreviousMale</li>
+							</ul>
+							<b id="FixedType">FixedType</b>
+							<ul>
+								<li>None</li>
+								<li>Car</li>
+								<li>Talk</li>
+								<li>SitWork</li>
+								<li>SitTalk</li>
+								<li>SitSleep</li>
+								<li>SitBook</li>
+								<li>SitSumaho</li>
+								<li>StandSumaho</li>
+								<li>Pinpon</li>
+								<li>Conbini</li>								
+							</ul>
+						</div>						
+					</div>
+					<h3 id="Mod Constants">Mod 常量</h3>
+					<div class="f">
+						<h4 id="ConditonTypes">条件类型</h4>
+						<div style="column-count: 4">
+							<ul style="margin-top:0; break-inside: avoid">
+								<li>CoatDropped</li>
+								<li>CoatFrontClosed</li> 
+								<li>CoatFrontOpen1</li> 
+								<li>CoatFrontOpen2</li> 
+								<li>CoatBackClosed</li> 
+								<li>CoatBackOpen</li>
+								<li>Blindfolded</li>
+								<li>NoHandcuffs</li> 
+								<li>HandcuffsBack</li> 
+								<li>HandcuffsObject</li> 
+								<li>NormalHandcuffs</li> 
+								<li>KeyedHandcuffs</li> 
+								<li>TimedHandcuffs</li>
+								<li>Moving</li> 
+								<li>Crouching</li> 
+								<li>Peeing</li> 
+								<li>InLight</li> 
+								<li>Sitting</li> 
+								<li>Dashing</li> 
+								<li>Orgasm</li> 
+								<li>Futanari</li> 
+							</ul>
+							<ul style="margin-top:0; break-inside: avoid">
+								<li>Invisible</li> 
+								<li>InOpenToilet</li> 
+								<li>Bukkake <i>（向 NPC 射精）</i></li>
+								<li>NearNPC</li> 
+								<li>Watched</li> 
+								<li>ShowingOff</li>
+								<li>VibrationOff</li> 
+								<li>VibrationLow</li> 
+								<li>VibrationHigh</li> 
+								<li>VibrationRandom</li>
+								<li>PistonOff</li> 
+								<li>PistonLow</li> 
+								<li>PistonMedium</li> 
+								<li>PistonHigh</li> 
+								<li>PistonRandom</li>
+								<li>IsDayTime</li> 
+								<li>NPCArea</li> 
+								<li>Bodypaint</li> 
+								<li>FPCamera</li>
+								<li>GameOver</li>
+							</ul>
+							<span style="break-inside: avoid">
+								<b>可与数字进行比较：</b>
+								<ul style="margin-top:0">						
+									<li>Ecstasy</li> 
+									<li>Detection</li> 
+									<li>Rank</li> 
+									<li>HeartRate</li>
+									<li>Stamina</li>
+									<li>StaminaMax</li>
+									<li>Moisture</li>							
+									<li>Item_<a href="#Item">&lt;Itemname&gt;</a></li> 
+									<li>MissionCompleted_&lt;MissionID&gt;</li> 
+									<li>DroneMissionCompleted_&lt;DroneMissionID&gt;</li> 
+									<li>MissionCurrCompleted_&lt;MissionID&gt;</li> 									
+								</ul>
+							</span>
+							<div style="break-inside: avoid;">
+								<b>类别条件（Category Conditions）</b><br>
+								（将 <i>&lt;...&gt;</i> 部分替换为相应的值）
+								<ul style="margin-top:0">						
+									<li>Action_<a href="#Action">&lt;Actionname&gt;</a></li> 
+									<li>Cosplay_&lt;CosplayID&gt;</li> 
+									<li>OwnsCosplay_&lt;CosplayID&gt;</li> 
+									<li>AdultToy_<a href="#AdultToy">&lt;AdultToy&gt;</a></li> 
+									<li>OwnsAdultToy_<a href="#AdultToy">&lt;AdultToy&gt;</a></li> 
+									<li>Item_<a href="#Item">&lt;Itemname&gt;</a></li>
+									<li>MissionCompleted_&lt;MissionID&gt;</li> 
+									<li>DroneMissionCompleted_&lt;DroneMissionID&gt;</li> 
+									<li>MissionCurrCompleted_&lt;MissionID&gt;</li> 
+									<li>SubCondition_&lt;ConditionID&gt;</li> 
+									<li>Skill_<a href="#Skill">&lt;Skillname&gt;</a></li> 
+									<li>Exposed_&lt;Bodypart&gt;
+										<ul>
+											<li>None</li>
+											<li>Front</li>
+											<li>Upper</li>
+											<li>HipCrouch</li>
+											<li>Hip</li>
+											<li>All</li>
+										</ul>
+									</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<h3 id="Global Variables">全局变量</h3>
+					<div class="f">
+						<h4 id="_state">_state</h4>
+						<ul style="column-count: 4">
+							<li>DateTime</li>
+							<li>Blindfolded</li>
+							<li>Peeing</li>
+							<li>Moving</li>
+							<li>Dashing</li>
+							<li>Crouching</li>
+							<li>Sitting</li>
+							<li>InLight</li>
+							<li>Orgasm</li>
+							<li>Bukkake</li>
+							<li>NearNPC</li>
+							<li>ShowingOff</li>
+							<li>Watched</li>
+							<li>Action</li>
+							<li>Futanari</li>
+							<li>Invisible</li>
+							<li>InOpenToilet</li>
+							<li>Bodypaint</li>
+							<li>DayTime</li>
+							<li>NPCArea</li>
+							<li>FirstPerson</li>
+							<li>Ecstasy</li>
+							<li>Detection</li>
+							<li>Rank</li>
+							<li>Vibrator</li>
+							<li>Piston</li>
+							<li>RpBonus</li>
+							<li>HeartRate</li>
+							<li>Stamina</li>
+							<li>StaminaMax</li>
+							<li>Moisture</li>
+							<li>FoundNPC（发现玩家的 NPC 的 ID，否则为 -1）</li>
+							<li>GameOver</li>
+							<li style="break-inside: avoid;">Handcuffs
+								<ul>
+									<li>State</li>
+									<li>Type</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Exposed
+								<ul>
+									<li>None</li>
+									<li>Front</li>
+									<li>Upper</li>
+									<li>HipCrouch</li>
+									<li>Hip</li>
+									<li>All</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Position
+								<ul>
+									<li>stage</li>
+									<li>x</li>
+									<li>y</li>
+									<li>z</li>
+									<li>rx</li>
+									<li>ry</li>
+									<li>rz</li>
+									<li>rw</li>
+									<li>laststage</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Camera
+								<ul>
+									<li>stage</li>
+									<li>x</li>
+									<li>y</li>
+									<li>z</li>
+									<li>rx</li>
+									<li>ry</li>
+									<li>rz</li>
+									<li>rw</li>
+									<li>pitch</li>
+									<li>yaw</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">CameraTarget
+								<ul>
+									<li>Face
+										<ul>
+											<li>x</li>
+											<li>y</li>
+											<li>z</li>
+										</ul>
+									</li>
+									<li>Body
+										<ul>
+											<li>x</li>
+											<li>y</li>
+											<li>z</li>
+										</ul>
+									</li>
+									<li>Crotch
+										<ul>
+											<li>x</li>
+											<li>y</li>
+											<li>z</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Cosplay
+								<ul>
+									<li>角色扮演服装的名称是列表的键。</li>
+									<li>如果某个键在列表中，表示玩家拥有该件服装。</li>
+									<li>如果值为 true，表示玩家当前正穿着该件服装，false 则表示没有。</li>
+									<li>还包含从 0 开始的数字键，其值为当前所穿角色扮演服装的名称。</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Skills
+								<ul>
+									<li>技能名称是列表的键，值为布尔值。</li>
+									<li>仅包含你可以在电脑上激活的技能。</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">DroppedItems
+								<ul>
+									<li>掉落物品的数字索引列表，索引从 0 开始。
+										<ul>
+											<li>Type</li>
+											<li>Position
+												<ul>
+													<li>stage</li>
+													<li>x</li>
+													<li>y</li>
+													<li>z</li>
+													<li>rx</li>
+													<li>ry</li>
+													<li>rz</li>
+													<li>rw</li>
+												</ul>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">AdultToys
+								<ul>
+									<li>成人玩具的名称是列表的键，值为布尔值。</li>
+									<li>如果某个键不在列表中，表示玩家不拥有它。</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Items
+								<ul>
+									<li>物品名称是列表的键，值为数字。</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Missions
+								<ul>
+									<li>按任务 ID 记录该任务的通关次数。</li>
+									<li>还包含 "Completed" 和 "Count"，分别表示已通关的不同任务数量和现有任务的总数。</li>
+									<li>还为每个舞台提供单独的列表。
+										<pre class="code" style="overflow-x: scroll;">
+stage = "Residence"
+Log(Format("Cleared Missions in \"{0}\": {1}/{2}", stage, _state.Missions[stage].Completed, _state.Missions[stage].Count))</pre>
+									</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">CurrMissions
+								<ul>
+									<li>按任务 ID 记录该任务的当前进度（0 到 1）。</li>
+									<li>还包含 "Completed" 和 "Count"，分别表示已通关的任务数量和现有任务的总数。</li>
+									<li>还为每个舞台提供单独的列表。</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">Coat
+								<ul>
+									<li>Dropped
+										<ul><li>可能的值（布尔值）：true、false</li></ul>
+									</li>
+									<li>Front
+										<ul><li>可能的值（字符串）：Closed、Open1、Open2、None</li></ul>
+									</li>
+									<li>Back
+										<ul><li>可能的值（字符串）：Closed、Open、None</li></ul>
+									</li>
+								</ul>
+							</li>
+							<li style="break-inside: avoid;">NPCs
+								<ul>
+									<li>当前舞台中 NPC 的数字索引列表。</li>
+									<li>索引从 0 开始。</li>
+									<li>每一项包含以下值：
+										<ul>
+											<li>ID</li>
+											<li>Position
+												<ul>
+													<li>stage</li>
+													<li>x</li>
+													<li>y</li>
+													<li>z</li>
+													<li>rx</li>
+													<li>ry</li>
+													<li>rz</li>
+													<li>rw</li>
+												</ul>
+											</li>
+											<li>SeesPlayer</li>
+											<li>SeesFlashing</li>
+											<li>Headset</li>
+											<li>Glasses</li>
+											<li>Smartphone</li>
+											<li><a href="#AvatarType">AvatarType</a></li>
+											<li><a href="#FixedType">FixedType</a></li>
+											<li>Sitting</li>
+											<li>State</li>
+										</ul>									
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

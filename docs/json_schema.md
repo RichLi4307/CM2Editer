@@ -4,9 +4,9 @@
 > 用途：定义编辑器画布 ↔ JSON 文件的双向映射契约  
 > 阅读对象：编辑器前端、Rust 后端、自定义任务加载器  
 > 相关文档：
-> - 节点清单：`docs/node_types.md`
-> - 项目骨架与 Rust 模块：`docs/rust_project_skeleton.md`
-> - Agent 开发约束：`docs/agent_prompt.md`
+> - 节点清单：[node_types.md](node_types.md)
+> - 项目骨架与 Rust 模块：[rust_project_skeleton.md](rust_project_skeleton.md)
+> - Agent 开发约束：[agent_prompt.md](agent_prompt.md)
 
 ---
 
@@ -27,7 +27,7 @@
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | `version` | String | 是 | — | 格式版本，用于迁移兼容 |
-| `meta` | Object | 否 | `{}` | 任务元数据（对应 meta.json） |
+| `meta` | Object | 否 | `{}` | 任务元数据（对应 [meta.json](meta.json)） |
 | `nodes` | Array | 是 | — | 所有节点列表 |
 | `edges` | Array | 是 | `[]` | 所有连线列表 |
 | `labels` | Object | 否 | `{}` | 标签到节点 ID 列表的映射 |
@@ -40,7 +40,7 @@
 
 ## 二、Meta 对象
 
-与文档中的 `meta.json` 一一对应，编辑器直接透传。
+与文档中的 [meta.json](meta.json) 一一对应，编辑器直接透传。
 
 ```json
 {
@@ -77,7 +77,7 @@
 |------|------|------|------|
 | `title` | Object | 是 | 多语言标题，键为语言代码（如 `En`、`Ja`） |
 | `description` | Object | 否 | 多语言描述 |
-| `settings` | Array | 否 | 玩家可调设置项，见 `meta.json` 示例 |
+| `settings` | Array | 否 | 玩家可调设置项，见 [meta.json](meta.json) 示例 |
 | `defaultactive` | Boolean | 否 | 任务是否默认激活；默认 `true` |
 
 > 规则：`meta` 中的内容**不参与代码生成**，由加载器直接读取。
@@ -118,7 +118,7 @@
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
 | `id` | String | 是 | — | 全局唯一标识，格式 `node_{uuid}` 或 `node_{index}` |
-| `type` | String | 是 | — | 节点类型名，必须与 `docs/node_types.md` 中的名称一致 |
+| `type` | String | 是 | — | 节点类型名，必须与 [node_types.md](node_types.md) 中的名称一致 |
 | `category` | String | 否 | 从类型推导 | 分类，用于导入时归类 |
 | `position` | Object | 是 | — | 画布坐标 `{x, y}`，单位像素 |
 | `size` | Object | 否 | 按类型默认 | 节点尺寸 `{width, height}`，用于恢复折叠状态 |

@@ -4,10 +4,10 @@
 > 用途：定义 Rust 项目目录结构、模块划分和初始代码  
 > 阅读对象：Agent（后端实现）  
 > 相关文档：
-> - 节点清单：`docs/node_types.md`
-> - JSON 规范：`docs/json_schema.md`
-> - 开发约束：`docs/agent_prompt.md`
-> - 示例任务：`docs/examples/new npc type/`
+> - 节点清单：[node_types.md](node_types.md)
+> - JSON 规范：[json_schema.md](json_schema.md)
+> - 开发约束：[agent_prompt.md](agent_prompt.md)
+> - 示例任务：[docs/examples/new npc type/](examples/new%20npc%20type/)（包含 [main.code](examples/new%20npc%20type/main.code) 与 [meta.json](examples/new%20npc%20type/meta.json)）
 
 ---
 

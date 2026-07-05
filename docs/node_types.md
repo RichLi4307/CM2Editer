@@ -4,9 +4,9 @@
 > 来源：基于 CustomMissions2 API 文档全面梳理  
 > 用途：定义编辑器必须支持的全部节点类型，作为开发契约  
 > 相关文档：
-> - JSON 格式：`docs/json_schema.md`
-> - 项目架构：`docs/rust_project_skeleton.md`
-> - 开发约束：`docs/agent_prompt.md`
+> - JSON 格式：[json_schema.md](json_schema.md)
+> - 项目架构：[rust_project_skeleton.md](rust_project_skeleton.md)
+> - 开发约束：[agent_prompt.md](agent_prompt.md)
 
 ---
 
@@ -221,7 +221,7 @@
 | `List.Remove` | `index: Number`, `count: Number` | — | 移除元素 |
 | `List.Count` | — | `Number` | 获取元素数量 |
 | `List.Contains` | `value: Any` | `Boolean` | 是否包含 |
-| `List.IndexOf` | `value: Any` | `String` | 查找索引 |
+| `List.IndexOf` | `value: Any` | `String` | 查找索引，未找到返回 null |
 | `List.Keys` | `includeAll: Boolean` | `List` | 获取所有键 |
 
 ### 10.2 Thread（线程）
@@ -432,6 +432,6 @@
 ## 十三、版本说明
 
 - 本清单基于 API 文档 v1.0 梳理。
-- 新增 API 函数时，按相同格式追加节点定义即可；同时更新 `src/api/definitions.rs` 与 `src/graph/types.rs` 中的 `NodeType` 枚举。
+- 新增 API 函数时，按相同格式追加节点定义即可；同时更新 `src/api/definitions.rs` 与 [src/graph/types.rs](../src/graph/types.rs) 中的 `NodeType` 枚举。
 - 节点参数中的可选值用 `[]` 标出，编辑器 UI 中应体现为「非必填」。
 - 若某节点同时支持读写（如 `Global` / `Local` / `NPC.Stopped`），其参数 `value` 为空时表示读取，非空时表示写入。

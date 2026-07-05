@@ -4,13 +4,13 @@
 
 | 文件 | 作用 |
 |------|------|
-| `main.code` | 任务脚本源码，包含三个并发线程：主线程、行走线程、全局陌生感控制线程 |
-| `meta.json` | 任务元数据，供游戏加载器读取，用于任务选择界面和设置面板 |
-| `README.md` | 本文档，解释示例结构与 `meta.json` 字段含义 |
+| [main.code](main.code) | 任务脚本源码，包含三个并发线程：主线程、行走线程、全局陌生感控制线程 |
+| [meta.json](meta.json) | 任务元数据，供游戏加载器读取，用于任务选择界面和设置面板 |
+| [README.md](README.md) | 本文档，解释示例结构与 [meta.json](meta.json) 字段含义 |
 
 ---
 
-## `meta.json` 字段详解
+## [meta.json](meta.json) 字段详解
 
 ```json
 {
@@ -123,7 +123,7 @@
 | `NPC.Stopped(bool)` | 控制 NPC 是否停止行走 |
 | `_state.Position` | 玩家当前位置 |
 | `_state.NPCs` | 当前场景中所有 NPC 列表 |
-| `_settings.xxx` | 读取 `meta.json` 中定义的设置项 |
+| `_settings.xxx` | 读取 [meta.json](meta.json) 中定义的设置项 |
 | `_stagechanged` | 布尔值，表示当前帧是否切换了场景 |
 
 ---
