@@ -77,13 +77,13 @@ pub fn add_node(&mut self, node: Node) -> Result<()> { ... }
 // 6. 函数参数优先用 &str 而非 String，返回优先用 String
 // 7. 集合类型优先用 HashMap / Vec，避免 LinkedList
 // 8. 单元测试必须放在模块末尾的 #[cfg(test)] mod tests 中
-```text
+```
 
 ### 3.2 模块边界
 
 模块依赖关系必须遵守以下规则：
 
-```
+```text
 api/         → 只定义静态数据（节点类型、参数模板、端口定义），不依赖其他模块
 graph/       → 核心数据结构（Node / Edge / Graph），只依赖 api::types
 serializer/  → JSON 读写与版本迁移，依赖 graph
@@ -91,7 +91,7 @@ serializer/  → JSON 读写与版本迁移，依赖 graph
 code_gen/    → 生成 .code 文件，依赖 graph + api
 ui/          → 界面渲染与交互，依赖 graph + api
 app/         → 主循环与状态管理，依赖所有上层模块
-```text
+```
 
 **禁止循环依赖**：
 
@@ -223,7 +223,7 @@ pub struct ParamDefinition {
     pub options: Option<Vec<String>>, // 下拉选项（如 StageType 枚举值）
     pub description: Option<String>,  // 参数说明（悬停提示）
 }
-```text
+```
 
 ---
 
