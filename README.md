@@ -1,5 +1,7 @@
 # CM2Editer
 
+![Rust CI](https://github.com/RichLi4307/CM2Editer/actions/workflows/rust.yml/badge.svg)
+
 CM2Editer 是面向游戏 **Secret Flasher Manaka**（由 SheableSoft 开发）的 **Custom Missions 2** 加载器（作者：Crisp2002，版本 2.2.1）的节点式可视化任务编辑器，目标用户是 Mod 作者。通过拖拽节点、连接端口并填写参数，即可为 Custom Missions 2 加载器生成兼容的自定义任务脚本（`.code` 文件），无需手写代码。
 
 ## 项目定位
