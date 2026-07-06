@@ -26,6 +26,7 @@
 | 实现 `code_gen/generator.rs`（.code 代码生成器） | ✅ 完成 | Agent | 2026-07-06 |
 | .code 生成集成测试与 `docs/examples/simple_mission` 示例 | ✅ 完成 | Agent | 2026-07-06 |
 | Phase 3.1 GUI 框架选型与搭建（egui + eframe，`src/ui/theme.rs`） | ✅ 完成 | Agent | 2026-07-07 |
+| Phase 3.2 画布（无限网格、中键平移、滚轮缩放、`src/ui/canvas.rs`） | ✅ 完成 | Agent | 2026-07-07 |
 
 ---
 
@@ -130,10 +131,10 @@
 
 ### 3.2 画布（Canvas）
 
-- [ ] **3.2.1** 实现 `src/ui/canvas.rs` — 无限网格背景
-- [ ] **3.2.2** 实现画布平移（中键拖拽）
-- [ ] **3.2.3** 实现画布缩放（滚轮，以鼠标为中心，0.1x ~ 4x）
-- [ ] **3.2.4** 实现 `viewport` 保存/恢复（JSON 中 `viewport` 字段）
+- [x] **3.2.1** 实现 `src/ui/canvas.rs` — 无限网格背景
+- [x] **3.2.2** 实现画布平移（中键拖拽）
+- [x] **3.2.3** 实现画布缩放（滚轮，以鼠标为中心，0.1x ~ 4x）
+- [x] **3.2.4** 实现 `viewport` 保存/恢复（JSON 中 `viewport` 字段）
 
 ### 3.3 节点渲染
 
@@ -230,6 +231,7 @@
 | 2026-07-06 | 2.2.1~2.2.9 | 实现 `code_gen/formatter.rs`、`code_gen/generator.rs`、标签/If/While/For/Goto/Thread/Listener/Return/参数引用处理；创建 `docs/examples/simple_mission` 与集成测试；`cargo test` 通过（62 项）、`cargo clippy` 无警告 | ✅ |
 | 2026-07-06 | 2.2.5 补充 | 显式处理 `CreateThread`/`CreateListener`/`CreateListenerLocal` 匹配分支，修复 `generate_node_call` 可选参数跳过逻辑；新增 3 项并发语义测试；总计 58+3+4 = 65 项测试通过 | ✅ |
 | 2026-07-07 | Phase 3.1 | 确定 GUI 框架为 egui/eframe，初始化 `src/ui/` 结构与 `src/ui/theme.rs` 色表，改造 `src/main.rs` 启动基础窗口；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
+| 2026-07-07 | Phase 3.2 | 实现 `src/ui/canvas.rs`：无限网格、中键平移、滚轮缩放、屏幕/世界坐标转换、`Viewport` 默认实现；`cargo test` 通过（66 项单元测试 + 3 + 4 项集成测试） | ✅ |
 
 ---
 

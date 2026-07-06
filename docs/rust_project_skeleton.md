@@ -228,13 +228,14 @@ steps:
 ### 阶段 3：UI 层
 
 1. ✅ 实现 `ui::theme` — 颜色主题与节点分类色表
-2. [ ] 实现 `ui::canvas` — 无限画布（网格、平移、缩放、viewport）
+2. ✅ 实现 `ui::canvas` — 无限画布（网格、平移、缩放、viewport）
 3. [ ] 实现 `ui::node_renderer` — 节点卡片渲染
 4. [ ] 实现 `ui::edge_renderer` — 连线渲染（支持 waypoints）
 5. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
 6. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
 7. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
 8. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
+9. [ ] 实现 `ui::panels::status_bar` — 底部状态栏
 9. [ ] 实现 `ui::panels::status_bar` — 底部状态栏
 
 ### 阶段 4：集成

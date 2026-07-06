@@ -59,6 +59,18 @@ pub struct Viewport {
     pub show_grid: bool,
 }
 
+impl Default for Viewport {
+    fn default() -> Self {
+        Self {
+            x: 0.0,
+            y: 0.0,
+            zoom: 1.0,
+            grid_size: 20.0,
+            show_grid: true,
+        }
+    }
+}
+
 impl GraphDocument {
     /// 使用完整字段创建图文档
     pub fn from_graph(

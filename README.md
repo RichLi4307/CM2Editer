@@ -18,7 +18,7 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
 
 Phase 1（数据层）和 Phase 2（序列化与代码生成）已完成：节点图可以保存成 JSON 工程文件，也能从 JSON 还原，带版本迁移，最终生成 `.code`。`cargo test` 全部通过，clippy 没有警告。
 
-Phase 3（UI 层）已启动：GUI 框架确定为 egui + eframe，窗口已跑通，颜色主题与节点分类色表已就绪。当前正在实现画布（无限网格、平移、缩放、viewport 保存/恢复）。
+Phase 3（UI 层）已启动：GUI 框架确定为 egui + eframe，窗口已跑通，颜色主题与节点分类色表已就绪。画布已实现无限网格、中键平移、滚轮缩放和 viewport 保存/恢复，当前正在实现节点渲染与交互。
 
 ## 能做什么
 
