@@ -27,6 +27,7 @@
 | .code 生成集成测试与 `docs/examples/simple_mission` 示例 | ✅ 完成 | Agent | 2026-07-06 |
 | Phase 3.1 GUI 框架选型与搭建（egui + eframe，`src/ui/theme.rs`） | ✅ 完成 | Agent | 2026-07-07 |
 | Phase 3.2 画布（无限网格、中键平移、滚轮缩放、`src/ui/canvas.rs`） | ✅ 完成 | Agent | 2026-07-07 |
+| Phase 3.3 + 3.4 节点渲染与连线渲染（`node_renderer.rs` / `edge_renderer.rs`） | ✅ 完成 | Agent | 2026-07-07 |
 
 ---
 
@@ -138,18 +139,18 @@
 
 ### 3.3 节点渲染
 
-- [ ] **3.3.1** 实现 `src/ui/node_renderer.rs` — 节点卡片（标题栏 + 端口）
-- [ ] **3.3.2** 按分类着色标题栏
-- [ ] **3.3.3** 渲染端口圆点（左入右出，颜色按类型）
-- [ ] **3.3.4** 渲染参数预览（折叠/展开）
-- [ ] **3.3.5** 选中状态（蓝色发光边框）
-- [ ] **3.3.6** 错误节点高亮（红色边框）
+- [x] **3.3.1** 实现 `src/ui/node_renderer.rs` — 节点卡片（标题栏 + 端口）
+- [x] **3.3.2** 按分类着色标题栏
+- [x] **3.3.3** 渲染端口圆点（左入右出，颜色按类型）
+- [x] **3.3.4** 渲染参数预览（折叠/展开）
+- [x] **3.3.5** 选中状态（蓝色发光边框）
+- [x] **3.3.6** 错误节点高亮（红色边框）
 
 ### 3.4 连线渲染
 
-- [ ] **3.4.1** 实现 `src/ui/edge_renderer.rs` — 贝塞尔曲线连接
-- [ ] **3.4.2** 支持 `waypoints` 中间点
-- [ ] **3.4.3** 连线高亮（靠近兼容端口时）
+- [x] **3.4.1** 实现 `src/ui/edge_renderer.rs` — 贝塞尔曲线连接
+- [x] **3.4.2** 支持 `waypoints` 中间点
+- [x] **3.4.3** 连线高亮（靠近兼容端口时）
 
 ### 3.5 交互
 
@@ -232,6 +233,7 @@
 | 2026-07-06 | 2.2.5 补充 | 显式处理 `CreateThread`/`CreateListener`/`CreateListenerLocal` 匹配分支，修复 `generate_node_call` 可选参数跳过逻辑；新增 3 项并发语义测试；总计 58+3+4 = 65 项测试通过 | ✅ |
 | 2026-07-07 | Phase 3.1 | 确定 GUI 框架为 egui/eframe，初始化 `src/ui/` 结构与 `src/ui/theme.rs` 色表，改造 `src/main.rs` 启动基础窗口；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
 | 2026-07-07 | Phase 3.2 | 实现 `src/ui/canvas.rs`：无限网格、中键平移、滚轮缩放、屏幕/世界坐标转换、`Viewport` 默认实现；`cargo test` 通过（66 项单元测试 + 3 + 4 项集成测试） | ✅ |
+| 2026-07-07 | Phase 3.3 + 3.4 | 实现 `src/ui/node_renderer.rs`（节点卡片、分类标题栏、端口圆点、参数预览、选中/错误高亮）与 `src/ui/edge_renderer.rs`（贝塞尔连线、waypoints、高亮）；`main.rs` 集成示例图渲染；`cargo test` 通过（69 项单元测试） | ✅ |
 
 ---
 
