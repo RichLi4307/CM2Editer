@@ -16,11 +16,26 @@ fn main() {
 
     // 从注册表获取节点定义
     let defs = all_node_definitions();
-    let start_def = defs.iter().find(|d| d.node_type == NodeType::Start).unwrap();
-    let if_def = defs.iter().find(|d| d.node_type == NodeType::If).unwrap();
-    let label_def = defs.iter().find(|d| d.node_type == NodeType::Label).unwrap();
-    let goto_def = defs.iter().find(|d| d.node_type == NodeType::Goto).unwrap();
-    let log_def = defs.iter().find(|d| d.node_type == NodeType::Log).unwrap();
+    let Some(start_def) = defs.iter().find(|d| d.node_type == NodeType::Start) else {
+        println!("❌ Start 定义不存在");
+        return;
+    };
+    let Some(if_def) = defs.iter().find(|d| d.node_type == NodeType::If) else {
+        println!("❌ If 定义不存在");
+        return;
+    };
+    let Some(label_def) = defs.iter().find(|d| d.node_type == NodeType::Label) else {
+        println!("❌ Label 定义不存在");
+        return;
+    };
+    let Some(goto_def) = defs.iter().find(|d| d.node_type == NodeType::Goto) else {
+        println!("❌ Goto 定义不存在");
+        return;
+    };
+    let Some(log_def) = defs.iter().find(|d| d.node_type == NodeType::Log) else {
+        println!("❌ Log 定义不存在");
+        return;
+    };
 
     // 从 PortDefinition 转换为 Port
     fn port(p: &api::definitions::PortDefinition) -> Port {
@@ -58,47 +73,69 @@ fn main() {
     g.add_node(n_log);
 
     // 按类型查找节点 ID
-    fn id_by_type(g: &Graph, node_type: NodeType) -> String {
+    fn id_by_type(g: &Graph, node_type: NodeType) -> Option<String> {
         g.nodes
             .iter()
             .find(|(_, n)| n.node_type == node_type)
             .map(|(id, _)| id.clone())
-            .unwrap()
     }
-    let id_start = id_by_type(&g, NodeType::Start);
-    let id_if = id_by_type(&g, NodeType::If);
-    let id_label = id_by_type(&g, NodeType::Label);
-    let id_goto = id_by_type(&g, NodeType::Goto);
-    let id_log = id_by_type(&g, NodeType::Log);
+    let Some(id_start) = id_by_type(&g, NodeType::Start) else {
+        println!("❌ Start 节点不存在");
+        return;
+    };
+    let Some(id_if) = id_by_type(&g, NodeType::If) else {
+        println!("❌ If 节点不存在");
+        return;
+    };
+    let Some(id_label) = id_by_type(&g, NodeType::Label) else {
+        println!("❌ Label 节点不存在");
+        return;
+    };
+    let Some(id_goto) = id_by_type(&g, NodeType::Goto) else {
+        println!("❌ Goto 节点不存在");
+        return;
+    };
+    let Some(id_log) = id_by_type(&g, NodeType::Log) else {
+        println!("❌ Log 节点不存在");
+        return;
+    };
 
     // 连线（执行流）
-    g.add_edge(Edge::new(
+    if let Err(e) = g.add_edge(Edge::new(
         EdgeEndpoint::new(&id_start, "out_flow"),
         EdgeEndpoint::new(&id_if, "in_flow"),
         PortType::Flow,
-    ))
-    .unwrap();
-    g.add_edge(Edge::new(
+    )) {
+        println!("❌ 添加边失败: {e}");
+        return;
+    }
+    if let Err(e) = g.add_edge(Edge::new(
         EdgeEndpoint::new(&id_if, "out_true"),
         EdgeEndpoint::new(&id_label, "in_flow"),
         PortType::Flow,
-    ))
-    .unwrap();
-    g.add_edge(Edge::new(
+    )) {
+        println!("❌ 添加边失败: {e}");
+        return;
+    }
+    if let Err(e) = g.add_edge(Edge::new(
         EdgeEndpoint::new(&id_label, "out_flow"),
         EdgeEndpoint::new(&id_goto, "in_flow"),
         PortType::Flow,
-    ))
-    .unwrap();
-    g.add_edge(Edge::new(
+    )) {
+        println!("❌ 添加边失败: {e}");
+        return;
+    }
+    if let Err(e) = g.add_edge(Edge::new(
         EdgeEndpoint::new(&id_goto, "out_flow"),
         EdgeEndpoint::new(&id_log, "in_flow"),
         PortType::Flow,
-    ))
-    .unwrap();
+    )) {
+        println!("❌ 添加边失败: {e}");
+        return;
+    }
 
     // 添加标签映射
-    g.add_label("main", vec![id_start.clone(), id_if.clone(), id_label.clone(), id_goto.clone(), id_log.clone()]);
+    g.add_label("main", vec![id_start, id_if, id_label, id_goto, id_log]);
 
     // ── 验证 ──
     match GraphValidator::validate(&g) {
@@ -111,11 +148,13 @@ fn main() {
     }
 
     for (id, node) in &g.nodes {
-        let def = defs.iter().find(|d| d.node_type == node.node_type).unwrap();
+        let Some(def) = defs.iter().find(|d| d.node_type == node.node_type) else {
+            println!("  - {}: 未找到定义", id);
+            continue;
+        };
         println!(
             "  - {}: {} (类型: {:?}, 分类: {})",
             id, def.display_name, node.node_type, def.category
         );
     }
 }
-

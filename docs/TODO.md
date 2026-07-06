@@ -42,7 +42,7 @@
 ### 1.1 错误与类型系统
 
 - [x] **1.1.1** 实现 `src/error.rs` — `FlowError` 枚举 + `Result<T>` 别名
-- [x] **1.1.2** 实现 `src/graph/types.rs` — `NodeType` 枚举（全部节点）、`PortType` 枚举（含兼容性与颜色）
+- [x] **1.1.2** 实现 `src/graph/types.rs` — `NodeType` 枚举（143 种节点变体，含控制流、通用函数、游戏函数、数学/字符串/文件函数、对象构造函数及特殊节点）、`PortType` 枚举（含兼容性与颜色）
 - [x] **1.1.3** 实现 `src/api/mod.rs` + `src/api/definitions.rs` — `NodeDefinition` / `PortDefinition` / `ParamDefinition` 结构
 - [x] **1.1.4** 实现 `src/api/registry.rs` — 节点注册表（静态定义 → 运行时查询）
 
@@ -113,14 +113,13 @@
 > ⚠️ 前置检查：开始 Phase 3 前务必先读 `docs/interaction_spec.md`
 > UX 债务：拖线实时环检测反馈、空画布启动体验
 > 不解决这两点，Phase 3 验收标准直接不合格。
-
 > 目标：能用鼠标拖方块、连线、改参数、看 JSON。
 
 ### 3.1 GUI 框架选型与搭建
 
 - [ ] **3.1.1** 确定 GUI 框架（egui / iced / Tauri+Web）
 - [ ] **3.1.2** 初始化框架项目结构，跑通窗口
-- [ ] **3.1.3** 实现 `src/ui/theme.rs` — 颜色主题、节点分类色表
+- [ ] **3.1.3** 实现 `src/ui/theme.rs` — 颜色主题、节点分类色表（顶部添加颜色来源注释：`// 颜色来源：docs/node_types.md 第 12 节`）
 
 ### 3.2 画布（Canvas）
 
@@ -214,7 +213,7 @@
 | 2026-07-05 | 0.4 | 编写 `README.md`（项目简介、构建命令、MIT License） | ✅ |
 | 2026-07-05 | Phase 0.2,0.3,0.6 | 创建 Cargo.toml、目录结构，cargo build 通过 | ✅ |
 | 2026-07-05 | 1.1.1 | 实现 `error.rs` — FlowError + Result | ✅ |
-| 2026-07-05 | 1.1.2 | 实现 `graph/types.rs` — NodeType(103种) + PortType | ✅ |
+| 2026-07-05 | 1.1.2 | 实现 `graph/types.rs` — NodeType(143种) + PortType | ✅ |
 | 2026-07-05 | 1.2.4 | 实现 `graph/mod.rs` 模块导出 | ✅ |
 | 2026-07-05 | 当前冲刺 | 实现 `graph/node.rs`、`edge.rs`、`graph.rs`、`validation.rs` 及单元测试；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
 | 2026-07-06 | 1.1.3,1.1.4 | 实现 `api/definitions.rs`、`api/registry.rs`、更新 `NodeType`/`ParamValue` 派生；`cargo test` 通过（34 项） | ✅ |

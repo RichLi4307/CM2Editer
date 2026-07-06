@@ -1,8 +1,9 @@
 # CustomMissions2 流编辑器 — Rust 项目骨架
 
-> 版本：v1.0  
-> 用途：定义 Rust 项目目录结构、模块划分和初始代码  
-> 阅读对象：Agent（后端实现）  
+> 版本：v1.0
+> 用途：定义 Rust 项目目录结构、模块划分和初始代码
+> 阅读对象：Agent（后端实现）
+> 状态：**规划稿 / 设计草案**；`Cargo.toml`、目录结构及已实现的源文件以仓库实际文件为准，本文档中的依赖列表和阶段状态为规划草案，实现时以代码为准。
 > 相关文档：
 >
 > - 节点清单：[node_types.md](node_types.md)
@@ -25,7 +26,7 @@ CM2Editer/
 ├── src/
 │   ├── main.rs                # 入口点
 │   ├── lib.rs                 # 库入口（可选）
-│   ├── app.rs                 # 应用主循环 / 状态管理
+│   ├── app.rs                 # 应用主循环 / 状态管理（也可扩展为 app/ 目录）
 │   ├── config.rs              # 配置加载与保存
 │   ├── error.rs               # 全局错误类型定义
 │   ├── graph/                 # 图数据结构（核心）
@@ -82,7 +83,7 @@ CM2Editer/
 [package]
 name = "CM2Editer"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["richli"]
 license = "MIT"
 description = "A node-based visual editor for CustomMissions2 task scripts"
@@ -98,7 +99,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4.5", features = ["derive"] }
 config = "0.14"
 uuid = { version = "1.8", features = ["v4", "serde"] }
-glam = "0.27"
 # egui = "0.27"
 # eframe = { version = "0.27", features = ["default"] }
 # iced = "0.12"
@@ -123,10 +123,12 @@ strip = true
 | `tracing` | 结构化日志 |
 | `clap` | 命令行参数解析 |
 | `uuid` | 全局唯一 ID 生成 |
-| `glam` | 向量、颜色等数值计算 |
 | `egui` / `eframe`（可选） | 即时模式 GUI |
 | `tempfile`（dev） | 测试临时目录 |
 | `pretty_assertions`（dev） | 更易读的测试失败输出 |
+
+> 注意：实际 `Cargo.toml` 中未引入 `glam`；`Vec2` 由 `src/graph/node.rs` 中的自定义结构体实现，详见 `graph::node::Vec2`。
+> 实际 `Cargo.toml` 中已配置 `[lints.rust]` 与 `[lints.clippy]`，用于统一代码风格与禁止 `unwrap` / `expect`。
 
 ---
 
@@ -137,13 +139,19 @@ strip = true
 | 模块 | 文件 | 职责 | 关键设计 |
 |------|------|------|----------|
 | error | `src/error.rs` | 全局错误类型 | `FlowError` 枚举 + `Result<T>` 别名 |
-| graph/types | `src/graph/types.rs` | 类型系统 | `NodeType`（103 种） + `PortType` + 兼容性检查 |
+| graph/types | `src/graph/types.rs` | 类型系统 | `NodeType`（143 种） + `PortType` + 兼容性检查 |
 | graph/node | `src/graph/node.rs` | 节点结构 | `Node` / `Port` / `ParamValue`(Literal/Ref/Null) / `Vec2` |
 | graph/edge | `src/graph/edge.rs` | 连线结构 | `Edge` / `EdgeEndpoint` / waypoints |
 | graph/graph | `src/graph/graph.rs` | 图容器 | `Graph { nodes, edges, labels }` + 增删查操作 |
 | graph/validation | `src/graph/validation.rs` | 图验证器 | `GraphValidator::validate` + Kahn 环检测 |
 | api/definitions | `src/api/definitions.rs` | 节点元数据 | `NodeDefinition` / `PortDefinition` / `ParamDefinition` |
 | api/registry | `src/api/registry.rs` | 节点注册表 | 类型名 ↔ NodeDefinition 查询 |
+
+### NodeType 计数规则
+
+- 当前 `NodeType` 枚举包含 **143 个变体**：涵盖控制流、通用函数、游戏函数、数学/字符串/文件函数、对象构造函数，以及 `Meta` / `Comment` / `Group` 特殊节点。
+- `node_types.md` 中列出的**对象方法**（如 `Area.Inside`、`NPC.Warp`、`Text.Add` 等）不单独映射为 `NodeType` 枚举变体；运行时通过 `(Object, MethodName)` 组合或 `CallMethod` 动态调用表示。
+- 因此，`NodeType` 的计数口径为「可直接实例化的节点类型」，而非「API 上可触发的所有函数调用」。若需扩展对象方法为独立节点类型，请先更新 `NodeType` 枚举、注册表和 `node_types.md` 第 13 节。
 
 ---
 

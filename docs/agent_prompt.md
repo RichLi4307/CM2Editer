@@ -72,7 +72,7 @@ let value = map.get("key").ok_or(FlowError::NodeNotFound("key".to_string()))?; /
 pub fn add_node(&mut self, node: Node) -> Result<()> { ... }
 
 // 3. 禁止 unsafe 代码；如确需调用外部库，必须在上层封装并在 PR 中说明理由
-// 4. 使用 Rust 2021 Edition
+// 4. 使用 Rust 2024 Edition 作为模板基线；实际项目以 `Cargo.toml` 中的 `edition` 字段为准（当前为 2024 Edition）
 // 5. 数据结构必须 derive Clone（除非有明确理由，如持有非 Clone 资源）
 // 6. 函数参数优先用 &str 而非 String，返回优先用 String
 // 7. 集合类型优先用 HashMap / Vec，避免 LinkedList
@@ -109,6 +109,24 @@ app/         → 主循环与状态管理，依赖所有上层模块
 | 图验证失败 | 收集所有错误，批量显示在底部面板 |
 | 内部不变量被破坏 | 使用 `debug_assert!`，Release 模式不 panic |
 
+### 3.4 验证器检查清单（GraphValidator::validate）
+
+`GraphValidator::validate` 必须在保存 JSON / 导出 `.code` 前调用。以下 13 项检查必须全部实现：
+
+1. `version` 存在且为支持的版本。
+2. `nodes` 中每个节点 `id` 全局唯一。
+3. `nodes` 中每个节点 `type` 在节点清单（`api/registry`）中存在。
+4. `nodes` 中每个节点 `params` 符合对应节点类型的参数定义（类型、必填、选项范围）。
+5. `edges` 中 `from.node` 和 `to.node` 均存在于 `nodes`。
+6. `edges` 中 `from.port` 和 `to.port` 在对应节点中存在。
+7. `edges` 中类型匹配规则满足（Flow 边连 Flow 端口，Data 边数据类型兼容）。
+8. `labels` 中每个节点 ID 存在于 `nodes`。
+9. `labels` 中同一节点不重复出现在同一线性序列中。
+10. `threads` 中 `entry_label` 存在于 `labels` 中。
+11. 无环检测：`Flow` 边构成的图必须是有向无环图（DAG），除非显式使用 Loop 节点。
+12. 必填参数已填写：`params` 中无 `null` 且包含所有必填字段。
+13. 孤立节点检测：不在任何 `labels` 与任何 `Flow` 边中的节点报 Warning。
+
 ---
 
 ## 四、JSON 格式契约（编辑器 ↔ 加载器）
@@ -123,9 +141,35 @@ app/         → 主循环与状态管理，依赖所有上层模块
     {
       "id": "node_xxx",
       "type": "DropItem",
+      "category": "Game Functions",
       "position": { "x": 200, "y": 150 },
       "size": { "width": 180, "height": 120 },
-      "params": { "itemtype": "Coat", "stage": "Residence", "x": -26.6 },
+      "collapsed": false,
+      "params": {
+        "itemtype": "Coat",
+        "stage": "Residence",
+        "x": -26.6,
+        "y": -0.1,
+        "z": -120.0
+      },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }],
+        "outputs": [
+          { "id": "out_flow", "type": "Flow", "label": "下一步" },
+          { "id": "out_result", "type": "String", "label": "返回值" }
+        ]
+      }
+    },
+    {
+      "id": "node_yyy",
+      "type": "Log",
+      "category": "General Functions",
+      "position": { "x": 450, "y": 150 },
+      "size": { "width": 180, "height": 100 },
+      "collapsed": false,
+      "params": {
+        "output": { "ref": "node_xxx", "port": "out_result" }
+      },
       "ports": {
         "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }],
         "outputs": [{ "id": "out_flow", "type": "Flow", "label": "下一步" }]
@@ -137,7 +181,17 @@ app/         → 主循环与状态管理，依赖所有上层模块
       "id": "edge_xxx",
       "from": { "node": "node_a", "port": "out_flow" },
       "to": { "node": "node_b", "port": "in_flow" },
-      "type": "Flow"
+      "type": "Flow",
+      "waypoints": [
+        { "x": 300, "y": 200 },
+        { "x": 350, "y": 200 }
+      ]
+    },
+    {
+      "id": "edge_yyy",
+      "from": { "node": "node_xxx", "port": "out_result" },
+      "to": { "node": "node_yyy", "port": "output" },
+      "type": "Data"
     }
   ],
   "labels": {
@@ -147,6 +201,7 @@ app/         → 主循环与状态管理，依赖所有上层模块
   "threads": [
     { "id": "thread_001", "name": "main", "entry_label": "main", "parent": null, "auto_start": true }
   ],
+  "comments": [],
   "viewport": { "x": 0, "y": 0, "zoom": 1.0 }
 }
 ```
@@ -156,9 +211,12 @@ app/         → 主循环与状态管理，依赖所有上层模块
 > - `version` 必须存在，加载时检查兼容性；保存时始终写入最新版本
 > - `meta` 直接透传，编辑器不解析内容
 > - `nodes` 中 `id` 全局唯一，`type` 必须存在于节点清单
-> - `edges` 中端点必须指向存在的节点和端口，类型必须兼容
+> - `nodes` 中 `category` 为可选，缺失时由 `type` 推导；`collapsed` 为可选，默认 `false`
+> - `params` 中的值可以是常量（字符串/数字/布尔/列表/对象），也可以是引用：`{ "ref": "node_id", "port": "port_id" }` 表示端口动态连接
+> - `edges` 中端点必须指向存在的节点和端口，类型必须兼容；`waypoints` 为可选连线中间点
 > - `labels` 定义标签到节点序列的映射；孤立节点应报 Warning
-> - `threads` 描述并发线程，父线程为 `null` 表示顶层线程
+> - `threads` 描述并发线程，父线程为 `null` 表示顶层线程；缺失时默认等效于 `[{ id: "thread_main", name: "main", entry_label: "main", parent: null, auto_start: true }]`
+> - `comments` 为可选的注释节点数组，不参与代码生成，仅保留编辑体验
 > - `viewport` 为视图层状态，不影响逻辑
 
 ---
@@ -194,6 +252,8 @@ app/         → 主循环与状态管理，依赖所有上层模块
 ## 六、节点类型注册表（关键数据结构）
 
 每个节点类型必须有以下元数据。完整节点清单见 [node_types.md](node_types.md)。
+
+> **NodeType 计数规则**：当前 `NodeType` 枚举包含 **143 个变体**，覆盖控制流、通用函数、游戏函数、数学/字符串/文件函数、对象构造函数，以及 `Meta` / `Comment` / `Group` 特殊节点。`node_types.md` 中列出的对象方法（如 `Area.Inside`、`NPC.Warp`）不单独作为枚举变体，运行时通过 `(ObjectType, MethodName)` 组合或 `CallMethod` 节点表示。
 
 ```rust
 pub struct NodeDefinition {
@@ -260,6 +320,7 @@ pub struct ParamDefinition {
 8. **NodeType 与字符串必须一致** — 序列化后的 `type` 字段必须与 `NodeType` 的 `PascalCase` 名称完全匹配
 9. **Flow 边必须无环** — 验证器默认要求 Flow 图是 DAG，除非显式使用 Loop 节点
 10. **保存前验证** — 导出 JSON 或 `.code` 前必须调用 `GraphValidator::validate` 并处理所有错误
+11. **特殊节点不参与代码生成** — `Meta` / `Comment` / `Group` 只用于编辑期元数据或视觉组织，验证器应允许其存在，但跳过拓扑排序与代码生成路径
 
 ---
 

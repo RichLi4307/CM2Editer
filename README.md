@@ -78,7 +78,7 @@ CM2Editer/
 │   ├── main.rs          # 应用入口
 │   ├── error.rs         # 全局错误类型 FlowError
 │   ├── graph/           # 图数据结构（节点/边/图/验证器）
-│   ├── api/             # 节点静态定义与注册表（待实现）
+│   ├── api/             # 节点静态定义与注册表
 │   ├── serializer/      # JSON 序列化与版本迁移（待实现）
 │   ├── code_gen/        # .code 脚本生成器（待实现）
 │   └── ui/              # egui 界面层（待实现）

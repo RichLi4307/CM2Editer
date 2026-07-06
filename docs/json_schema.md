@@ -21,6 +21,7 @@
   "edges": [ ... ],
   "labels": { ... },
   "threads": [ ... ],
+  "comments": [ ... ],
   "viewport": { ... }
 }
 ```
@@ -32,7 +33,8 @@
 | `nodes` | Array | 是 | — | 所有节点列表 |
 | `edges` | Array | 是 | `[]` | 所有连线列表 |
 | `labels` | Object | 否 | `{}` | 标签到节点 ID 列表的映射 |
-| `threads` | Array | 否 | `[{main}]` | 线程定义（并发分支） |
+| `threads` | Array | 否 | `[{"id": "thread_main", "name": "main", "entry_label": "main", "parent": null, "auto_start": true}]` | 线程定义（并发分支） |
+| `comments` | Array | 否 | `[]` | 注释节点列表（特殊节点，不参与代码生成） |
 | `viewport` | Object | 否 | 见下文 | 画布视口状态（视图层） |
 
 > 注意：
@@ -182,7 +184,38 @@
 
 ---
 
-## 五、Labels 对象
+## 五、Comments 数组
+
+`comments` 是可选的顶层数组，用于保存编辑器中的注释节点，不参与 `.code` 代码生成，仅保留编辑体验。若实现选择将注释作为 `nodes` 数组中的特殊类型，则顶层 `comments` 字段可省略，但需在 `Node` 对象中标识 `type` 为 `Comment`。
+
+```json
+{
+  "comments": [
+    {
+      "id": "comment_001",
+      "text": "在此处触发剧情事件",
+      "position": { "x": 200, "y": 300 },
+      "size": { "width": 200, "height": 80 }
+    }
+  ]
+}
+```
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+| ------ | ------ | ------ | -------- | ------ |
+| `id` | String | 是 | — | 注释唯一标识 |
+| `text` | String | 否 | `""` | 注释文本 |
+| `position` | Object | 是 | — | 画布坐标 `{x, y}` |
+| `size` | Object | 否 | 按默认 | 注释框尺寸 `{width, height}` |
+
+> 规则：
+>
+> - `comments` 中的节点不参与验证器的拓扑检查。
+> - 导出 `.code` 时应忽略 `comments`，保存 JSON 时可保留。
+
+---
+
+## 六、Labels 对象
 
 标签是代码中的入口点，映射到节点序列。
 
@@ -362,6 +395,7 @@
       "auto_start": true
     }
   ],
+  "comments": [],
   "viewport": {
     "x": 0, "y": 0, "zoom": 1.0
   }

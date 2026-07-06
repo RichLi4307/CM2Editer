@@ -403,7 +403,10 @@ mod tests {
 
     #[test]
     fn test_node_type_count() {
-        // 当前 NodeType 应包含 103 种节点变体
+        // 当前 NodeType 应包含 143 种节点变体（含控制流、通用函数、游戏函数、
+        // 数学/字符串/文件函数、对象构造函数及 Meta/Comment/Group 特殊节点）。
+        // 对象方法（如 Area.Inside、NPC.Warp）不单独映射为枚举变体，
+        // 运行时通过 (Object, MethodName) 组合或 CallMethod 表示。
         let variants: Vec<_> = [
             NodeType::Start,
             NodeType::Label,

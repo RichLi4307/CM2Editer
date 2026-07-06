@@ -410,18 +410,14 @@
 
 - 编辑器在序列化时对特殊节点做显式处理，避免将其误认为可执行节点。
 - 验证器在检查节点类型时，应允许特殊节点存在，但不将其纳入拓扑排序或代码生成路径。
+- `Comment` 节点可保留在顶层 `comments` 数组中，也可作为 `nodes` 数组中的特殊类型；无论哪种方式，导出 `.code` 时均应忽略。
+- `Group` 节点仅影响画布视觉组织，不进入序列化逻辑（可保存为 `nodes` 中的分组元数据，不影响执行语义）。
 
 ---
 
 ## 附注
 
 本文档作为节点类型的活文档（living document），未来会根据 CustomMissions2 API 的变更进行更新。如需补充或纠正某个节点的参数/端口定义，请提交 Issue 或 PR。
-
-| 节点 | 参数 | 说明 |
-| ------ | ------ | ------ |
-| `Meta` | `title: Object`, `description: Object`, `settings: List` | 任务元数据，不生成代码但影响加载器；建议每个图最多一个 |
-| `Comment` | `text: String` | 注释节点，不参与序列化，仅用于画布说明 |
-| `Group` | `title: String`, `color: List` | 分组框，可包含多个节点，用于视觉组织 |
 
 ---
 
@@ -443,7 +439,11 @@
 | 等待/事件 | 黄色 | `#FFEB3B` | Wait, WaitForEvent, CreateListener |
 | 特殊 | 灰色 | `#757575` | Meta, Comment, Group |
 
-> 颜色定义同时应写入 `src/ui/theme.rs` 或 `assets/themes/default.json`，保持代码与文档一致。
+> 颜色定义同时应写入 `src/ui/theme.rs` 或 `assets/themes/default.json`，保持代码与文档一致。`src/ui/theme.rs` 顶部必须包含注释：
+> ```rust
+> // 颜色来源：docs/node_types.md 第 12 节（节点类型颜色编码表）
+> // 若修改本文档颜色，必须同步更新 src/ui/theme.rs 与 assets/themes/default.json
+> ```
 
 ---
 
@@ -453,3 +453,5 @@
 - 新增 API 函数时，按相同格式追加节点定义即可；同时更新 `src/api/definitions.rs` 与 [src/graph/types.rs](../src/graph/types.rs) 中的 `NodeType` 枚举。
 - 节点参数中的可选值用 `[]` 标出，编辑器 UI 中应体现为「非必填」。
 - 若某节点同时支持读写（如 `Global` / `Local` / `NPC.Stopped`），其参数 `value` 为空时表示读取，非空时表示写入。
+- **计数口径**：`NodeType` 枚举当前包含 **143 个变体**，统计范围为可直接实例化的节点类型（控制流、通用函数、游戏函数、数学/字符串/文件函数、对象构造函数、特殊节点）。
+- **对象方法映射**：第 10 节中形如 `Area.Inside`、`NPC.Warp`、`Text.Add` 的对象方法不单独映射为 `NodeType` 枚举变体；运行时通过 `(ObjectType, MethodName)` 组合或 `CallMethod` 节点动态调用。若未来需将对象方法提升为独立节点类型，必须同步更新 `NodeType` 枚举、`api/definitions.rs` 注册表与本文档第 10 节。
