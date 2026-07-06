@@ -131,15 +131,10 @@ pub struct App {
     pub status_message: String,
 }
 
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl App {
-    /// 创建默认应用，并加载一个示例图。
-    pub fn new() -> Self {
+    /// 创建默认应用，并加载一个示例图与中文字体。
+    pub fn new(cc: &eframe::CreationContext) -> Self {
+        setup_fonts(&cc.egui_ctx);
         let graph = build_sample_graph();
         Self {
             canvas: Canvas::new(),
@@ -597,4 +592,38 @@ fn id_by_type(graph: &Graph, node_type: NodeType) -> String {
         .find(|(_, n)| n.node_type == node_type)
         .map(|(id, _)| id.clone())
         .unwrap_or_default()
+}
+
+/// 加载系统字体以支持中文显示。
+fn setup_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+
+    #[cfg(target_os = "windows")]
+    {
+        let candidates = [
+            r"C:\Windows\Fonts\msyh.ttc",
+            r"C:\Windows\Fonts\msyhbd.ttc",
+            r"C:\Windows\Fonts\simhei.ttf",
+        ];
+        for path in &candidates {
+            if let Ok(bytes) = std::fs::read(path) {
+                fonts
+                    .font_data
+                    .insert("cjk".to_owned(), egui::FontData::from_owned(bytes).into());
+                fonts
+                    .families
+                    .entry(egui::FontFamily::Proportional)
+                    .or_default()
+                    .push("cjk".to_owned());
+                fonts
+                    .families
+                    .entry(egui::FontFamily::Monospace)
+                    .or_default()
+                    .push("cjk".to_owned());
+                break;
+            }
+        }
+    }
+
+    ctx.set_fonts(fonts);
 }

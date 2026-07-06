@@ -94,8 +94,15 @@ impl Canvas {
 
     /// 以指定屏幕点为中心进行缩放。
     fn zoom_at(&mut self, screen_pos: Pos2, canvas_rect: Rect, scroll: f32) {
+        if scroll == 0.0 {
+            return;
+        }
         let old_zoom = self.viewport.zoom;
-        let new_zoom = (old_zoom * (1.0 + scroll * 0.1)).clamp(0.1, 4.0);
+        let new_zoom = if scroll > 0.0 {
+            (old_zoom * 1.1).clamp(0.1, 4.0)
+        } else {
+            (old_zoom / 1.1).clamp(0.1, 4.0)
+        };
         if (new_zoom - old_zoom).abs() < f32::EPSILON {
             return;
         }
@@ -189,10 +196,27 @@ mod tests {
     fn test_zoom_limits() {
         let mut canvas = Canvas::new();
         let rect = Rect::from_min_max(Pos2::new(0.0, 0.0), Pos2::new(800.0, 600.0));
+        // 方向判断：一次大 delta 也只做一次缩放
         canvas.zoom_at(Pos2::new(400.0, 300.0), rect, 100.0);
+        assert!((canvas.viewport.zoom - 1.1).abs() < 1e-4);
+        canvas.viewport.zoom = 5.0; // 手动超出上限
+        canvas.zoom_at(Pos2::new(400.0, 300.0), rect, 1.0);
         assert!(canvas.viewport.zoom <= 4.0);
-        canvas.zoom_at(Pos2::new(400.0, 300.0), rect, -100.0);
+        canvas.viewport.zoom = 0.05; // 手动低于下限
+        canvas.zoom_at(Pos2::new(400.0, 300.0), rect, -1.0);
         assert!(canvas.viewport.zoom >= 0.1);
+    }
+
+    #[test]
+    fn test_zoom_direction_step() {
+        let mut canvas = Canvas::new();
+        let rect = Rect::from_min_max(Pos2::new(0.0, 0.0), Pos2::new(800.0, 600.0));
+        canvas.zoom_at(Pos2::new(400.0, 300.0), rect, 1.0);
+        assert!((canvas.viewport.zoom - 1.1).abs() < 1e-4);
+        canvas.zoom_at(Pos2::new(400.0, 300.0), rect, 1.0);
+        assert!((canvas.viewport.zoom - 1.21).abs() < 1e-4);
+        canvas.zoom_at(Pos2::new(400.0, 300.0), rect, -1.0);
+        assert!((canvas.viewport.zoom - 1.1).abs() < 1e-4);
     }
 
     #[test]

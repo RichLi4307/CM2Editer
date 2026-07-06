@@ -17,10 +17,10 @@ impl NodeLibraryPanel {
         ui.separator();
 
         let defs = all_node_definitions();
-        let mut categories: std::collections::HashMap<
+        let mut categories: std::collections::BTreeMap<
             &str,
             Vec<&crate::api::definitions::NodeDefinition>,
-        > = std::collections::HashMap::new();
+        > = std::collections::BTreeMap::new();
         for def in defs {
             categories.entry(&def.category).or_default().push(def);
         }

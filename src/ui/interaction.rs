@@ -16,8 +16,6 @@ pub enum CanvasState {
     /// 默认状态
     #[default]
     Idle,
-    /// 中键平移
-    Panning { last_mouse: Pos2 },
     /// 左键拖拽节点
     DraggingNode {
         node_id: String,
@@ -112,9 +110,6 @@ impl InteractionController {
                 selected_edges,
                 status_message,
             ),
-            CanvasState::Panning { last_mouse } => {
-                self.handle_panning(response, last_mouse, canvas, status_message)
-            }
             CanvasState::DraggingNode {
                 node_id,
                 start_node_pos,
@@ -188,14 +183,6 @@ impl InteractionController {
         selected_edges: &mut HashSet<String>,
         _status_message: &mut String,
     ) {
-        // 中键按下：进入平移
-        if response.drag_started_by(egui::PointerButton::Middle) {
-            if let Some(pos) = response.interact_pointer_pos() {
-                self.state = CanvasState::Panning { last_mouse: pos };
-            }
-            return;
-        }
-
         // 左键按下
         if response.drag_started_by(egui::PointerButton::Primary) {
             let start_pos = response
@@ -262,27 +249,6 @@ impl InteractionController {
         if response.clicked() {
             selected_nodes.clear();
             selected_edges.clear();
-        }
-    }
-
-    fn handle_panning(
-        &mut self,
-        response: &Response,
-        last_mouse: Pos2,
-        canvas: &mut Canvas,
-        status_message: &mut String,
-    ) {
-        if response.dragged_by(egui::PointerButton::Middle) {
-            let current = response.hover_pos().unwrap_or(last_mouse);
-            let delta = current - last_mouse;
-            canvas.viewport.x -= delta.x / canvas.viewport.zoom;
-            canvas.viewport.y -= delta.y / canvas.viewport.zoom;
-            self.state = CanvasState::Panning {
-                last_mouse: current,
-            };
-        } else if response.drag_stopped() {
-            self.state = CanvasState::Idle;
-            *status_message = String::from("平移结束");
         }
     }
 
