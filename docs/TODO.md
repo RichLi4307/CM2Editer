@@ -28,6 +28,8 @@
 | Phase 3.1 GUI 框架选型与搭建（egui + eframe，`src/ui/theme.rs`） | ✅ 完成 | Agent | 2026-07-07 |
 | Phase 3.2 画布（无限网格、中键平移、滚轮缩放、`src/ui/canvas.rs`） | ✅ 完成 | Agent | 2026-07-07 |
 | Phase 3.3 + 3.4 节点渲染与连线渲染（`node_renderer.rs` / `edge_renderer.rs`） | ✅ 完成 | Agent | 2026-07-07 |
+| Phase 3.5 + 3.6 交互与面板（`interaction.rs`、`panels/*`） | ✅ 完成 | Agent | 2026-07-07 |
+
 
 ---
 
@@ -154,26 +156,26 @@
 
 ### 3.5 交互
 
-- [ ] **3.5.1** 实现 `src/ui/interaction.rs` — 节点拖拽（左键）
-- [ ] **3.5.2** 框选（Shift + 拖拽）
-- [ ] **3.5.3** 从端口拖出线创建连线
-- [ ] **3.5.4** 右键节点菜单（复制、删除、折叠）
-- [ ] **3.5.5** 双击空白 / 按 Space — 快速搜索创建节点
-- [ ] **3.5.6** Delete 删除选中节点/边
-- [ ] **3.5.7** Ctrl+Z / Ctrl+Y — 撤销/重做（至少 50 步）
-- [ ] **3.5.8** Ctrl+S — 保存 JSON
+- [x] **3.5.1** 实现 `src/ui/interaction.rs` — 节点拖拽（左键）
+- [x] **3.5.2** 框选（Shift + 拖拽）
+- [x] **3.5.3** 从端口拖出线创建连线
+- [x] **3.5.4** 右键节点菜单（复制、删除、折叠）
+- [x] **3.5.5** 双击空白 / 按 Space — 快速搜索创建节点
+- [x] **3.5.6** Delete 删除选中节点/边
+- [x] **3.5.7** Ctrl+Z / Ctrl+Y — 撤销/重做（至少 50 步）
+- [x] **3.5.8** Ctrl+S — 保存 JSON
 
 ### 3.6 面板
 
-- [ ] **3.6.1** 实现 `src/ui/panels/node_library.rs` — 左栏分类树 + 搜索
-- [ ] **3.6.2** 实现 `src/ui/panels/properties.rs` — 右栏参数编辑（输入框/下拉/开关）
-- [ ] **3.6.3** 实现 `src/ui/panels/json_preview.rs` — 底部实时 JSON 预览
-- [ ] **3.6.4** 实现 `src/ui/panels/status_bar.rs` — 底部状态栏（错误数、坐标、缩放）
+- [x] **3.6.1** 实现 `src/ui/panels/node_library.rs` — 左栏分类树 + 搜索
+- [x] **3.6.2** 实现 `src/ui/panels/properties.rs` — 右栏参数编辑（输入框/下拉/开关）
+- [x] **3.6.3** 实现 `src/ui/panels/json_preview.rs` — 底部实时 JSON 预览
+- [x] **3.6.4** 实现 `src/ui/panels/status_bar.rs` — 底部状态栏（错误数、坐标、缩放）
 
 ### 3.7 应用主循环
 
-- [ ] **3.7.1** 实现 `src/app.rs` — 应用状态管理（当前文件、选中项、剪贴板）
-- [ ] **3.7.2** 实现 `src/main.rs` — 入口，启动 GUI
+- [x] **3.7.1** 实现 `src/app.rs` — 应用状态管理（当前文件、选中项、剪贴板）
+- [x] **3.7.2** 实现 `src/main.rs` — 入口，启动 GUI
 - [ ] **3.7.3** 工具栏：保存 | 撤销 | 重做 | 导出 JSON | 导出 `.code` | 运行预览
 
 **Phase 3 验收标准：**
@@ -234,6 +236,7 @@
 | 2026-07-07 | Phase 3.1 | 确定 GUI 框架为 egui/eframe，初始化 `src/ui/` 结构与 `src/ui/theme.rs` 色表，改造 `src/main.rs` 启动基础窗口；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
 | 2026-07-07 | Phase 3.2 | 实现 `src/ui/canvas.rs`：无限网格、中键平移、滚轮缩放、屏幕/世界坐标转换、`Viewport` 默认实现；`cargo test` 通过（66 项单元测试 + 3 + 4 项集成测试） | ✅ |
 | 2026-07-07 | Phase 3.3 + 3.4 | 实现 `src/ui/node_renderer.rs`（节点卡片、分类标题栏、端口圆点、参数预览、选中/错误高亮）与 `src/ui/edge_renderer.rs`（贝塞尔连线、waypoints、高亮）；`main.rs` 集成示例图渲染；`cargo test` 通过（69 项单元测试） | ✅ |
+| 2026-07-07 | Phase 3.5 + 3.6 | 实现 `src/ui/interaction.rs`（节点拖拽、中键平移、框选、拖线创建、右键菜单、Space 搜索、删除、撤销/重做、保存），`src/ui/panels/*`（节点库、属性、JSON 预览、状态栏），`src/app.rs` 应用状态与布局；`cargo test` 通过（71 项单元测试 + 3 + 4 项集成测试） | ✅ |
 
 ---
 

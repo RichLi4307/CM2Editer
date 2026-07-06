@@ -131,6 +131,7 @@ needless_pass_by_value = "warn"
 | 模块 | 文件 | 职责 | 关键设计 |
 |------|------|------|----------|
 | error | `src/error.rs` | 全局错误类型 | `FlowError` 枚举 + `Result<T>` 别名 |
+| app | `src/app.rs` | 应用状态与主循环 | `App` 结构体、命令模式撤销/重做、布局面板整合 |
 | graph/types | `src/graph/types.rs` | 类型系统 | `NodeType`（143 种） + `PortType` + 兼容性检查 |
 | graph/node | `src/graph/node.rs` | 节点结构 | `Node` / `Port` / `ParamValue`(Literal/Ref/Null) / `Vec2` |
 | graph/edge | `src/graph/edge.rs` | 连线结构 | `Edge` / `EdgeEndpoint` / waypoints |
@@ -231,13 +232,12 @@ steps:
 2. ✅ 实现 `ui::canvas` — 无限画布（网格、平移、缩放、viewport）
 3. ✅ 实现 `ui::node_renderer` — 节点卡片渲染（标题栏、端口、参数预览、选中/错误高亮）
 4. ✅ 实现 `ui::edge_renderer` — 连线渲染（贝塞尔曲线、waypoints、高亮）
-5. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
-6. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
-7. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
-8. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
-9. [ ] 实现 `ui::panels::status_bar` — 底部状态栏
-9. [ ] 实现 `ui::panels::status_bar` — 底部状态栏
-9. [ ] 实现 `ui::panels::status_bar` — 底部状态栏
+5. ✅ 实现 `ui::interaction` — 拖拽、框选、连线创建、右键菜单、撤销重做、快捷键
+6. ✅ 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
+7. ✅ 实现 `ui::panels::properties` — 右栏参数编辑表单
+8. ✅ 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
+9. ✅ 实现 `ui::panels::status_bar` — 底部状态栏
+10. ✅ 实现 `app` — 应用状态管理、主循环与事件分发
 
 ### 阶段 4：集成
 
