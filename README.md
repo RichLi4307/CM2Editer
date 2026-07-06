@@ -2,52 +2,60 @@
 
 ![Rust CI](https://github.com/RichLi4307/CM2Editer/actions/workflows/rust.yml/badge.svg)
 
-CM2Editer 是面向游戏 **Secret Flasher Manaka**（由 SheableSoft 开发）的 **Custom Missions 2** 加载器（作者：Crisp2002，版本 2.2.1）的节点式可视化任务编辑器，目标用户是 Mod 作者。通过拖拽节点、连接端口并填写参数，即可为 Custom Missions 2 加载器生成兼容的自定义任务脚本（`.code` 文件），无需手写代码。
+CM2Editer 是给游戏 **Secret Flasher Manaka** 做自定义任务的一个节点式可视化编辑器。如果你给这个游戏制作 Custom Missions 2 的任务Mod，可以直接在画布上拖节点、连端口、填参数，最后导出成 `.code` 文件，让 Custom Missions 2 加载器读取。
 
-## 项目定位
+Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.2.1。CM2Editer能把节点图翻译成加载器能识别的脚本，省得手写代码。
 
-- **目标游戏**：[Secret Flasher Manaka](https://f95zone.to/threads/secret-flasher-manaka-v1-1-1-sheablesoft.256682/)（SheableSoft）— 本编辑器为 [Custom Missions 2](https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-2-1.263276/) 加载器生成兼容的 `.code` 任务文件。
-- **核心工作流**：可视化画布 → 中间 JSON → 加载器可读取的 `.code` 脚本。
-- **技术栈**：Rust（后端数据 / 序列化 / 代码生成）+ egui（默认桌面 GUI 框架）。
+## 这个工具是什么
+
+- **做什么的**：给 [Secret Flasher Manaka](https://f95zone.to/threads/secret-flasher-manaka-v1-1-1-sheablesoft.256682/)（SheableSoft）做自定义V2任务，用节点图代替手写 `.code` 脚本。
+- **输出什么**：兼容 [Custom Missions 2](https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-2-1.263276/) 加载器（Crisp2002，v2.2.1）的 `.code` 任务文件。
+- **怎么用**：在画布上拖节点、连端口、填参数，编辑器会先存成 JSON 工程文件，再生成 `.code`。
+- **技术栈**：Rust 处理数据、序列化和代码生成，egui 做默认桌面 GUI。
+- **给谁用**：给这款游戏做 自定义V2任务Mod 的作者。
 
 ## 当前阶段
 
-已完成 **Phase 2（序列化与代码生成）**：图 ↔ JSON 双向序列化、版本迁移、`.code` 代码生成。全量测试 **65 项**通过，`cargo clippy` 零警告。下一阶段——**Phase 3（GUI 编辑器）**——即将启动。
+后端已经跑通：节点图可以保存成 JSON 工程文件，也能从 JSON 还原，带版本迁移，最终生成 `.code`。`cargo test` 全部通过，clippy 没有警告。下一步是 GUI 编辑器，做完之后才能真正用画布拖拽着做任务。
 
-## 功能预览
+## 能做什么
 
-- 节点式编辑：拖拽节点、连接 Flow/Data 端口、编辑参数。
-- 数据验证：节点 ID 唯一性、边端点存在性、端口类型兼容性、Flow 环检测、必填参数检查等。
-- 序列化：保存/加载 JSON 中间格式，支持版本迁移。
-- 代码生成：遍历图生成 CustomMissions 2 可读取的 `.code` 文件。
-- 导出接口：导出 JSON / 导出 `.code`。
+用 CM2Editer 做任务，就是在节点图里描述“玩家进入任务后会发生什么”。你可以：
 
-## 构建与运行
+- **搭建任务流程**：从 `Start` 节点开始，用 `If` 做分支、`While`/`For` 做循环、`Goto` 做跳转，再用 `Wait` 和 `WaitForEvent` 控制时间点和事件触发。
+- **控制游戏场景**：切换场景、设置玩家位置/动作/摄像机、播放音效、触发游戏结束。
+- **操作 NPC 和角色**：生成 NPC、设置路径点、让 NPC 瞬移或播放动作、读取 NPC 状态（是否看到玩家、警觉度等）。
+- **放置任务触发器**：创建区域（Area/Zone）、交互区域（InteractArea）、条件（Condition/ItemCondition），检测玩家是否进入或满足条件。
+- **做任务 UI**：用 `MissionPanel` 和 `MissionMenuItem` 设置任务面板文字、进度条和菜单项；用 `Text` 和 `Messenger` 显示字幕和手机聊天。
+- **管理玩家数值**：RP、体力、快感、物品数量等，可以进行加减或读取。
+- **多线程和事件**：通过 `CreateThread`/`CreateListener` 并行跑逻辑，用 `SetEvent`/`GetEvent` 跨线程通信。
+- **导出和验证**：验证节点图合法性后，生成 Custom Missions 2 能读取的 `.code` 文件；也可以保存为 JSON 中间格式，方便后续再编辑。
 
-本项目使用 Rust 2024 Edition 与 Cargo 管理依赖。
+## 怎么运行
+
+项目用 Rust 2024 Edition 和 Cargo 管理依赖。
 
 ### 环境要求
 
-- Rust 工具链（建议使用 `stable`，并安装最新版 `cargo`）：
-  - 可通过 [rustup](https://rustup.rs/) 安装。
-- 支持平台：Windows（主要开发平台）、Linux / macOS 可兼容运行数据层。
+- Rust 工具链，建议用 `stable` 并保证 `cargo` 是最新的，可以通过 [rustup](https://rustup.rs/) 安装
+- 主要开发平台是 Windows；Linux 和 macOS 也能跑数据层
 
-### 运行时依赖
+### 把任务放进游戏需要什么
 
-CM2Editer 生成的自定义任务需要以下环境才能运行：
+生成 `.code` 文件后，要放到游戏里运行，需要：
 
-- **游戏本体**：[Secret Flasher Manaka](https://f95zone.to/threads/secret-flasher-manaka-v1-1-1-sheablesoft.256682/) v1.1.1 或 v1.1.3（SheableSoft）
-- **加载器**：Custom Missions v2.2.1（作者 Crisp2002 — [F95Zone 发布页](https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-2-1.263276/)）
-  - 将生成的 `.code` 文件放入游戏目录的 `CustomMissions2` 文件夹中即可生效。
-- **字体补充**（中文等非拉丁字符）：将 `NotoSerifSC-Regular.otf`/`.ttf` 等字体文件放入游戏根目录，游戏使用 Noto Serif（UI/字幕）与 Noto Sans（手机界面）字体。
+- **游戏本体**：[Secret Flasher Manaka](https://f95zone.to/threads/secret-flasher-manaka-v1-1-1-sheablesoft.256682/) v1.1.1（推荐） 或 v1.1.3（SheableSoft）
+- **加载器**：Custom Missions v2.2.1（Crisp2002，[F95Zone 发布页](https://f95zone.to/threads/secret-flasher-manaka-custom-missions-1-2-1-version-2-2-1.263276/)）
+  - 把生成的 `.code` 文件放到游戏目录的 `CustomMissions2` 文件夹里
+- **中文字体**（如果需要显示中文）：把 `NotoSerifSC-Regular.otf` 或 `.ttf` 放到游戏根目录，游戏使用 Noto Serif（UI/字幕）和 Noto Sans（手机界面）字体
 
 ### 常用命令
 
 ```bash
-# 检查代码并编译
+# 检查并编译
 cargo check
 
-# 运行单元测试
+# 跑单元测试
 cargo test
 
 # 构建 Debug 版本
@@ -56,17 +64,17 @@ cargo build
 # 构建 Release 版本
 cargo build --release
 
-# 运行 Clippy 静态检查
+# 静态检查
 cargo clippy -- -D warnings
 
-# 格式化代码
+# 格式化
 cargo fmt
 
-# 启动 GUI 编辑器（完成 UI 层后可用）
+# 启动 GUI（UI 完成后才有效）
 cargo run
 ```
 
-> 当前 GUI 尚未实现，`cargo run` 暂时只进入占位入口。
+> 现在 GUI 还没实现，`cargo run` 只会进一个占位入口。
 
 ## 项目结构
 
@@ -76,52 +84,34 @@ CM2Editer/
 ├── src/
 │   ├── main.rs          # 应用入口
 │   ├── error.rs         # 全局错误类型 FlowError
-│   ├── graph/           # 图数据结构（节点/边/图/验证器）
-│   ├── api/             # 节点静态定义与注册表
-│   ├── serializer/      # JSON 序列化与版本迁移
-│   ├── code_gen/        # .code 脚本生成器
-│   └── ui/              # egui 界面层（待实现）
+│   ├── graph/           # 节点、边、图和验证器（任务逻辑的结构基础）
+│   ├── api/             # 节点定义和注册表（有哪些节点可以用）
+│   ├── serializer/      # JSON 工程文件保存和版本迁移
+│   ├── code_gen/        # 把节点图翻译成 .code 文件
+│   └── ui/              # egui 界面（还没做）
 ├── tests/               # 集成测试
-└── docs/                # 设计文档、节点清单、JSON 契约、示例
+└── docs/                # 设计文档、节点清单、JSON 格式、示例
 ```
 
-## 文档索引
+## 文档
 
-- [docs/TODO.md](docs/TODO.md)：项目进度与任务追踪。
-- [docs/agent_prompt.md](docs/agent_prompt.md)：开发约束、JSON 契约与 UI 设计规范。
-- [docs/node_types.md](docs/node_types.md)：全部节点类型清单。
-- [docs/json_schema.md](docs/json_schema.md)：编辑器保存的 JSON 格式定义。
-- [docs/rust_project_skeleton.md](docs/rust_project_skeleton.md)：Rust 项目骨架说明。
+- [docs/TODO.md](docs/TODO.md)：项目进度和任务追踪
+- [docs/agent_prompt.md](docs/agent_prompt.md)：开发约束、JSON 契约和 UI 设计规范
+- [docs/node_types.md](docs/node_types.md)：全部节点类型清单
+- [docs/json_schema.md](docs/json_schema.md)：编辑器保存的 JSON 格式定义
+- [docs/rust_project_skeleton.md](docs/rust_project_skeleton.md)：Rust 项目骨架说明
 
-## 免责声明 / 独立声明
+## 说明
 
-> **本编辑器是第三方社区作品，非官方出品。**
+> **本编辑器是第三方社区作品，和官方没关系。**
 
-**CM2Editer** 是一款面向游戏 **Secret Flasher Manaka**（SheableSoft）的 **Custom Missions** 加载器模组生态的独立可视化流编辑器。本编辑器由社区开发者独立维护，与：
+CM2Editer 是我自己独立维护的社区工具，给 **Secret Flasher Manaka**（SheableSoft）的 **Custom Missions** 模组做辅助编辑。它和 SheableSoft、F95Zone 以及 Custom Missions 的作者 Crisp2002 没有官方合作、背书或隶属关系。
 
-- **Secret Flasher Manaka**（SheableSoft、F95Zone）及其开发者
-- **Custom Missions** 加载器作者 Crisp2002
+**Secret Flasher Manaka** 的名称、商标和相关知识产权归 SheableSoft 所有。**Custom Missions** 的名称、商标和相关知识产权归 Crisp2002 所有。本 README 里提到这些名字只是为了说明兼容性，不代表任何所有权或关联关系。
 
-**均不存在官方合作、背书或隶属关系**。
+开发时我只参考了 Custom Missions 作者公开的 API 文档和示例 `.code` 文件，按公开的接口规范生成兼容任务文件。本项目的源代码里不包含 Secret Flasher Manaka 游戏本体或 Custom Missions 加载器的代码/二进制文件，也不涉及逆向工程。
 
-### 知识产权归属
-
-- **Secret Flasher Manaka** 的名称、标识及相关知识产权归 SheableSoft 所有。
-- **Custom Missions** 的名称、标识及相关知识产权归 Crisp2002 所有。
-- 本编辑器中提及上述名称仅用于兼容性说明，不暗示任何所有权或关联关系。
-
-### API 使用说明
-
-本编辑器在开发过程中仅参考了 Custom Missions 作者公开的 API 文档与示例任务文件格式（`.code` 文件），通过调用**公开接口规范**生成兼容的任务文件。本编辑器的源代码中**不包含** Secret Flasher Manaka 游戏本体或 Custom Missions 加载器本体的任何代码或二进制文件，不涉及对游戏或加载器的逆向工程。
-
-### MIT 免责声明
-
-本编辑器基于 MIT 许可证开源，按"**原样**"（AS IS）提供，**不提供任何明示或暗示的担保**，包括但不限于适销性、特定用途适用性及不侵权的默示担保。作者不对因使用本编辑器而导致的任何直接或间接损失承担责任。
-
-### 社区边界
-
-- 如果你遇到 **Secret Flasher Manaka 游戏本体** 或 **Custom Missions 加载器**本身的问题（如游戏崩溃、兼容性问题、安装问题），请向对应的官方发布渠道（F95Zone）反馈。
-- 如果你遇到**本编辑器**的问题（如节点连接异常、导出文件格式错误、UI 显示错误），欢迎在本仓库提交 Issue 或 Pull Request。
+如果遇到游戏本体或加载器本身的问题（比如崩溃、兼容性、安装等），请去 F95Zone 对应发布页反馈。如果是编辑器的问题（比如节点连不上、导出文件格式不对、UI 显示异常），可以在这个仓库开 Issue。
 
 ---
 
