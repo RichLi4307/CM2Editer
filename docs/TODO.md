@@ -19,6 +19,9 @@
 | 实现 `graph/validation.rs`（图验证器基础） | ✅ 完成 | Agent | 2026-07-05 |
 | 实现 `api/definitions.rs`（节点/端口/参数定义） | ✅ 完成 | Agent | 2026-07-06 |
 | 实现 `api/registry.rs`（节点注册表） | ✅ 完成 | Agent | 2026-07-06 |
+| 实现 `serializer/json.rs`（Graph ↔ JSON 双向序列化） | ✅ 完成 | Agent | 2026-07-06 |
+| 实现 `serializer/migration.rs`（版本迁移 1.0→1.3） | ✅ 完成 | Agent | 2026-07-06 |
+| JSON 往返集成测试 | ✅ 完成 | Agent | 2026-07-06 |
 
 ---
 
@@ -84,10 +87,10 @@
 
 ### 2.1 JSON 序列化
 
-- [ ] **2.1.1** 实现 `src/serializer/json.rs` — `Graph → JSON`（含 `meta` 透传）
-- [ ] **2.1.2** 实现 `src/serializer/json.rs` — `JSON → Graph`（含版本检查）
-- [ ] **2.1.3** 实现 `src/serializer/migration.rs` — 版本迁移（1.0 → 1.1 → 1.2 → 1.3）
-- [ ] **2.1.4** 集成测试：JSON 往返（Graph → JSON → Graph）数据一致性
+- [x] **2.1.1** 实现 `src/serializer/json.rs` — `Graph → JSON`（含 `meta` 透传）
+- [x] **2.1.2** 实现 `src/serializer/json.rs` — `JSON → Graph`（含版本检查）
+- [x] **2.1.3** 实现 `src/serializer/migration.rs` — 版本迁移（1.0 → 1.1 → 1.2 → 1.3）
+- [x] **2.1.4** 集成测试：JSON 往返（Graph → JSON → Graph）数据一致性
 
 ### 2.2 代码生成器
 
@@ -217,6 +220,7 @@
 | 2026-07-05 | 1.2.4 | 实现 `graph/mod.rs` 模块导出 | ✅ |
 | 2026-07-05 | 当前冲刺 | 实现 `graph/node.rs`、`edge.rs`、`graph.rs`、`validation.rs` 及单元测试；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
 | 2026-07-06 | 1.1.3,1.1.4 | 实现 `api/definitions.rs`、`api/registry.rs`、更新 `NodeType`/`ParamValue` 派生；`cargo test` 通过（34 项） | ✅ |
+| 2026-07-06 | 2.1.1~2.1.4 | 实现 `serializer/json.rs`、`serializer/migration.rs`、JSON 往返集成测试；调整 `Port` serde 与 `Graph::Clone`；`cargo test` 通过（49 项）、`cargo clippy` 无警告 | ✅ |
 
 ---
 

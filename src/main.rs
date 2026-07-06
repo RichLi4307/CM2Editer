@@ -1,9 +1,5 @@
-pub mod api;
-pub mod error;
-pub mod graph;
-
-use api::registry::all_node_definitions;
-use graph::{
+use CM2Editer::api::registry::all_node_definitions;
+use CM2Editer::graph::{
     edge::Edge, edge::EdgeEndpoint, graph::Graph, node::Node, node::ParamValue, node::Port,
     node::Vec2, types::NodeType, types::PortType, validation::GraphValidator,
 };
@@ -38,7 +34,7 @@ fn main() {
     };
 
     // 从 PortDefinition 转换为 Port
-    fn port(p: &api::definitions::PortDefinition) -> Port {
+    fn port(p: &CM2Editer::api::definitions::PortDefinition) -> Port {
         Port::new(&p.id, p.port_type.clone(), &p.label).required(p.required)
     }
 

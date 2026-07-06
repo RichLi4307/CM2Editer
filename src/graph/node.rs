@@ -10,10 +10,12 @@ pub struct Port {
     /// 端口在节点内的唯一标识
     pub id: String,
     /// 端口数据类型
+    #[serde(rename = "type")]
     pub port_type: PortType,
     /// 在 UI 上显示的文本
     pub label: String,
     /// 是否为必填端口（输入端口）
+    #[serde(default)]
     pub required: bool,
 }
 

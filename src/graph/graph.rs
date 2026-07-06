@@ -6,7 +6,7 @@ use crate::error::{FlowError, Result};
 /// 图容器，持有节点、边以及标签映射
 ///
 /// 这是编辑器后端的核心数据结构，所有不依赖 UI 的操作都应先在此层验证
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Graph {
     /// 所有节点，以 ID 为键
     pub nodes: HashMap<String, Node>,
