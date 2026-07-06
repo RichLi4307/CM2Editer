@@ -1,0 +1,9 @@
+main:
+	Log(output="init")
+	If(true) [
+		Log(output="true branch")
+	] [
+		Log(output="false branch")
+	]
+	Log(output="end")
+	_result = null

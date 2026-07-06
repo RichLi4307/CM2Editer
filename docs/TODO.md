@@ -9,7 +9,7 @@
 ## 当前冲刺（Current Sprint）
 
 | 任务 | 状态 | 负责人 | 最后更新 |
-| ----- | ----- | -------- | ---------- |
+| - | - | - | - |
 | 初始化 Rust 项目骨架（Cargo.toml + 目录结构） | ✅ 完成 | Agent | 2026-07-05 |
 | 实现 `error.rs` 全局错误类型 | ✅ 完成 | Agent | 2026-07-05 |
 | 实现 `graph/types.rs`（NodeType / PortType 枚举） | ✅ 完成 | Agent | 2026-07-05 |
@@ -22,6 +22,9 @@
 | 实现 `serializer/json.rs`（Graph ↔ JSON 双向序列化） | ✅ 完成 | Agent | 2026-07-06 |
 | 实现 `serializer/migration.rs`（版本迁移 1.0→1.3） | ✅ 完成 | Agent | 2026-07-06 |
 | JSON 往返集成测试 | ✅ 完成 | Agent | 2026-07-06 |
+| 实现 `code_gen/formatter.rs`（Tab 缩进管理器） | ✅ 完成 | Agent | 2026-07-06 |
+| 实现 `code_gen/generator.rs`（.code 代码生成器） | ✅ 完成 | Agent | 2026-07-06 |
+| .code 生成集成测试与 `docs/examples/simple_mission` 示例 | ✅ 完成 | Agent | 2026-07-06 |
 
 ---
 
@@ -94,15 +97,15 @@
 
 ### 2.2 代码生成器
 
-- [ ] **2.2.1** 实现 `src/code_gen/formatter.rs` — 缩进管理器（Tab 缩进）
-- [ ] **2.2.2** 实现 `src/code_gen/generator.rs` — 遍历 Flow 边生成行代码
-- [ ] **2.2.3** 处理 `Label` 节点 — 生成 `labelname:`
-- [ ] **2.2.4** 处理 `If` / `While` / `For` — 生成缩进块
-- [ ] **2.2.5** 处理 `Goto` / `CreateThread` / `CreateListener` — 跳转与并发语义
-- [ ] **2.2.6** 处理参数引用 — 端口连接 → 变量名替换
-- [ ] **2.2.7** 处理 `Return` — 生成 `_result` 赋值
-- [ ] **2.2.8** 生成 `.code` 文件到磁盘
-- [ ] **2.2.9** 集成测试：用 `docs/examples/` 的示例验证输出
+- [x] **2.2.1** 实现 `src/code_gen/formatter.rs` — 缩进管理器（Tab 缩进）
+- [x] **2.2.2** 实现 `src/code_gen/generator.rs` — 遍历 Flow 边生成行代码
+- [x] **2.2.3** 处理 `Label` 节点 — 生成 `labelname:`
+- [x] **2.2.4** 处理 `If` / `While` / `For` — 生成缩进块
+- [x] **2.2.5** 处理 `Goto` / `CreateThread` / `CreateListener` — 跳转与并发语义
+- [x] **2.2.6** 处理参数引用 — 端口连接 → 变量名替换
+- [x] **2.2.7** 处理 `Return` — 生成 `_result` 赋值
+- [x] **2.2.8** 生成 `.code` 文件到磁盘
+- [x] **2.2.9** 集成测试：用 `docs/examples/` 的示例验证输出
 
 **Phase 2 验收标准：**
 
@@ -212,6 +215,8 @@
 > 每次 Agent 完成一个（或一批）任务后，在这里追加记录。
 > 格式：`[日期] 任务编号/名 — 简要说明 — 状态`
 
+| 日期 | 任务编号/名 | 简要说明 | 状态 |
+| - | - | - | - |
 | 2026-07-05 | 0.5 | 配置 `rustfmt.toml`、`.clippy.toml` 与 `Cargo.toml [lints]`，统一代码风格 | ✅ |
 | 2026-07-05 | 0.4 | 编写 `README.md`（项目简介、构建命令、MIT License） | ✅ |
 | 2026-07-05 | Phase 0.2,0.3,0.6 | 创建 Cargo.toml、目录结构，cargo build 通过 | ✅ |
@@ -221,6 +226,8 @@
 | 2026-07-05 | 当前冲刺 | 实现 `graph/node.rs`、`edge.rs`、`graph.rs`、`validation.rs` 及单元测试；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
 | 2026-07-06 | 1.1.3,1.1.4 | 实现 `api/definitions.rs`、`api/registry.rs`、更新 `NodeType`/`ParamValue` 派生；`cargo test` 通过（34 项） | ✅ |
 | 2026-07-06 | 2.1.1~2.1.4 | 实现 `serializer/json.rs`、`serializer/migration.rs`、JSON 往返集成测试；调整 `Port` serde 与 `Graph::Clone`；`cargo test` 通过（49 项）、`cargo clippy` 无警告 | ✅ |
+| 2026-07-06 | 2.2.1~2.2.9 | 实现 `code_gen/formatter.rs`、`code_gen/generator.rs`、标签/If/While/For/Goto/Thread/Listener/Return/参数引用处理；创建 `docs/examples/simple_mission` 与集成测试；`cargo test` 通过（62 项）、`cargo clippy` 无警告 | ✅ |
+| 2026-07-06 | 2.2.5 补充 | 显式处理 `CreateThread`/`CreateListener`/`CreateListenerLocal` 匹配分支，修复 `generate_node_call` 可选参数跳过逻辑；新增 3 项并发语义测试；总计 58+3+4 = 65 项测试通过 | ✅ |
 
 ---
 
