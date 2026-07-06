@@ -1,12 +1,9 @@
 # Agent 开发指令集 — CustomMissions2 流编辑器
 
-> 版本：v2.0
-> 用途：直接复制粘贴给 AI Agent，作为开发上下文和跨阶段约束条件
-> 语言：Rust
-> 框架：egui（默认 GUI） / iced / Tauri+Web
->
-> **说明**：本文档只包含跨阶段通用约束。Phase 3（UI 层）专属规范见 `agent_prompt_phase3.md`。
-> 已完成阶段的详细指导已归档至 `archive/agent_prompt_v1_full.md`，当前以代码实现为准。
+> 版本：v1.0  
+> 用途：直接复制粘贴给 AI Agent，作为开发上下文和约束条件  
+> 语言：Rust  
+> 框架：egui（默认 GUI） / iced / Tauri+Web  
 
 ---
 
@@ -112,6 +109,24 @@ app/         → 主循环与状态管理，依赖所有上层模块
 | 图验证失败 | 收集所有错误，批量显示在底部面板 |
 | 内部不变量被破坏 | 使用 `debug_assert!`，Release 模式不 panic |
 
+### 3.4 验证器检查清单（GraphValidator::validate）
+
+`GraphValidator::validate` 必须在保存 JSON / 导出 `.code` 前调用。以下 13 项检查必须全部实现：
+
+1. `version` 存在且为支持的版本。
+2. `nodes` 中每个节点 `id` 全局唯一。
+3. `nodes` 中每个节点 `type` 在节点清单（`api/registry`）中存在。
+4. `nodes` 中每个节点 `params` 符合对应节点类型的参数定义（类型、必填、选项范围）。
+5. `edges` 中 `from.node` 和 `to.node` 均存在于 `nodes`。
+6. `edges` 中 `from.port` 和 `to.port` 在对应节点中存在。
+7. `edges` 中类型匹配规则满足（Flow 边连 Flow 端口，Data 边数据类型兼容）。
+8. `labels` 中每个节点 ID 存在于 `nodes`。
+9. `labels` 中同一节点不重复出现在同一线性序列中。
+10. `threads` 中 `entry_label` 存在于 `labels` 中。
+11. 无环检测：`Flow` 边构成的图必须是有向无环图（DAG），除非显式使用 Loop 节点。
+12. 必填参数已填写：`params` 中无 `null` 且包含所有必填字段。
+13. 孤立节点检测：不在任何 `labels` 与任何 `Flow` 边中的节点报 Warning。
+
 ---
 
 ## 四、JSON 格式契约（编辑器 ↔ 加载器）
@@ -206,7 +221,35 @@ app/         → 主循环与状态管理，依赖所有上层模块
 
 ---
 
-## 五、节点类型注册表（关键数据结构）
+## 五、UI 设计规范（GUI 实现）
+
+### 5.1 布局
+
+四栏布局：顶部工具栏 | 左栏节点库 | 中央无限画布 | 右栏属性面板 | 底部 JSON 预览/错误列表/状态栏
+
+### 5.2 节点外观
+
+- 矩形卡片，圆角 8px
+- 标题栏高度 32px，颜色按分类区分（见 [node_types.md](node_types.md) 颜色编码表）
+- 端口：直径 12px 的圆，左侧输入、右侧输出
+- 执行流端口（白色）位于最上方/最下方
+- 选中状态：2px 蓝色发光边框
+- 错误节点：红色边框，Tooltip 显示错误信息
+
+### 5.3 交互
+
+- 中键拖拽：平移画布
+- 滚轮：缩放（以鼠标为中心），范围 0.1x ~ 4x
+- 双击空白处：呼出快速搜索创建节点（`Space` 快捷键也可）
+- 从端口拖出线：创建连线，靠近兼容端口时高亮
+- 右键节点：菜单（复制、删除、折叠、生成注释）
+- Ctrl+Z / Ctrl+Y：撤销/重做（至少 50 步）
+- Ctrl+S：保存文件
+- Delete：删除选中节点/边
+
+---
+
+## 六、节点类型注册表（关键数据结构）
 
 每个节点类型必须有以下元数据。完整节点清单见 [node_types.md](node_types.md)。
 
@@ -244,11 +287,11 @@ pub struct ParamDefinition {
 
 ---
 
-## 六、测试要求
+## 七、测试要求
 
 每个模块必须包含单元测试，并在 CI 中通过 `cargo test`。测试模板见 `docs/TODO.md` 末尾的快速参考。
 
-### 6.1 推荐测试类型
+### 7.1 推荐测试类型
 
 | 测试类型 | 说明 | 示例 |
 | ---------- | ------ | ------ |
@@ -257,7 +300,7 @@ pub struct ParamDefinition {
 | 属性测试 | 随机输入验证不变量 | `serde_json` 任意合法 JSON 不 panic |
 | 快照测试 | 代码生成输出稳定 | `.code` 输出对比 |
 
-### 6.2 测试数据
+### 7.2 测试数据
 
 - 使用 `tests/fixtures/` 存放示例 JSON 和 `.code` 文件
 - 不要依赖真实文件路径，使用 `tempfile` 创建临时目录
@@ -265,7 +308,7 @@ pub struct ParamDefinition {
 
 ---
 
-## 七、常见陷阱（避免踩坑）
+## 八、常见陷阱（避免踩坑）
 
 1. **不要假设节点有固定数量端口** — 某些节点（如 `Format`）支持可变参数，端口定义需由 `api::definitions` 动态生成
 2. **List 类型既是数组也是字典** — 内部键始终为字符串，整数索引自动转换；遍历时注意 `Count()` 与键集合的区别
@@ -281,7 +324,7 @@ pub struct ParamDefinition {
 
 ---
 
-## 八、参考资源
+## 九、参考资源
 
 - [节点清单](node_types.md)
 - [JSON 规范](json_schema.md)
@@ -289,7 +332,7 @@ pub struct ParamDefinition {
 - [示例任务](examples/new%20npc%20type/main.code) 与 [meta.json](examples/new%20npc%20type/meta.json)
 - [中文文档](documentation_zh.html)
 
-> 备注：本项目中 `ui_spec.md` 尚未提供，UI 细节以 [agent_prompt_phase3.md](agent_prompt_phase3.md) 和 [node_types.md](node_types.md) 颜色编码表为准。
+> 备注：本项目中 `ui_spec.md` 尚未提供，UI 细节以本文件第五节和 [node_types.md](node_types.md) 颜色编码表为准。
 
 ---
 
