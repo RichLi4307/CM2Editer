@@ -16,7 +16,9 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
 
 ## 当前阶段
 
-后端已经跑通：节点图可以保存成 JSON 工程文件，也能从 JSON 还原，带版本迁移，最终生成 `.code`。`cargo test` 全部通过，clippy 没有警告。下一步是 GUI 编辑器，做完之后才能真正用画布拖拽着做任务。
+Phase 1（数据层）和 Phase 2（序列化与代码生成）已完成：节点图可以保存成 JSON 工程文件，也能从 JSON 还原，带版本迁移，最终生成 `.code`。`cargo test` 全部通过，clippy 没有警告。
+
+Phase 3（UI 层）已启动：GUI 框架确定为 egui + eframe，窗口已跑通，颜色主题与节点分类色表已就绪。当前正在实现画布（无限网格、平移、缩放、viewport 保存/恢复）。
 
 ## 能做什么
 
@@ -70,11 +72,11 @@ cargo clippy -- -D warnings
 # 格式化
 cargo fmt
 
-# 启动 GUI（UI 完成后才有效）
+# 启动 GUI（会打开 egui 窗口）
 cargo run
 ```
 
-> 现在 GUI 还没实现，`cargo run` 只会进一个占位入口。
+> `cargo run` 现在会启动一个基础 egui 窗口，展示节点分类色表。完整的画布交互、节点渲染和工具栏将在后续 Phase 3 任务中逐步实现。
 
 ## 项目结构
 
@@ -88,7 +90,7 @@ CM2Editer/
 │   ├── api/             # 节点定义和注册表（有哪些节点可以用）
 │   ├── serializer/      # JSON 工程文件保存和版本迁移
 │   ├── code_gen/        # 把节点图翻译成 .code 文件
-│   └── ui/              # egui 界面（还没做）
+│   └── ui/              # egui 界面（已初始化：主题色表、窗口框架）
 ├── tests/               # 集成测试
 └── docs/                # 设计文档、节点清单、JSON 格式、示例
 ```

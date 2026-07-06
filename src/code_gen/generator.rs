@@ -632,10 +632,7 @@ mod tests {
 
         graph.add_node(start);
         graph.add_node(listener);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "cll".to_string()],
-        );
+        graph.add_label("main", vec!["start".to_string(), "cll".to_string()]);
 
         add_flow_edge(&mut graph, "start", "out_flow", "cll", "in_flow");
 

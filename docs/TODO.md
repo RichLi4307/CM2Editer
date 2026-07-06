@@ -25,6 +25,7 @@
 | 实现 `code_gen/formatter.rs`（Tab 缩进管理器） | ✅ 完成 | Agent | 2026-07-06 |
 | 实现 `code_gen/generator.rs`（.code 代码生成器） | ✅ 完成 | Agent | 2026-07-06 |
 | .code 生成集成测试与 `docs/examples/simple_mission` 示例 | ✅ 完成 | Agent | 2026-07-06 |
+| Phase 3.1 GUI 框架选型与搭建（egui + eframe，`src/ui/theme.rs`） | ✅ 完成 | Agent | 2026-07-07 |
 
 ---
 
@@ -116,16 +117,16 @@
 
 ## Phase 3：UI 层（前端）
 
-> ⚠️ 前置检查：开始 Phase 3 前务必先读 `docs/interaction_spec.md`
+> ⚠️ 前置检查：开始 Phase 3 前务必先读 [interaction_spec.md](interaction_spec.md)
 > UX 债务：拖线实时环检测反馈、空画布启动体验
 > 不解决这两点，Phase 3 验收标准直接不合格。
 > 目标：能用鼠标拖方块、连线、改参数、看 JSON。
 
 ### 3.1 GUI 框架选型与搭建
 
-- [ ] **3.1.1** 确定 GUI 框架（egui / iced / Tauri+Web）
-- [ ] **3.1.2** 初始化框架项目结构，跑通窗口
-- [ ] **3.1.3** 实现 `src/ui/theme.rs` — 颜色主题、节点分类色表（顶部添加颜色来源注释：`// 颜色来源：docs/node_types.md 第 12 节`）
+- [x] **3.1.1** 确定 GUI 框架（egui / iced / Tauri+Web）
+- [x] **3.1.2** 初始化框架项目结构，跑通窗口
+- [x] **3.1.3** 实现 `src/ui/theme.rs` — 颜色主题、节点分类色表（顶部添加颜色来源注释：`// 颜色来源：docs/node_types.md 第 12 节`）
 
 ### 3.2 画布（Canvas）
 
@@ -228,6 +229,7 @@
 | 2026-07-06 | 2.1.1~2.1.4 | 实现 `serializer/json.rs`、`serializer/migration.rs`、JSON 往返集成测试；调整 `Port` serde 与 `Graph::Clone`；`cargo test` 通过（49 项）、`cargo clippy` 无警告 | ✅ |
 | 2026-07-06 | 2.2.1~2.2.9 | 实现 `code_gen/formatter.rs`、`code_gen/generator.rs`、标签/If/While/For/Goto/Thread/Listener/Return/参数引用处理；创建 `docs/examples/simple_mission` 与集成测试；`cargo test` 通过（62 项）、`cargo clippy` 无警告 | ✅ |
 | 2026-07-06 | 2.2.5 补充 | 显式处理 `CreateThread`/`CreateListener`/`CreateListenerLocal` 匹配分支，修复 `generate_node_call` 可选参数跳过逻辑；新增 3 项并发语义测试；总计 58+3+4 = 65 项测试通过 | ✅ |
+| 2026-07-07 | Phase 3.1 | 确定 GUI 框架为 egui/eframe，初始化 `src/ui/` 结构与 `src/ui/theme.rs` 色表，改造 `src/main.rs` 启动基础窗口；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
 
 ---
 

@@ -93,25 +93,21 @@ repository = "https://github.com/richli/CM2Editer"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "1.0"
-anyhow = "1.0"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-clap = { version = "4.5", features = ["derive"] }
-config = "0.14"
-uuid = { version = "1.8", features = ["v4", "serde"] }
-# egui = "0.27"
-# eframe = { version = "0.27", features = ["default"] }
-# iced = "0.12"
-# rfd = "0.14"
+uuid = { version = "1.8", features = ["v4"] }
+egui = "0.31"
+eframe = "0.31"
 
-[dev-dependencies]
-tempfile = "3.10"
-pretty_assertions = "1.4"
+[lints.rust]
+unused_extern_crates = "warn"
+unused_import_braces = "warn"
+unused_lifetimes = "warn"
 
-[profile.release]
-opt-level = 3
-lto = true
-strip = true
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+redundant_clone = "warn"
+needless_pass_by_value = "warn"
 ```
 
 ### 依赖说明
@@ -119,13 +115,9 @@ strip = true
 | 依赖 | 用途 |
 |------|------|
 | `serde` / `serde_json` | JSON 序列化与反序列化 |
-| `thiserror` / `anyhow` | 错误处理 |
-| `tracing` | 结构化日志 |
-| `clap` | 命令行参数解析 |
+| `thiserror` | 错误处理 |
 | `uuid` | 全局唯一 ID 生成 |
-| `egui` / `eframe`（可选） | 即时模式 GUI |
-| `tempfile`（dev） | 测试临时目录 |
-| `pretty_assertions`（dev） | 更易读的测试失败输出 |
+| `egui` / `eframe` | 即时模式 GUI |
 
 > 注意：实际 `Cargo.toml` 中未引入 `glam`；`Vec2` 由 `src/graph/node.rs` 中的自定义结构体实现，详见 `graph::node::Vec2`。
 > 实际 `Cargo.toml` 中已配置 `[lints.rust]` 与 `[lints.clippy]`，用于统一代码风格与禁止 `unwrap` / `expect`。
@@ -226,21 +218,24 @@ steps:
 2. ✅ 实现 `api::registry` — 运行时节点查询（根据类型名获取定义）
 3. ✅ 实现 `graph::validation::check_required_params` — 接入 `api::definitions` 完成必填参数检查
 
-### 阶段 2：序列化与代码生成
+### 阶段 2：序列化与代码生成 ✅ 已完成
 
-1. [ ] 实现 `serializer::migration` — 版本迁移逻辑
-2. [ ] 实现 `code_gen::generator` — 将 Graph 导出为 `.code` 文件
-3. [ ] 实现 `code_gen::formatter` — 缩进与格式化
+1. ✅ 实现 `serializer::migration` — 版本迁移逻辑
+2. ✅ 实现 `serializer::json` — JSON 工程文件读写
+3. ✅ 实现 `code_gen::generator` — 将 Graph 导出为 `.code` 文件
+4. ✅ 实现 `code_gen::formatter` — 缩进与格式化
 
 ### 阶段 3：UI 层
 
-1. [ ] 实现 `ui::canvas` — 无限画布（网格、平移、缩放）
-2. [ ] 实现 `ui::node_renderer` — 节点卡片渲染
-3. [ ] 实现 `ui::edge_renderer` — 连线渲染（支持 waypoints）
-4. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
-5. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
-6. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
-7. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
+1. ✅ 实现 `ui::theme` — 颜色主题与节点分类色表
+2. [ ] 实现 `ui::canvas` — 无限画布（网格、平移、缩放、viewport）
+3. [ ] 实现 `ui::node_renderer` — 节点卡片渲染
+4. [ ] 实现 `ui::edge_renderer` — 连线渲染（支持 waypoints）
+5. [ ] 实现 `ui::interaction` — 拖拽、框选、连线创建
+6. [ ] 实现 `ui::panels::node_library` — 左栏分类树 + 搜索
+7. [ ] 实现 `ui::panels::properties` — 右栏参数编辑表单
+8. [ ] 实现 `ui::panels::json_preview` — 底部实时 JSON 预览
+9. [ ] 实现 `ui::panels::status_bar` — 底部状态栏
 
 ### 阶段 4：集成
 

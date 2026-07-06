@@ -5,3 +5,4 @@ pub mod code_gen;
 pub mod error;
 pub mod graph;
 pub mod serializer;
+pub mod ui;
