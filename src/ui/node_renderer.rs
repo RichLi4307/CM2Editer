@@ -64,6 +64,62 @@ pub struct NodeRenderResponse {
 }
 
 impl NodeRenderer {
+    /// 计算节点在屏幕上的矩形区域。
+    pub fn screen_rect(&self, canvas: &Canvas, node: &Node, canvas_rect: Rect) -> Rect {
+        let screen_pos =
+            canvas.world_to_screen(Pos2::new(node.position.x, node.position.y), canvas_rect);
+        let size = Vec2::new(
+            node.size.x.max(self.min_width),
+            node.size.y.max(self.min_height),
+        );
+        Rect::from_min_size(screen_pos, size)
+    }
+
+    /// 计算节点端口在屏幕上的几何位置（不渲染）。
+    pub fn port_positions(&self, node: &Node, rect: Rect) -> Vec<PortGeometry> {
+        let mut ports = Vec::new();
+        let body_top = rect.min.y + self.header_height;
+        let input_y_start = body_top + self.port_padding + self.port_radius;
+
+        let (flow_inputs, data_inputs): (Vec<&Port>, Vec<&Port>) = node
+            .inputs
+            .iter()
+            .partition(|p| p.port_type == PortType::Flow);
+
+        for (i, port) in flow_inputs.iter().chain(data_inputs.iter()).enumerate() {
+            let center = Pos2::new(
+                rect.min.x + self.port_radius,
+                input_y_start + i as f32 * self.port_spacing,
+            );
+            ports.push(PortGeometry {
+                id: port.id.clone(),
+                port_type: port.port_type.clone(),
+                center,
+                is_input: true,
+            });
+        }
+
+        let (flow_outputs, data_outputs): (Vec<&Port>, Vec<&Port>) = node
+            .outputs
+            .iter()
+            .partition(|p| p.port_type == PortType::Flow);
+
+        for (i, port) in flow_outputs.iter().chain(data_outputs.iter()).enumerate() {
+            let center = Pos2::new(
+                rect.max.x - self.port_radius,
+                input_y_start + i as f32 * self.port_spacing,
+            );
+            ports.push(PortGeometry {
+                id: port.id.clone(),
+                port_type: port.port_type.clone(),
+                center,
+                is_input: false,
+            });
+        }
+
+        ports
+    }
+
     /// 渲染单个节点卡片。
     ///
     /// `is_selected` 为 true 时绘制蓝色发光外框；`has_errors` 为 true 时绘制红色边框。
@@ -78,14 +134,25 @@ impl NodeRenderer {
         has_errors: bool,
     ) -> NodeRenderResponse {
         let canvas_rect = ui.available_rect_before_wrap();
-        let screen_pos =
-            canvas.world_to_screen(Pos2::new(node.position.x, node.position.y), canvas_rect);
-        let size = Vec2::new(
-            node.size.x.max(self.min_width),
-            node.size.y.max(self.min_height),
-        );
-        let rect = Rect::from_min_size(screen_pos, size);
+        let rect = self.screen_rect(canvas, node, canvas_rect);
+        let ports = self.port_positions(node, rect);
+        self.render_with_data(ui, node, definition, rect, &ports, is_selected, has_errors);
+        NodeRenderResponse { rect, ports }
+    }
 
+    /// 使用已计算好的几何数据渲染节点。
+    ///
+    /// 用于分阶段渲染：先收集数据做裁剪和排序，再统一绘制。
+    pub fn render_with_data(
+        &self,
+        ui: &mut egui::Ui,
+        node: &Node,
+        definition: &NodeDefinition,
+        rect: Rect,
+        ports: &[PortGeometry],
+        is_selected: bool,
+        has_errors: bool,
+    ) {
         let category = if node.category.is_empty() {
             &definition.category
         } else {
@@ -100,8 +167,7 @@ impl NodeRenderer {
             let glow = Theme::SELECTED_GLOW;
             let glow_faded =
                 egui::Color32::from_rgba_premultiplied(glow.r(), glow.g(), glow.b(), 128);
-            ui.painter()
-                .rect_filled(glow_rect, self.corner_radius, glow_faded);
+            ui.painter().rect_filled(glow_rect, self.corner_radius, glow_faded);
         }
 
         // 绘制错误状态边框
@@ -113,8 +179,7 @@ impl NodeRenderer {
         let border_stroke = Stroke::new(if has_errors { 2.0 } else { 1.0 }, border_color);
 
         // 绘制节点主体
-        ui.painter()
-            .rect_filled(rect, self.corner_radius as u8, body_color);
+        ui.painter().rect_filled(rect, self.corner_radius as u8, body_color);
         ui.painter().rect_stroke(
             rect,
             self.corner_radius as u8,
@@ -123,8 +188,7 @@ impl NodeRenderer {
         );
 
         // 绘制标题栏
-        let header_rect =
-            Rect::from_min_size(rect.min, Vec2::new(rect.width(), self.header_height));
+        let header_rect = Rect::from_min_size(rect.min, Vec2::new(rect.width(), self.header_height));
         let header_corner_radius = CornerRadius {
             nw: self.corner_radius as u8,
             ne: self.corner_radius as u8,
@@ -146,63 +210,35 @@ impl NodeRenderer {
             Theme::TEXT,
         );
 
-        // 计算端口布局并渲染
-        let ports = self.layout_and_paint_ports(ui, node, rect);
+        // 渲染端口
+        for port in ports {
+            self.paint_port_with_geometry(ui, port);
+        }
 
         // 绘制参数预览（如果未折叠）
         if !node.collapsed {
             self.paint_param_preview(ui, node, rect);
         }
+    }
 
-        NodeRenderResponse { rect, ports }
+    /// 使用已有的几何信息绘制端口。
+    fn paint_port_with_geometry(&self, ui: &egui::Ui, port: &PortGeometry) {
+        let port_def = Port {
+            id: port.id.clone(),
+            port_type: port.port_type.clone(),
+            label: String::new(),
+            required: false,
+        };
+        self.paint_port(ui, port.center, &port_def, port.is_input);
     }
 
     /// 布局并渲染端口，返回端口几何信息。
+    #[allow(dead_code)]
     fn layout_and_paint_ports(&self, ui: &egui::Ui, node: &Node, rect: Rect) -> Vec<PortGeometry> {
-        let mut ports = Vec::new();
-        let body_top = rect.min.y + self.header_height;
-        let input_y_start = body_top + self.port_padding + self.port_radius;
-
-        // 输入端口：Flow 在前，Data 在后，放在左侧
-        let (flow_inputs, data_inputs): (Vec<&Port>, Vec<&Port>) = node
-            .inputs
-            .iter()
-            .partition(|p| p.port_type == PortType::Flow);
-
-        for (i, port) in flow_inputs.iter().chain(data_inputs.iter()).enumerate() {
-            let center = Pos2::new(
-                rect.min.x + self.port_radius,
-                input_y_start + i as f32 * self.port_spacing,
-            );
-            self.paint_port(ui, center, port, true);
-            ports.push(PortGeometry {
-                id: port.id.clone(),
-                port_type: port.port_type.clone(),
-                center,
-                is_input: true,
-            });
+        let ports = self.port_positions(node, rect);
+        for port in &ports {
+            self.paint_port_with_geometry(ui, port);
         }
-
-        // 输出端口：Flow 在前，Data 在后，放在右侧
-        let (flow_outputs, data_outputs): (Vec<&Port>, Vec<&Port>) = node
-            .outputs
-            .iter()
-            .partition(|p| p.port_type == PortType::Flow);
-
-        for (i, port) in flow_outputs.iter().chain(data_outputs.iter()).enumerate() {
-            let center = Pos2::new(
-                rect.max.x - self.port_radius,
-                input_y_start + i as f32 * self.port_spacing,
-            );
-            self.paint_port(ui, center, port, false);
-            ports.push(PortGeometry {
-                id: port.id.clone(),
-                port_type: port.port_type.clone(),
-                center,
-                is_input: false,
-            });
-        }
-
         ports
     }
 

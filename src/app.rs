@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use egui::{Align2, FontId, Pos2, Rect, Vec2 as EVec2};
 
-use crate::api::definitions::PortDefinition;
+use crate::api::definitions::{NodeDefinition, PortDefinition};
 use crate::api::registry::get_definition;
 use crate::code_gen::generator::generate_code_to_file;
 use crate::error::{FlowError, Result};
@@ -16,7 +16,7 @@ use crate::serializer::json::GraphDocument;
 use crate::ui::canvas::Canvas;
 use crate::ui::edge_renderer::EdgeRenderer;
 use crate::ui::interaction::InteractionController;
-use crate::ui::node_renderer::NodeRenderer;
+use crate::ui::node_renderer::{NodeRenderer, PortGeometry};
 use crate::ui::panels::{
     json_preview::JsonPreviewPanel, node_library::NodeLibraryPanel, properties::PropertiesPanel,
     status_bar::StatusBarPanel,
@@ -354,12 +354,16 @@ impl App {
         self.status_message = format!("已粘贴 {} 个节点", nodes.len());
     }
 
-    /// 保存 JSON 到当前文件或默认路径。
+    /// 保存 JSON 到当前文件或弹出对话框选择路径。
     fn save_json(&mut self) -> Result<()> {
-        let path = self
-            .current_file
-            .clone()
-            .unwrap_or_else(|| PathBuf::from("CM2Editer.json"));
+        let path = if let Some(ref p) = self.current_file {
+            p.clone()
+        } else if let Some(p) = rfd::FileDialog::new().add_filter("JSON", &["json"]).save_file() {
+            p
+        } else {
+            self.status_message = "已取消保存".to_string();
+            return Ok(());
+        };
         let doc = GraphDocument::from_graph(
             self.graph.clone(),
             serde_json::Value::Object(serde_json::Map::new()),
@@ -369,6 +373,7 @@ impl App {
         );
         let json = doc.to_json_pretty()?;
         std::fs::write(&path, json)?;
+        self.current_file = Some(path.clone());
         self.status_message = format!("已保存到 {}", path.display());
         Ok(())
     }
@@ -390,9 +395,14 @@ impl App {
         Ok(())
     }
 
-    /// 导出 JSON 到固定导出路径。
+    /// 导出 JSON（弹出保存对话框）。
     fn export_json(&mut self) -> Result<()> {
-        let path = PathBuf::from("CM2Editer_export.json");
+        let path = if let Some(p) = rfd::FileDialog::new().add_filter("JSON", &["json"]).save_file() {
+            p
+        } else {
+            self.status_message = "已取消导出".to_string();
+            return Ok(());
+        };
         let doc = GraphDocument::from_graph(
             self.graph.clone(),
             serde_json::Value::Object(serde_json::Map::new()),
@@ -406,9 +416,14 @@ impl App {
         Ok(())
     }
 
-    /// 导出 `.code` 文件。
+    /// 导出 `.code` 文件（弹出保存对话框）。
     fn export_code(&mut self) -> Result<()> {
-        let path = PathBuf::from("CM2Editer.code");
+        let path = if let Some(p) = rfd::FileDialog::new().add_filter("Code", &["code"]).save_file() {
+            p
+        } else {
+            self.status_message = "已取消导出".to_string();
+            return Ok(());
+        };
         generate_code_to_file(&self.graph, &path)?;
         self.status_message = format!("已导出 .code 到 {}", path.display());
         Ok(())
@@ -447,34 +462,27 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // 全局快捷键
-        ctx.input(|i| {
-            if i.key_pressed(egui::Key::Space) {
-                self.search_window_open = !self.search_window_open;
+        // 全局快捷键（在 UI 绘制之前处理，防止被控件消费）
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space)) {
+            self.search_window_open = !self.search_window_open;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Z)) {
+            self.undo();
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Y)) {
+            self.redo();
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::C)) {
+            self.copy_selected();
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::V)) {
+            if let Some(pos) = self.hover_world_pos(ctx, self.canvas_rect(ctx)) {
+                self.paste_at(Vec2::new(pos.x, pos.y));
             }
-            if i.modifiers.ctrl && i.key_pressed(egui::Key::Z) {
-                self.undo();
-            }
-            if i.modifiers.ctrl && i.key_pressed(egui::Key::Y) {
-                self.redo();
-            }
-            if i.modifiers.ctrl && i.key_pressed(egui::Key::S) {
-                if let Err(e) = self.save_json() {
-                    self.status_message = format!("保存失败: {}", e);
-                }
-            }
-            if i.modifiers.ctrl && i.key_pressed(egui::Key::C) {
-                self.copy_selected();
-            }
-            if i.modifiers.ctrl && i.key_pressed(egui::Key::V) {
-                if let Some(pos) = self.hover_world_pos(ctx, self.canvas_rect(ctx)) {
-                    self.paste_at(Vec2::new(pos.x, pos.y));
-                }
-            }
-            if i.key_pressed(egui::Key::Delete) {
-                self.delete_selected();
-            }
-        });
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete)) {
+            self.delete_selected();
+        }
 
         // 顶部工具栏
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
@@ -597,9 +605,16 @@ impl eframe::App for App {
 
         // 搜索窗口
         if self.search_window_open {
+            if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
+                self.search_window_open = false;
+            }
             egui::Window::new("添加节点")
                 .collapsible(false)
                 .show(ctx, |ui| {
+                    if ui.button("✕ 关闭").clicked() {
+                        self.search_window_open = false;
+                        return;
+                    }
                     let spawn_pos = self
                         .hover_world_pos(ctx, self.canvas_rect(ctx))
                         .map(|p| Vec2::new(p.x, p.y));
@@ -627,35 +642,46 @@ impl App {
     fn update_canvas(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
         let canvas_response = self.canvas.update(ui);
         let canvas_rect = canvas_response.canvas_rect;
-        let mut port_positions: HashMap<(String, String), Pos2> = HashMap::new();
-        let mut node_hits: Vec<(String, Rect)> = Vec::new();
-        let mut port_hits: Vec<(String, String, Pos2, PortType, bool)> = Vec::new();
+        let cull_margin = 50.0;
+        let cull_rect = canvas_rect.expand(cull_margin);
         let node_renderer = NodeRenderer::default();
+        let edge_renderer = EdgeRenderer::default();
 
-        // 渲染节点并收集命中区域
+        // 第一遍：计算所有节点屏幕区域和端口几何（不渲染，支持裁剪和 z 序）
+        let mut node_data: Vec<(&Node, &NodeDefinition, Rect, Vec<PortGeometry>, bool, bool)> = Vec::new();
+        let mut port_positions: HashMap<(String, String), Pos2> = HashMap::new();
+        let mut port_hits: Vec<(String, String, Pos2, PortType, bool)> = Vec::new();
+
         for node in self.graph.nodes.values() {
             let Some(definition) = get_definition(node.node_type) else {
                 continue;
             };
+            let rect = node_renderer.screen_rect(&self.canvas, node, canvas_rect);
+            if !cull_rect.intersects(rect) {
+                continue;
+            }
+            let ports = node_renderer.port_positions(node, rect);
             let is_selected = self.selected_nodes.contains(&node.id);
             let has_errors = self.error_nodes.contains(&node.id);
-            let response =
-                node_renderer.render(ui, &self.canvas, node, definition, is_selected, has_errors);
-            node_hits.push((node.id.clone(), response.rect));
-            for port in response.ports {
+            for port in &ports {
                 port_positions.insert((node.id.clone(), port.id.clone()), port.center);
                 port_hits.push((
                     node.id.clone(),
-                    port.id,
+                    port.id.clone(),
                     port.center,
-                    port.port_type,
+                    port.port_type.clone(),
                     port.is_input,
                 ));
             }
+            node_data.push((node, definition, rect, ports, is_selected, has_errors));
         }
 
-        // 渲染连线并收集命中区域
-        let edge_renderer = EdgeRenderer::default();
+        let node_hits: Vec<(String, Rect)> = node_data
+            .iter()
+            .map(|(node, _, rect, _, _, _)| (node.id.clone(), *rect))
+            .collect();
+
+        // 第二遍：渲染连线（在节点下方），并裁剪
         let mut edge_hits: Vec<(String, Rect)> = Vec::new();
         for edge in self.graph.edges.values() {
             let Some(&from_pos) =
@@ -671,18 +697,27 @@ impl App {
             let waypoints: Vec<Pos2> = edge
                 .waypoints
                 .iter()
-                .map(|wp| {
-                    self.canvas
-                        .world_to_screen(Pos2::new(wp.x, wp.y), canvas_rect)
-                })
+                .map(|wp| self.canvas.world_to_screen(Pos2::new(wp.x, wp.y), canvas_rect))
                 .collect();
-            let is_selected = self.selected_edges.contains(&edge.id);
-            edge_renderer.render_edge(ui, from_pos, to_pos, &edge.edge_type, &waypoints, is_selected);
             let hit_rect = edge_renderer.hit_rect(from_pos, to_pos, &waypoints);
+            if cull_rect.intersects(hit_rect) {
+                let is_selected = self.selected_edges.contains(&edge.id);
+                edge_renderer.render_edge(ui, from_pos, to_pos, &edge.edge_type, &waypoints, is_selected);
+            }
             edge_hits.push((edge.id.clone(), hit_rect));
         }
 
-        // 绘制临时拖线
+        // 第三遍：渲染非选中节点（下层）
+        for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| !d.4) {
+            node_renderer.render_with_data(ui, node, definition, *rect, ports, false, *has_errors);
+        }
+
+        // 第四遍：渲染选中节点（上层 / 置顶）
+        for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| d.4) {
+            node_renderer.render_with_data(ui, node, definition, *rect, ports, true, *has_errors);
+        }
+
+        // 绘制临时拖线及目标端口状态填充
         if let Some((source_node, source_port)) = self.interaction.edge_source() {
             if let Some(&start_pos) = port_positions.get(&(source_node, source_port)) {
                 let end_pos = ctx
@@ -690,6 +725,15 @@ impl App {
                     .unwrap_or(canvas_rect.center());
                 let target_color = self.interaction.edge_target_color(&Theme::WIRE_DEFAULT);
                 edge_renderer.render_edge_with_color(ui, start_pos, end_pos, target_color, &[]);
+                if let Some(status) = self.interaction.edge_target_status(&self.graph, end_pos, &port_hits) {
+                    if let Some((_, _, center, _, _)) = port_hits
+                        .iter()
+                        .find(|(_, _, c, _, _)| c.distance(end_pos) <= 10.0)
+                    {
+                        let color = status.color();
+                        ui.painter().circle_filled(*center, 6.0, color);
+                    }
+                }
             }
         }
 

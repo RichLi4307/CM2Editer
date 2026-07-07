@@ -105,6 +105,19 @@ impl InteractionController {
         }
     }
 
+    /// 返回当前拖线源节点和端口信息（如果有）。
+    fn edge_source_info(&self) -> Option<(String, String, PortType)> {
+        match &self.state {
+            CanvasState::DrawingEdge {
+                source_node,
+                source_port,
+                source_type,
+                ..
+            } => Some((source_node.clone(), source_port.clone(), source_type.clone())),
+            _ => None,
+        }
+    }
+
     /// 返回当前拖线末端应使用的颜色。
     pub fn edge_target_color(&self, default: &Color32) -> Color32 {
         match &self.state {
@@ -113,6 +126,28 @@ impl InteractionController {
             }
             _ => *default,
         }
+    }
+
+    /// 返回鼠标位置下目标端口的状态（仅当处于 DrawingEdge 状态时）。
+    pub fn edge_target_status(
+        &self,
+        graph: &Graph,
+        mouse_pos: Pos2,
+        port_hits: &[(String, String, Pos2, PortType, bool)],
+    ) -> Option<PortTargetStatus> {
+        let (source_node, source_port, source_type) = self.edge_source_info()?;
+        let (target_node, target_port, target_type, is_input) =
+            find_port_at(mouse_pos, port_hits)?;
+        Some(evaluate_target(
+            graph,
+            &source_node,
+            &source_port,
+            &source_type,
+            &target_node,
+            &target_port,
+            &target_type,
+            is_input,
+        ))
     }
 
     /// 返回当前框选矩形（如果有）。
@@ -230,6 +265,14 @@ impl InteractionController {
                     &mut commands,
                     status_message,
                 );
+            } else {
+                self.show_canvas_context_menu(
+                    ctx,
+                    pos,
+                    clipboard,
+                    &mut commands,
+                    status_message,
+                );
             }
         }
 
@@ -313,10 +356,14 @@ impl InteractionController {
             return;
         }
 
-        // 左键单击空白/边：更新边选中
+        // 左键单击：更新节点/边选中
         if response.clicked() {
             let pos = mouse_pos.unwrap_or(canvas_rect.center());
-            if let Some(edge_id) = find_edge_at(pos, edge_hits) {
+            if let Some(node_id) = find_node_at(pos, node_hits) {
+                selected_nodes.clear();
+                selected_nodes.insert(node_id);
+                selected_edges.clear();
+            } else if let Some(edge_id) = find_edge_at(pos, edge_hits) {
                 selected_nodes.clear();
                 selected_edges.clear();
                 selected_edges.insert(edge_id);
@@ -327,15 +374,14 @@ impl InteractionController {
             return;
         }
 
-        // 右键点击：打开上下文菜单
+        // 右键点击：打开上下文菜单（节点或空白处）
         if response.secondary_clicked() {
             if let Some(pos) = mouse_pos {
                 if let Some(node_id) = find_node_at(pos, node_hits) {
                     self.context_menu = Some(pos);
                     self.context_node = Some(node_id);
-                    selected_nodes.clear();
                 } else {
-                    self.context_menu = None;
+                    self.context_menu = Some(pos);
                     self.context_node = None;
                 }
             }
@@ -516,12 +562,19 @@ impl InteractionController {
                 ),
             };
             ui.painter().rect_filled(rect, 0.0, fill_color);
-            ui.painter().rect_stroke(
-                rect,
-                0.0,
-                Stroke::new(2.0, stroke_color),
-                egui::StrokeKind::Middle,
-            );
+            match mode {
+                BoxSelectMode::Window => {
+                    ui.painter().rect_stroke(
+                        rect,
+                        0.0,
+                        Stroke::new(2.0, stroke_color),
+                        egui::StrokeKind::Middle,
+                    );
+                }
+                BoxSelectMode::Crossing => {
+                    draw_dashed_rect(ui.painter(), rect, stroke_color, 2.0, 5.0, 3.0);
+                }
+            }
         } else if response.drag_stopped() {
             let end = response.hover_pos().unwrap_or(start);
             let rect = Rect::from_two_pos(start, end);
@@ -616,6 +669,27 @@ impl InteractionController {
                     selected_nodes.remove(node_id);
                     self.context_menu = None;
                     *status_message = String::from("已删除节点");
+                }
+            });
+    }
+
+    /// 空白处右键菜单，仅在有剪贴板内容时显示“粘贴”。
+    fn show_canvas_context_menu(
+        &mut self,
+        ctx: &egui::Context,
+        pos: Pos2,
+        clipboard: &mut Clipboard,
+        commands: &mut Vec<Command>,
+        _status_message: &mut String,
+    ) {
+        egui::Window::new("画布菜单")
+            .fixed_pos(pos)
+            .collapsible(false)
+            .title_bar(false)
+            .show(ctx, |ui| {
+                if !clipboard.nodes.is_empty() && ui.button("粘贴").clicked() {
+                    commands.push(Command::PasteAt { screen_pos: pos });
+                    self.context_menu = None;
                 }
             });
     }
@@ -736,6 +810,51 @@ fn evaluate_target(
         return PortTargetStatus::Occupied;
     }
     PortTargetStatus::Compatible
+}
+
+/// 绘制虚线矩形边框。
+fn draw_dashed_rect(
+    painter: &egui::Painter,
+    rect: Rect,
+    color: Color32,
+    width: f32,
+    dash_len: f32,
+    gap_len: f32,
+) {
+    let segments = [
+        (rect.left_top(), rect.right_top()),
+        (rect.right_top(), rect.right_bottom()),
+        (rect.right_bottom(), rect.left_bottom()),
+        (rect.left_bottom(), rect.left_top()),
+    ];
+    for (a, b) in segments {
+        draw_dashed_line(painter, a, b, color, width, dash_len, gap_len);
+    }
+}
+
+/// 绘制从 `from` 到 `to` 的虚线。
+fn draw_dashed_line(
+    painter: &egui::Painter,
+    from: Pos2,
+    to: Pos2,
+    color: Color32,
+    width: f32,
+    dash_len: f32,
+    gap_len: f32,
+) {
+    let dir = to - from;
+    let len = dir.length();
+    if len < 1e-5 {
+        return;
+    }
+    let unit = dir / len;
+    let mut distance = 0.0;
+    while distance < len {
+        let start = from + unit * distance;
+        let end = from + unit * (distance + dash_len).min(len);
+        painter.line_segment([start, end], Stroke::new(width, color));
+        distance += dash_len + gap_len;
+    }
 }
 
 #[cfg(test)]
