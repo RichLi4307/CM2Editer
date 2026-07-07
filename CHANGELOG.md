@@ -57,6 +57,7 @@
 
 ### 文档
 
+- 分析 `docs/examples/` 与 `docs/documentation_zh.html`：确认 Custom Missions 2 项目结构必须是"文件夹 + `meta.json` + 多个 `.code` 文件"，而当前编辑器仅支持单个 `.code` 导出。将工程/项目管理列为发布前必做任务，详见 `docs/TODO.md` Phase 4.5 与 `docs/问题清单.md` 第 1 条。
 - 归档旧 `docs/TODO.md` 至 `docs/archive/TODO-2026-07-08.md`。
 - 重构 `docs/TODO.md`：按工程复杂度（高/中/低/快速修复）重新组织 Phase 5 backlog。
 - 更新 `docs/问题清单.md`：筛去已解决问题，保留未解决问题、TODO 与作者全部原文建议，附录标注已解决/未解决标签。
