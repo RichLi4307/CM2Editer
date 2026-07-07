@@ -4,6 +4,8 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+**注意：CHANGELOG 的写法**：每次变更只在 `[Unreleased]` 下追加新条目，**不删除** 已有内容。发布版本时再将 `[Unreleased]` 内的内容整体移至 `[v0.x.0] - YYYY-MM-DD` 段。
+
 ---
 
 ## [Unreleased]
@@ -22,13 +24,6 @@
 - 损坏 JSON 处理：`load_json` 错误通过状态栏显示，程序不 panic。
 - `Vec2` 新增 `Add`、`Sub`、`AddAssign`、`Div<f32>`、`DivAssign<f32>` 运算实现。
 
-### 文档
-
-- 归档旧 `docs/紧急修复清单.md` 至 `docs/archive/紧急修复清单-2026-07-07-14-34.md`。
-- 重构并新增 `docs/问题清单.md`，末尾生成临时检查单。
-- 更新 `README.md`，说明编辑器内置思源黑体字体及其许可证。
-- 更新 `docs/问题清单.md`，标记 P0–P3 问题为已解决并附手工验证清单。
-
 ### 变更
 
 - 中文显示字体由"仅 Windows 系统字体回退"改为"优先加载内置思源黑体（Source Han Sans SC），缺失时回退到系统字体"。
@@ -37,10 +32,11 @@
 - `FlowError` 改为可 `Clone`，`CycleDetected` 携带环上节点 ID；`Io`/`Json` 变体存储字符串以支持 Clone。
 - `StatusBarPanel` 接收 `&[FlowError]` 以显示错误数量。
 
-### 待验证
+### 文档
 
-- 复制粘贴 100 个节点后的帧率表现（已加入临时检查单）。
-- 损坏 JSON 加载时的错误提示（已加入临时检查单）。
-- 端到端保存/加载 JSON 的一致性（已加入临时检查单）。
+- 归档旧 `docs/紧急修复清单.md` 至 `docs/archive/紧急修复清单-2026-07-07-14-34.md`。
+- 重构并新增 `docs/问题清单.md`，末尾生成临时检查单。
+- 更新 `README.md`，说明编辑器内置思源黑体字体及其许可证。
+- 更新 `docs/问题清单.md`，标记 P0–P3 问题为已解决并附手工验证清单。
 
 ---
