@@ -55,6 +55,17 @@
 - 折叠节点高度：折叠时节点高度自适应为标题栏 + 端口最小高度。
 - 导出 JSON 路径同步：导出 JSON 成功后更新 `current_file`，后续 Ctrl+S 直接保存到同一文件。
 
+### 修复（2026-07-07 第二轮）：修复单击节点无法选中（之前仅拖拽可选中），单击边/空白正常清除选区
+
+- 快捷键失效：全局快捷键 Ctrl+C/Ctrl+V/Ctrl+Z/Ctrl+Y/Delete 改用 `consume_key`，避免被文本输入消费。
+- 保存/导出对话框：保存 JSON、导出 JSON、导出 .code 按钮均改为 `rfd` 文件保存对话框。
+- 框选虚线：Crossing 模式（右→左拖拽）选择框改为虚线绘制。
+- 图层顺序：连线渲染在节点下层，选中节点置顶渲染，多选拖动时被联动节点不会被未选中节点遮挡。
+- 视口裁剪：仅渲染画布可见区域附近（边距 50px）的节点和连线，大幅优化大量节点时的帧率。
+- 拖线目标端口填充：拖拽连线时悬停的输入端口圆点颜色随目标状态变化（兼容/不兼容/占用/成环）。
+- 空白处右键菜单：右键画布空白处可弹出"粘贴"菜单（需剪贴板非空）。
+- 搜索窗口关闭：搜索窗口支持 Escape 键和 ✕ 关闭按钮退出。
+
 ### 新增（Phase 4.5：工程/项目管理）
 
 - 工程管理核心模型：新增 `src/project.rs`，实现 `MissionMeta`、`Setting`、`Project`、`CodeFile` 数据结构，支持 `meta.json` 多语言标题/描述和设置项。
@@ -67,42 +78,18 @@
 - 底部 `.code` 文本编辑器：查看和手动编辑当前 `.code` 文件代码，支持从节点图重新生成。
 - 多 `.code` 文件切换：每个 `.code` 文件对应独立节点图与画布状态，切换时自动同步当前图到工程。
 
-### 变更
+### 变更（Phase 4.5）
 
 - 工具栏由单一文件操作升级为工程操作：移除"打开 JSON"/"导出 JSON"，改为"打开工程"/"保存工程"/"导出工程"；保留单文件"导出 .code"作为兼容入口。
 - `App` 移除旧 `current_file`，改为 `project: Option<Project>` 管理当前工程状态。
 
-### 文档
+### 文档（Phase 4.5）
 
 - 更新 `README.md`：说明工程文件夹结构、多 `.code` 管理、`meta.json` 编辑和导出到 `CustomMissions2`。
 - 更新 `docs/TODO.md`：标记 Phase 4.5 全部 P0 任务完成。
 - 更新 `docs/agent_prompt.md`：反映工程管理已实现，并补充 `project/` 模块边界。
 
-### 测试
+### 测试（Phase 4.5）
 
 - 新增 `src/project.rs` 单元测试：`MissionMeta` 序列化、Setting 反序列化、工程创建/打开/增删改 `.code` 文件。
 - `cargo test`：81 个 lib tests + 16 个 integration tests 全部通过，0 失败。
-- 归档旧 `docs/TODO.md` 至 `docs/archive/TODO-2026-07-08.md`。
-- 重构 `docs/TODO.md`：按工程复杂度（高/中/低/快速修复）重新组织 Phase 5 backlog。
-- 更新 `docs/问题清单.md`：筛去已解决问题，保留未解决问题、TODO 与作者全部原文建议，附录标注已解决/未解决标签。
-- 同步 `README.md`、`CHANGELOG.md`、`agent_prompt.md`、`agent_prompt_phase3.md` 与当前进度一致。
-- 新增测试：`test_generate_two_starts_produce_separate_labels`、`test_generate_empty_graph_produces_empty_code`、`test_collapsed_node_height_is_smaller`、`test_collapsed_height_matches_ports`。
-
-### 测试
-
-- `cargo test`：76 个 lib tests + 7 个 integration tests 全部通过，0 失败。
-
----
-
-> 后续计划：进入 Phase 5，优先完成 DataFlow 重构、参数类型重构、命名空间管理（`selected_cosplay.json`）等高复杂度任务。
-
-### 修复（2026-07-07 第二轮）：修复单击节点无法选中（之前仅拖拽可选中），单击边/空白正常清除选区
-
-- 快捷键失效：全局快捷键 Ctrl+C/Ctrl+V/Ctrl+Z/Ctrl+Y/Delete 改用 `consume_key`，避免被文本输入消费。
-- 保存/导出对话框：保存 JSON、导出 JSON、导出 .code 按钮均改为 `rfd` 文件保存对话框。
-- 框选虚线：Crossing 模式（右→左拖拽）选择框改为虚线绘制。
-- 图层顺序：连线渲染在节点下层，选中节点置顶渲染，多选拖动时被联动节点不会被未选中节点遮挡。
-- 视口裁剪：仅渲染画布可见区域附近（边距 50px）的节点和连线，大幅优化大量节点时的帧率。
-- 拖线目标端口填充：拖拽连线时悬停的输入端口圆点颜色随目标状态变化（兼容/不兼容/占用/成环）。
-- 空白处右键菜单：右键画布空白处可弹出"粘贴"菜单（需剪贴板非空）。
-- 搜索窗口关闭：搜索窗口支持 Escape 键和 ✕ 关闭按钮退出。
