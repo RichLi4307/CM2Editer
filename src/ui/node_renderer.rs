@@ -70,11 +70,30 @@ impl NodeRenderer {
     pub fn screen_rect(&self, canvas: &Canvas, node: &Node, canvas_rect: Rect) -> Rect {
         let screen_pos =
             canvas.world_to_screen(Pos2::new(node.position.x, node.position.y), canvas_rect);
+        let height = if node.collapsed {
+            self.collapsed_height(node)
+        } else {
+            node.size.y.max(self.min_height)
+        };
         let size = Vec2::new(
             node.size.x.max(self.min_width),
-            node.size.y.max(self.min_height),
+            height,
         );
         Rect::from_min_size(screen_pos, size)
+    }
+
+    /// 计算折叠状态下的最小高度（标题栏 + 端口所需空间）。
+    fn collapsed_height(&self, node: &Node) -> f32 {
+        let max_ports = node.inputs.len().max(node.outputs.len()) as f32;
+        let ports_height = if max_ports <= 0.0 {
+            0.0
+        } else {
+            (max_ports - 1.0) * self.port_spacing
+        };
+        self.header_height
+            + self.port_padding * 2.0
+            + self.port_radius * 2.0
+            + ports_height
     }
 
     /// 计算节点端口在屏幕上的几何位置（不渲染）。
@@ -314,6 +333,67 @@ fn param_preview(value: &ParamValue) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_collapsed_node_height_is_smaller() {
+        use crate::graph::types::NodeType;
+        use crate::graph::node::Vec2 as NodeVec2;
+        use crate::serializer::json::Viewport;
+        use crate::ui::canvas::Canvas;
+
+        let viewport = Viewport::default();
+        let canvas = Canvas::with_viewport(viewport);
+        let canvas_rect = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(800.0, 600.0));
+        let renderer = NodeRenderer::default();
+
+        let mut expanded = Node::new(NodeType::Log, NodeVec2::ZERO);
+        expanded.collapsed = false;
+        expanded.size = NodeVec2::new(180.0, 120.0);
+        expanded.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        expanded.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+
+        let mut collapsed = expanded.clone();
+        collapsed.collapsed = true;
+
+        let expanded_rect = renderer.screen_rect(&canvas, &expanded, canvas_rect);
+        let collapsed_rect = renderer.screen_rect(&canvas, &collapsed, canvas_rect);
+
+        assert!(
+            collapsed_rect.height() < expanded_rect.height(),
+            "collapsed height {} should be less than expanded height {}",
+            collapsed_rect.height(),
+            expanded_rect.height()
+        );
+    }
+
+    #[test]
+    fn test_collapsed_height_matches_ports() {
+        use crate::graph::types::NodeType;
+        use crate::graph::node::Vec2 as NodeVec2;
+        use crate::serializer::json::Viewport;
+        use crate::ui::canvas::Canvas;
+
+        let viewport = Viewport::default();
+        let canvas = Canvas::with_viewport(viewport);
+        let canvas_rect = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(800.0, 600.0));
+        let renderer = NodeRenderer::default();
+
+        let mut node = Node::new(NodeType::If, NodeVec2::ZERO);
+        node.collapsed = true;
+        node.size = NodeVec2::new(180.0, 120.0);
+        node.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        node.outputs = vec![
+            Port::new("out_true", PortType::Flow, "True"),
+            Port::new("out_false", PortType::Flow, "False"),
+        ];
+
+        let rect = renderer.screen_rect(&canvas, &node, canvas_rect);
+        let expected_min = renderer.header_height + renderer.port_padding * 2.0 + renderer.port_radius * 2.0;
+        assert!(rect.height() >= expected_min);
+        // 2 output ports means one spacing step between them
+        let expected_with_ports = expected_min + renderer.port_spacing;
+        assert!((rect.height() - expected_with_ports).abs() < 0.01);
+    }
 
     #[test]
     fn test_param_preview() {

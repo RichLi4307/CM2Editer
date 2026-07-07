@@ -383,7 +383,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("output", "输出", ParamType::List)]),
+        .with_params(vec![p_req("output", "输出", ParamType::String)]),
         NodeDefinition::new(
             NodeType::Global,
             "General Functions",

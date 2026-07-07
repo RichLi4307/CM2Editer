@@ -58,7 +58,7 @@ mod tests {
             definition
                 .params
                 .iter()
-                .any(|p| p.name == "output" && p.param_type == ParamType::List)
+                .any(|p| p.name == "output" && p.param_type == ParamType::String)
         );
     }
 }

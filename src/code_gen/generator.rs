@@ -329,9 +329,8 @@ impl<'a> CodeGenerator<'a> {
         }
     }
 
-    /// 收集所有标签，按字母顺序排序，并确保 `main` 在最前
-    /// 收集标签。如果图为空标签，则自动为所有 Start 节点生成 `main` 标签，
-    /// 避免从 UI 创建的图导出为空文件。
+    /// 收集标签。如果图没有显式标签，则自动为每个 Start 节点生成独立标签，
+    /// 避免多 Start 流程被合并到单一 `main` 下。
     fn collect_labels(&self) -> Vec<(String, Vec<String>)> {
         let mut labels: Vec<(String, Vec<String>)> = self
             .graph
@@ -348,8 +347,13 @@ impl<'a> CodeGenerator<'a> {
                 .filter(|n| n.node_type == NodeType::Start)
                 .map(|n| n.id.clone())
                 .collect();
-            if !start_nodes.is_empty() {
-                labels.push(("main".to_string(), start_nodes));
+            for (index, start_id) in start_nodes.into_iter().enumerate() {
+                let label_name = if index == 0 {
+                    "main".to_string()
+                } else {
+                    format!("main_{}", index)
+                };
+                labels.push((label_name, vec![start_id]));
             }
         }
 
@@ -664,21 +668,36 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_create_listener_local() -> Result<()> {
+    fn test_generate_two_starts_produce_separate_labels() -> Result<()> {
         let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut listener = make_node("cll", NodeType::CreateListenerLocal);
-        listener.set_param("labelName", ParamValue::Literal(json!("local_tick")));
+        let start1 = make_node("start1", NodeType::Start);
+        let mut log1 = make_node("log1", NodeType::Log);
+        log1.set_param("output", ParamValue::Literal(json!("a")));
+        let start2 = make_node("start2", NodeType::Start);
+        let mut log2 = make_node("log2", NodeType::Log);
+        log2.set_param("output", ParamValue::Literal(json!("b")));
 
-        graph.add_node(start);
-        graph.add_node(listener);
-        graph.add_label("main", vec!["start".to_string(), "cll".to_string()]);
+        graph.add_node(start1);
+        graph.add_node(log1);
+        graph.add_node(start2);
+        graph.add_node(log2);
 
-        add_flow_edge(&mut graph, "start", "out_flow", "cll", "in_flow");
+        add_flow_edge(&mut graph, "start1", "out_flow", "log1", "in_flow");
+        add_flow_edge(&mut graph, "start2", "out_flow", "log2", "in_flow");
 
         let code = generate_code(&graph)?;
         assert!(code.contains("main:"));
-        assert!(code.contains("CreateListenerLocal(labelName=\"local_tick\")"));
+        assert!(code.contains("main_1:"));
+        assert!(code.contains("Log(output=\"a\")"));
+        assert!(code.contains("Log(output=\"b\")"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_empty_graph_produces_empty_code() -> Result<()> {
+        let graph = build_graph();
+        let code = generate_code(&graph)?;
+        assert!(code.is_empty());
         Ok(())
     }
 }

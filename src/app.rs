@@ -422,7 +422,8 @@ impl App {
         Ok(())
     }
 
-    /// 导出 JSON（弹出保存对话框）。
+    /// 导出 JSON（弹出保存对话框）。导出成功后更新 `current_file`，
+    /// 使后续 Ctrl+S 保存到同一文件。
     fn export_json(&mut self) -> Result<()> {
         let path = if let Some(p) = rfd::FileDialog::new().add_filter("JSON", &["json"]).save_file() {
             p
@@ -439,6 +440,7 @@ impl App {
         );
         let json = doc.to_json_pretty()?;
         std::fs::write(&path, json)?;
+        self.current_file = Some(path.clone());
         self.status_message = format!("已导出 JSON 到 {}", path.display());
         Ok(())
     }
@@ -452,7 +454,16 @@ impl App {
             return Ok(());
         };
         generate_code_to_file(&self.graph, &path)?;
-        self.status_message = format!("已导出 .code 到 {}", path.display());
+        if self.graph.nodes.is_empty() {
+            rfd::MessageDialog::new()
+                .set_title("导出为空")
+                .set_description("图为空，导出的 .code 文件内容为空。")
+                .set_buttons(rfd::MessageButtons::Ok)
+                .show();
+            self.status_message = "已导出 .code（图为空）".to_string();
+        } else {
+            self.status_message = format!("已导出 .code 到 {}", path.display());
+        }
         Ok(())
     }
 
@@ -517,7 +528,8 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // 全局快捷键（在 UI 绘制之前处理，防止被控件消费）
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space)) {
+        // Space 仅在画布未捕获键盘输入时触发搜索，避免在文本框中输入空格时打开搜索窗口
+        if !ctx.wants_keyboard_input() && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space)) {
             self.search_window_open = !self.search_window_open;
         }
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Z)) {
