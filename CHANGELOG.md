@@ -12,12 +12,19 @@
 
 - 归档旧 `docs/紧急修复清单.md` 至 `docs/archive/紧急修复清单-2026-07-07-14-34.md`。
 - 重构并新增 `docs/问题清单.md`，仅保留当前未解决问题，按 P0 → P1 → P2 → P3 优先级排列。
+- 更新 `README.md`，说明编辑器内置思源黑体字体及其许可证。
+
+### 变更
+
+- 中文显示字体由"仅 Windows 系统字体回退"改为"优先加载内置思源黑体（Source Han Sans SC），缺失时回退到系统字体"。
+- 将 `src/思源黑体/` 移至 `assets/fonts/思源黑体/`，并保留 `LICENSE.txt` 以符合 SIL Open Font License 1.1 要求。
+- `src/app.rs` 的 `setup_fonts` 优先读取 `assets/fonts/思源黑体/OTF/SimplifiedChinese/SourceHanSansSC-Regular.otf`，同时加载 Bold 字体以支持粗体中文。
 
 ### 已解决问题（见归档清单）
 
 - P0.1 滚轮缩放跳跃：改为方向判定，一格放大/缩小 10%。
 - P0.2 中键平移去重：仅 `Canvas` 处理，移除 `interaction.rs` 的 `Panning` 状态。
-- P1.1 中文显示方块：加载 Windows 系统字体（微软雅黑）作为 fallback。
+- P1.1 中文显示方块：优先使用内置思源黑体，缺失时回退 Windows 系统字体（微软雅黑 / 黑体）。
 - P1.2 左栏目录排序：分类聚合改用 `BTreeMap` 稳定排序。
 
 ### 待解决问题（详见 `docs/问题清单.md`）

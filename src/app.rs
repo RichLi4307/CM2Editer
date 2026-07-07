@@ -641,33 +641,77 @@ fn id_by_type(graph: &Graph, node_type: NodeType) -> String {
         .unwrap_or_default()
 }
 
-/// 加载系统字体以支持中文显示。
+/// 加载字体以支持中文显示。
+///
+/// 优先使用仓库内置的思源黑体（Source Han Sans SC），路径为
+/// `assets/fonts/思源黑体/OTF/SimplifiedChinese/`；若缺失则回退到 Windows
+/// 系统字体（微软雅黑 / 黑体）。这样可在无系统字体或跨平台时仍正常显示中文。
 fn setup_fonts(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
 
-    #[cfg(target_os = "windows")]
-    {
-        let candidates = [
-            r"C:\Windows\Fonts\msyh.ttc",
-            r"C:\Windows\Fonts\msyhbd.ttc",
-            r"C:\Windows\Fonts\simhei.ttf",
-        ];
-        for path in &candidates {
-            if let Ok(bytes) = std::fs::read(path) {
-                fonts
-                    .font_data
-                    .insert("cjk".to_owned(), egui::FontData::from_owned(bytes).into());
-                fonts
-                    .families
-                    .entry(egui::FontFamily::Proportional)
-                    .or_default()
-                    .push("cjk".to_owned());
-                fonts
-                    .families
-                    .entry(egui::FontFamily::Monospace)
-                    .or_default()
-                    .push("cjk".to_owned());
-                break;
+    // 1. 优先加载仓库内置的思源黑体 Regular
+    let bundled_regular =
+        r"assets\fonts\思源黑体\OTF\SimplifiedChinese\SourceHanSansSC-Regular.otf";
+    let bundled_bold =
+        r"assets\fonts\思源黑体\OTF\SimplifiedChinese\SourceHanSansSC-Bold.otf";
+
+    if let Ok(bytes) = std::fs::read(bundled_regular) {
+        fonts
+            .font_data
+            .insert("cjk".to_owned(), egui::FontData::from_owned(bytes).into());
+        fonts
+            .families
+            .entry(egui::FontFamily::Proportional)
+            .or_default()
+            .push("cjk".to_owned());
+        fonts
+            .families
+            .entry(egui::FontFamily::Monospace)
+            .or_default()
+            .push("cjk".to_owned());
+
+        // 同时加载 Bold 以支持粗体中文
+        if let Ok(bytes) = std::fs::read(bundled_bold) {
+            fonts
+                .font_data
+                .insert("cjk-bold".to_owned(), egui::FontData::from_owned(bytes).into());
+            fonts
+                .families
+                .entry(egui::FontFamily::Proportional)
+                .or_default()
+                .push("cjk-bold".to_owned());
+            fonts
+                .families
+                .entry(egui::FontFamily::Monospace)
+                .or_default()
+                .push("cjk-bold".to_owned());
+        }
+    } else {
+        // 2. 回退：Windows 系统字体
+        #[cfg(target_os = "windows")]
+        {
+            let candidates = [
+                r"C:\Windows\Fonts\msyh.ttc",
+                r"C:\Windows\Fonts\msyhbd.ttc",
+                r"C:\Windows\Fonts\simhei.ttf",
+            ];
+            for path in &candidates {
+                if let Ok(bytes) = std::fs::read(path) {
+                    fonts
+                        .font_data
+                        .insert("cjk".to_owned(), egui::FontData::from_owned(bytes).into());
+                    fonts
+                        .families
+                        .entry(egui::FontFamily::Proportional)
+                        .or_default()
+                        .push("cjk".to_owned());
+                    fonts
+                        .families
+                        .entry(egui::FontFamily::Monospace)
+                        .or_default()
+                        .push("cjk".to_owned());
+                    break;
+                }
             }
         }
     }
