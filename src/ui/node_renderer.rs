@@ -271,9 +271,12 @@ impl NodeRenderer {
 
     /// 在节点主体中绘制参数预览。
     fn paint_param_preview(&self, ui: &egui::Ui, node: &Node, rect: Rect) {
+        // 参数预览放在所有端口下方，避免与端口标签重叠
+        let port_count = node.inputs.len().max(node.outputs.len()) as f32;
         let body_top = rect.min.y + self.header_height;
-        let params_x = rect.min.x + self.min_width * 0.35;
-        let mut params_y = body_top + self.port_padding + self.port_radius;
+        let params_x = rect.min.x + self.port_radius * 2.0 + 4.0;
+        let mut params_y = body_top + self.port_padding + self.port_radius
+            + (port_count - 1.0) * self.port_spacing + self.port_spacing * 0.5;
 
         for (name, value) in &node.params {
             if params_y > rect.max.y - self.port_padding {

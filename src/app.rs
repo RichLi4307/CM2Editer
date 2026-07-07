@@ -154,6 +154,12 @@ pub struct App {
     pub status_message: String,
     /// 是否显示空画布欢迎提示
     pub show_welcome_hint: bool,
+    /// JSON 预览缓存，避免每帧序列化
+    pub cached_json: String,
+    /// 缓存对应的图版本号
+    pub cached_json_version: u64,
+    /// 图版本号，变化时重新生成缓存 JSON
+    pub graph_version: u64,
 }
 
 impl App {
@@ -177,6 +183,9 @@ impl App {
             status_message: String::from("就绪"),
             graph,
             show_welcome_hint: true,
+            cached_json: String::from("{}"),
+            cached_json_version: 0,
+            graph_version: 0,
         }
     }
 
@@ -188,6 +197,7 @@ impl App {
             self.undo_stack.remove(0);
         }
         self.redo_stack.clear();
+        self.graph_version += 1;
         self.validate();
     }
 
@@ -196,6 +206,7 @@ impl App {
         if let Some(cmd) = self.undo_stack.pop() {
             cmd.undo(&mut self.graph);
             self.redo_stack.push(cmd);
+            self.graph_version += 1;
             self.validate();
             self.status_message = String::from("已撤销");
         }
@@ -206,6 +217,7 @@ impl App {
         if let Some(cmd) = self.redo_stack.pop() {
             cmd.apply(&mut self.graph, &mut self.clipboard);
             self.undo_stack.push(cmd);
+            self.graph_version += 1;
             self.validate();
             self.status_message = String::from("已重做");
         }
@@ -350,6 +362,7 @@ impl App {
 
         self.selected_nodes = pasted_ids;
         self.selected_edges.clear();
+        self.graph_version += 1;
         self.show_welcome_hint = false;
         self.status_message = format!("已粘贴 {} 个节点", nodes.len());
     }
@@ -391,6 +404,7 @@ impl App {
         self.redo_stack.clear();
         self.show_welcome_hint = self.graph.nodes.is_empty();
         self.validate();
+        self.graph_version += 1;
         self.status_message = format!("已加载 {}", path.display());
         Ok(())
     }
@@ -429,6 +443,21 @@ impl App {
         Ok(())
     }
 
+    /// 新建空图，若有未保存节点则先确认。
+    fn confirm_new_graph(&mut self) {
+        if !self.graph.nodes.is_empty() {
+            let confirmed = rfd::MessageDialog::new()
+                .set_title("确认新建")
+                .set_description("当前画布有未保存的节点，是否新建？")
+                .set_buttons(rfd::MessageButtons::YesNo)
+                .show();
+            if !matches!(confirmed, rfd::MessageDialogResult::Yes) {
+                return;
+            }
+        }
+        self.new_graph();
+    }
+
     /// 新建空图。
     fn new_graph(&mut self) {
         self.graph = Graph::default();
@@ -440,6 +469,7 @@ impl App {
         self.current_file = None;
         self.show_welcome_hint = true;
         self.validate();
+        self.graph_version += 1;
         self.status_message = String::from("新建工程");
     }
 
@@ -457,6 +487,17 @@ impl App {
                 .hover_pos()
                 .map(|p| self.canvas.screen_to_world(p, canvas_rect))
         })
+    }
+
+    fn serialize_graph(graph: &Graph, viewport: &crate::serializer::json::Viewport) -> String {
+        let doc = GraphDocument::from_graph(
+            graph.clone(),
+            serde_json::Value::Object(serde_json::Map::new()),
+            viewport.clone(),
+            Vec::new(),
+            Vec::new(),
+        );
+        doc.to_json_pretty().unwrap_or_else(|e| format!("序列化失败: {}", e))
     }
 }
 
@@ -483,6 +524,36 @@ impl eframe::App for App {
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete)) {
             self.delete_selected();
         }
+
+        // 全局剪贴板快捷键：eframe 将 Ctrl+C/V 转换为 Event::Copy/Paste，
+        // 而不是 Key::C/V。搜索窗口打开时让 TextEdit 保留原行为。
+        let paste_pos = self.hover_world_pos(ctx, self.canvas_rect(ctx));
+        let search_open = self.search_window_open;
+        ctx.input_mut(|i| {
+            let mut copied = false;
+            let mut pasted = false;
+            i.events.retain(|event| {
+                if search_open {
+                    return true;
+                }
+                match event {
+                    egui::Event::Copy if !copied => {
+                        copied = true;
+                        self.copy_selected();
+                        false
+                    }
+                    egui::Event::Paste(_) if !pasted => {
+                        pasted = true;
+                        if let Some(pos) = paste_pos {
+                            self.paste_at(Vec2::new(pos.x, pos.y));
+                        }
+                        false
+                    }
+                    _ => true,
+                }
+            });
+        });
+
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S)) {
             if let Err(e) = self.save_json() {
                 self.status_message = format!("保存失败: {}", e);
@@ -493,12 +564,17 @@ impl eframe::App for App {
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui.button("新建").clicked() {
-                    self.new_graph();
+                    self.confirm_new_graph();
                 }
                 if ui.button("打开 JSON").clicked() {
                     if let Some(path) = rfd::FileDialog::new().add_filter("JSON", &["json"]).pick_file() {
                         if let Err(e) = self.load_json(&path) {
                             self.status_message = format!("加载失败: {}", e);
+                            rfd::MessageDialog::new()
+                                .set_title("加载失败")
+                                .set_description(&format!("无法加载 JSON: {}", e))
+                                .set_buttons(rfd::MessageButtons::Ok)
+                                .show();
                         }
                     }
                 }
@@ -595,10 +671,14 @@ impl eframe::App for App {
             });
 
         // 底部 JSON 预览
+        if self.graph_version != self.cached_json_version {
+            self.cached_json = Self::serialize_graph(&self.graph, &self.canvas.viewport);
+            self.cached_json_version = self.graph_version;
+        }
         egui::TopBottomPanel::bottom("json_preview")
             .default_height(120.0)
             .show(ctx, |ui| {
-                JsonPreviewPanel::show(ui, &self.graph, &self.canvas.viewport);
+                JsonPreviewPanel::show(ui, &self.cached_json);
             });
 
         // 中央画布
@@ -616,7 +696,7 @@ impl eframe::App for App {
             egui::Window::new("添加节点")
                 .collapsible(false)
                 .show(ctx, |ui| {
-                    if ui.button("✕ 关闭").clicked() {
+                    if ui.button("X 关闭").clicked() {
                         self.search_window_open = false;
                         return;
                     }
@@ -681,10 +761,16 @@ impl App {
             node_data.push((node, definition, rect, ports, is_selected, has_errors));
         }
 
-        let node_hits: Vec<(String, Rect)> = node_data
+        let mut node_hits: Vec<(String, Rect)> = node_data
             .iter()
             .map(|(node, _, rect, _, _, _)| (node.id.clone(), *rect))
             .collect();
+        // 命中测试顺序与渲染顺序一致：选中节点在最上层，优先命中
+        node_hits.sort_by(|(a_id, _), (b_id, _)| {
+            let a_selected = self.selected_nodes.contains(a_id);
+            let b_selected = self.selected_nodes.contains(b_id);
+            b_selected.cmp(&a_selected)
+        });
 
         // 第二遍：渲染连线（在节点下方），并裁剪
         let mut edge_hits: Vec<(String, Rect)> = Vec::new();

@@ -687,10 +687,12 @@ impl InteractionController {
             .collapsible(false)
             .title_bar(false)
             .show(ctx, |ui| {
-                if !clipboard.nodes.is_empty() && ui.button("粘贴").clicked() {
-                    commands.push(Command::PasteAt { screen_pos: pos });
-                    self.context_menu = None;
-                }
+                ui.add_enabled_ui(!clipboard.nodes.is_empty(), |ui| {
+                    if ui.button("粘贴").clicked() {
+                        commands.push(Command::PasteAt { screen_pos: pos });
+                        self.context_menu = None;
+                    }
+                });
             });
     }
 }
