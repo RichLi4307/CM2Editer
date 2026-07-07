@@ -1,4 +1,5 @@
 use egui::Pos2;
+use crate::error::FlowError;
 
 /// 状态栏面板。
 pub struct StatusBarPanel;
@@ -8,20 +9,20 @@ impl StatusBarPanel {
     pub fn show(
         ui: &mut egui::Ui,
         status_message: &str,
-        error_count: usize,
+        errors: &[FlowError],
         world_pos: Option<Pos2>,
         zoom: f32,
     ) {
         ui.horizontal(|ui| {
             ui.label(status_message);
             ui.separator();
-            if error_count > 0 {
+            if errors.is_empty() {
+                ui.label("无错误");
+            } else {
                 ui.colored_label(
                     egui::Color32::from_rgb(244, 67, 54),
-                    format!("错误: {}", error_count),
+                    format!("错误: {}", errors.len()),
                 );
-            } else {
-                ui.label("无错误");
             }
             ui.separator();
             if let Some(pos) = world_pos {

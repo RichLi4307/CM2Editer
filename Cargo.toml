@@ -10,6 +10,7 @@ thiserror = "1.0"
 uuid = { version = "1.8", features = ["v4"] }
 egui = "0.31"
 eframe = "0.31"
+rfd = "0.15"
 
 [lints.rust]
 unused_extern_crates = "warn"

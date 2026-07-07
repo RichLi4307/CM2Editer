@@ -1,12 +1,12 @@
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum FlowError {
     #[error("IO error: {0}")]
-    Io(#[from] std::io::Error),
+    Io(String),
 
     #[error("JSON parse error: {0}")]
-    Json(#[from] serde_json::Error),
+    Json(String),
 
     #[error("Validation error: {0}")]
     Validation(String),
@@ -23,11 +23,40 @@ pub enum FlowError {
     #[error("Unknown node type: {0}")]
     UnknownNodeType(String),
 
-    #[error("Cycle detected in graph")]
-    CycleDetected,
+    #[error("Cycle detected in graph: {0:?}")]
+    CycleDetected(Vec<String>),
 
     #[error("Version mismatch: file version {file}, supported {supported}")]
     VersionMismatch { file: String, supported: String },
+}
+
+impl FlowError {
+    /// 返回受此错误影响的节点 ID 列表。
+    pub fn affected_node_ids(&self) -> Vec<String> {
+        match self {
+            Self::CycleDetected(ids) => ids.clone(),
+            Self::NodeNotFound(id) => vec![id.clone()],
+            _ => Vec::new(),
+        }
+    }
+}
+
+impl From<std::io::Error> for FlowError {
+    fn from(e: std::io::Error) -> Self {
+        Self::Io(e.to_string())
+    }
+}
+
+impl From<serde_json::Error> for FlowError {
+    fn from(e: serde_json::Error) -> Self {
+        Self::Json(e.to_string())
+    }
+}
+
+impl From<uuid::Error> for FlowError {
+    fn from(_: uuid::Error) -> Self {
+        Self::Validation("UUID parse error".to_string())
+    }
 }
 
 pub type Result<T> = std::result::Result<T, FlowError>;

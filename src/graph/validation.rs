@@ -5,12 +5,12 @@ use crate::error::{FlowError, Result};
 
 /// 图验证器，负责检查图的结构合法性
 ///
-/// 验证器不修改图，只返回 `Ok(())` 或第一个遇到的错误
-/// 未来可扩展为批量收集所有错误
+/// 验证器不修改图，只返回 `Ok(())` 或错误列表。
+/// `validate` 保留快速失败语义；`collect_errors` 返回当前所有错误。
 pub struct GraphValidator;
 
 impl GraphValidator {
-    /// 执行全部验证
+    /// 执行全部验证，返回第一个错误（快速失败）。
     pub fn validate(graph: &Graph) -> Result<()> {
         Self::check_unique_ids(graph)?;
         Self::check_edge_endpoints(graph)?;
@@ -19,6 +19,35 @@ impl GraphValidator {
         Self::check_no_cycles(graph)?;
         Self::check_required_params(graph)?;
         Ok(())
+    }
+
+    /// 收集所有验证错误。
+    ///
+    /// 当前实现仍逐项检查，一旦某类检查出现错误即停止该类别后续检查，
+    /// 并返回已发现的所有错误。未来可扩展为并行收集。
+    pub fn collect_errors(graph: &Graph) -> Vec<FlowError> {
+        let mut errors = Vec::new();
+
+        if let Err(e) = Self::check_unique_ids(graph) {
+            errors.push(e);
+        }
+        if let Err(e) = Self::check_edge_endpoints(graph) {
+            errors.push(e);
+        }
+        if let Err(e) = Self::check_type_compatibility(graph) {
+            errors.push(e);
+        }
+        if let Err(e) = Self::check_single_input_per_port(graph) {
+            errors.push(e);
+        }
+        if let Err(e) = Self::check_no_cycles(graph) {
+            errors.push(e);
+        }
+        if let Err(e) = Self::check_required_params(graph) {
+            errors.push(e);
+        }
+
+        errors
     }
 
     /// 检查节点 ID 唯一性
@@ -106,13 +135,13 @@ impl GraphValidator {
 
     /// 检查 Flow 边是否构成有向无环图（DAG）
     ///
-    /// 使用 Kahn 算法进行拓扑排序，如果访问节点数少于总节点数，则存在环
-    // UX-DEBT(Phase3): 后端已检测环，但 GUI 拖线时需实时阻止并红边提示。
-    // 当前仅导出时报错，交互体验差。见 docs/interaction_spec.md §3.1
+    /// 使用 Kahn 算法进行拓扑排序，如果访问节点数少于总节点数，则存在环。
+    /// 若存在环，返回环上涉及的节点 ID 列表。
     fn check_no_cycles(graph: &Graph) -> Result<()> {
         // 构建邻接表和入度表（仅考虑 Flow 边）
         let mut adj: HashMap<String, Vec<String>> = HashMap::new();
         let mut in_degree: HashMap<String, usize> = HashMap::new();
+        let mut parent: HashMap<String, String> = HashMap::new();
 
         for node_id in graph.nodes.keys() {
             adj.insert(node_id.clone(), Vec::new());
@@ -142,6 +171,7 @@ impl GraphValidator {
             visited += 1;
             if let Some(neighbors) = adj.get(&node_id) {
                 for neighbor in neighbors {
+                    parent.insert(neighbor.clone(), node_id.clone());
                     if let Some(deg) = in_degree.get_mut(neighbor) {
                         *deg -= 1;
                         if *deg == 0 {
@@ -152,11 +182,20 @@ impl GraphValidator {
             }
         }
 
-        if visited != graph.nodes.len() {
-            return Err(FlowError::CycleDetected);
+        if visited == graph.nodes.len() {
+            return Ok(());
         }
 
-        Ok(())
+        // 找到环：从任意未访问节点回溯 parent 链
+        let unvisited = graph
+            .nodes
+            .keys()
+            .find(|id| !queue.is_empty() || in_degree.get(*id).copied().unwrap_or(0) > 0)
+            .cloned()
+            .unwrap_or_default();
+
+        let cycle = reconstruct_cycle(&parent, &adj, &unvisited);
+        Err(FlowError::CycleDetected(cycle))
     }
 
     /// 检查必填参数
@@ -176,6 +215,56 @@ impl GraphValidator {
         }
         Ok(())
     }
+}
+
+/// 从未访问节点出发重建环路径。
+fn reconstruct_cycle(
+    parent: &HashMap<String, String>,
+    adj: &HashMap<String, Vec<String>>,
+    start: &str,
+) -> Vec<String> {
+    let mut path: Vec<String> = vec![start.to_string()];
+    let mut visited_in_path: HashSet<String> = HashSet::new();
+    visited_in_path.insert(start.to_string());
+
+    // 沿父链回溯，直到遇到已在路径中的节点
+    let mut current = parent.get(start).cloned();
+    while let Some(node) = current {
+        if visited_in_path.contains(&node) {
+            // 截断到环起点
+            if let Some(start_idx) = path.iter().position(|id| id == &node) {
+                path = path.split_off(start_idx);
+            }
+            path.push(node);
+            return path;
+        }
+        path.push(node.clone());
+        visited_in_path.insert(node.clone());
+        current = parent.get(&node).cloned();
+    }
+
+    // 父链无环，则尝试从 start 沿邻接表前进
+    current = Some(start.to_string());
+    while let Some(node) = current {
+        if let Some(neighbors) = adj.get(&node) {
+            if let Some(next) = neighbors.first() {
+                if visited_in_path.contains(next) {
+                    if let Some(start_idx) = path.iter().position(|id| id == next) {
+                        path = path.split_off(start_idx);
+                    }
+                    path.push(next.clone());
+                    return path;
+                }
+                path.push(next.clone());
+                visited_in_path.insert(next.clone());
+                current = Some(next.clone());
+                continue;
+            }
+        }
+        break;
+    }
+
+    path
 }
 
 #[cfg(test)]
@@ -251,10 +340,8 @@ mod tests {
         add_flow_edge(&mut graph, "node_2", "node_3");
         add_flow_edge(&mut graph, "node_3", "node_1");
 
-        assert!(matches!(
-            GraphValidator::validate(&graph),
-            Err(FlowError::CycleDetected)
-        ));
+        let errors = GraphValidator::collect_errors(&graph);
+        assert!(errors.iter().any(|e| matches!(e, FlowError::CycleDetected(_))));
     }
 
     #[test]

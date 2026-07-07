@@ -6,8 +6,8 @@ use egui::{Align2, FontId, Pos2, Rect, Vec2 as EVec2};
 use crate::api::definitions::PortDefinition;
 use crate::api::registry::get_definition;
 use crate::code_gen::generator::generate_code_to_file;
-use crate::error::Result;
-use crate::graph::edge::{Edge, EdgeEndpoint};
+use crate::error::{FlowError, Result};
+use crate::graph::edge::Edge;
 use crate::graph::graph::Graph;
 use crate::graph::node::{Node, ParamValue, Port, Vec2};
 use crate::graph::types::{NodeType, PortType};
@@ -47,11 +47,15 @@ pub enum Command {
         from: ParamValue,
         to: ParamValue,
     },
+    /// 将当前选中节点复制到剪贴板（无 graph 变更）
+    CopySelected,
+    /// 在指定屏幕坐标处粘贴剪贴板内容（由 App 转换为世界坐标）
+    PasteAt { screen_pos: Pos2 },
 }
 
 impl Command {
     /// 应用命令。
-    fn apply(&self, graph: &mut Graph) {
+    fn apply(&self, graph: &mut Graph, _clipboard: &mut Clipboard) {
         match self {
             Self::MoveNode { node_id, to, .. } => {
                 if let Some(node) = graph.nodes.get_mut(node_id) {
@@ -76,6 +80,12 @@ impl Command {
                 if let Some(node) = graph.nodes.get_mut(node_id) {
                     node.set_param(key, to.clone());
                 }
+            }
+            Self::CopySelected => {
+                // 无 graph 变更，由 App::push_command 单独处理
+            }
+            Self::PasteAt { .. } => {
+                // 实际粘贴逻辑在 App::push_command 中处理，避免命令结构膨胀
             }
         }
     }
@@ -110,8 +120,20 @@ impl Command {
                     node.set_param(key, from.clone());
                 }
             }
+            Self::CopySelected | Self::PasteAt { .. } => {
+                // 剪贴板/粘贴操作在 update_canvas 或全局快捷键中直接处理，不进入 Undo 栈。
+            }
         }
     }
+}
+
+/// 剪贴板内容。
+#[derive(Debug, Clone, Default)]
+pub struct Clipboard {
+    /// 被复制的节点
+    pub nodes: Vec<Node>,
+    /// 被复制节点之间的内部连线
+    pub edges: Vec<Edge>,
 }
 
 /// 应用主状态。
@@ -123,45 +145,44 @@ pub struct App {
     pub interaction: InteractionController,
     pub undo_stack: Vec<Command>,
     pub redo_stack: Vec<Command>,
-    pub clipboard: Vec<Node>,
+    pub clipboard: Clipboard,
     pub current_file: Option<PathBuf>,
-    pub validation_errors: Vec<crate::error::FlowError>,
+    pub validation_errors: Vec<FlowError>,
     pub error_nodes: HashSet<String>,
     pub search_window_open: bool,
     pub search_query: String,
     pub status_message: String,
+    /// 是否显示空画布欢迎提示
+    pub show_welcome_hint: bool,
 }
 
 impl App {
-    /// 创建默认应用，并加载一个示例图与中文字体。
+    /// 创建默认应用，并加载中文字体。
     pub fn new(cc: &eframe::CreationContext) -> Self {
         setup_fonts(&cc.egui_ctx);
-        let graph = build_sample_graph();
+        let graph = Graph::default();
         Self {
             canvas: Canvas::new(),
             selected_nodes: HashSet::new(),
             selected_edges: HashSet::new(),
-            error_nodes: {
-                let mut set = HashSet::new();
-                set.insert(id_by_type(&graph, NodeType::Log));
-                set
-            },
+            error_nodes: HashSet::new(),
             interaction: InteractionController::new(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
-            clipboard: Vec::new(),
+            clipboard: Clipboard::default(),
             current_file: None,
             validation_errors: Vec::new(),
             search_window_open: false,
             search_query: String::new(),
             status_message: String::from("就绪"),
             graph,
+            show_welcome_hint: true,
         }
     }
 
     /// 执行命令并压入 Undo 栈。
     fn push_command(&mut self, cmd: Command) {
-        cmd.apply(&mut self.graph);
+        cmd.apply(&mut self.graph, &mut self.clipboard);
         self.undo_stack.push(cmd);
         if self.undo_stack.len() > 50 {
             self.undo_stack.remove(0);
@@ -183,7 +204,7 @@ impl App {
     /// 重做。
     fn redo(&mut self) {
         if let Some(cmd) = self.redo_stack.pop() {
-            cmd.apply(&mut self.graph);
+            cmd.apply(&mut self.graph, &mut self.clipboard);
             self.undo_stack.push(cmd);
             self.validate();
             self.status_message = String::from("已重做");
@@ -192,10 +213,12 @@ impl App {
 
     /// 验证图并更新错误列表。
     fn validate(&mut self) {
-        self.validation_errors = match GraphValidator::validate(&self.graph) {
-            Ok(()) => Vec::new(),
-            Err(e) => vec![e],
-        };
+        self.validation_errors = GraphValidator::collect_errors(&self.graph);
+        self.error_nodes = self
+            .validation_errors
+            .iter()
+            .flat_map(FlowError::affected_node_ids)
+            .collect();
     }
 
     /// 在指定世界坐标处创建一个节点。
@@ -209,6 +232,7 @@ impl App {
         node.category = def.category.clone();
         self.selected_nodes.clear();
         self.selected_nodes.insert(node.id.clone());
+        self.show_welcome_hint = false;
         self.push_command(Command::AddNode { node });
         self.status_message = format!("已添加 {}", def.display_name);
     }
@@ -246,6 +270,90 @@ impl App {
         self.status_message = String::from("已删除选中项");
     }
 
+    /// 将当前选中的节点复制到剪贴板。
+    fn copy_selected(&mut self) {
+        if self.selected_nodes.is_empty() {
+            return;
+        }
+        let mut nodes: Vec<Node> = Vec::new();
+        let mut old_to_new = HashMap::new();
+        for id in &self.selected_nodes {
+            if let Some(node) = self.graph.nodes.get(id) {
+                let mut copy = node.clone();
+                let old_id = copy.id.clone();
+                copy.id = uuid::Uuid::new_v4().to_string();
+                old_to_new.insert(old_id, copy.id.clone());
+                nodes.push(copy);
+            }
+        }
+
+        let mut edges: Vec<Edge> = Vec::new();
+        for edge in self.graph.edges.values() {
+            if let (Some(from_new), Some(to_new)) = (
+                old_to_new.get(&edge.from.node_id),
+                old_to_new.get(&edge.to.node_id),
+            ) {
+                let mut copy = edge.clone();
+                copy.id = uuid::Uuid::new_v4().to_string();
+                copy.from.node_id = from_new.clone();
+                copy.to.node_id = to_new.clone();
+                edges.push(copy);
+            }
+        }
+
+        self.clipboard = Clipboard { nodes, edges };
+        self.status_message = format!("已复制 {} 个节点", self.selected_nodes.len());
+    }
+
+    /// 在指定世界坐标处粘贴剪贴板内容。
+    fn paste_at(&mut self, position: Vec2) {
+        if self.clipboard.nodes.is_empty() {
+            return;
+        }
+
+        // 先克隆剪贴板内容，避免借用冲突
+        let nodes: Vec<Node> = self.clipboard.nodes.clone();
+        let edges: Vec<Edge> = self.clipboard.edges.clone();
+
+        // 计算剪贴板节点的中心，并生成新的 ID 映射
+        let mut old_to_new = HashMap::new();
+        let mut center = Vec2::ZERO;
+        for node in &nodes {
+            center += node.position;
+            old_to_new.insert(node.id.clone(), uuid::Uuid::new_v4().to_string());
+        }
+        center /= nodes.len() as f32;
+        let offset = position - center;
+
+        let mut pasted_ids = HashSet::new();
+        for node in &nodes {
+            let mut copy = node.clone();
+            if let Some(new_id) = old_to_new.get(&node.id) {
+                copy.id = new_id.clone();
+            }
+            copy.position += offset;
+            pasted_ids.insert(copy.id.clone());
+            self.push_command(Command::AddNode { node: copy });
+        }
+        for edge in &edges {
+            let mut copy = edge.clone();
+            copy.id = uuid::Uuid::new_v4().to_string();
+            if let (Some(from_new), Some(to_new)) = (
+                old_to_new.get(&edge.from.node_id),
+                old_to_new.get(&edge.to.node_id),
+            ) {
+                copy.from.node_id = from_new.clone();
+                copy.to.node_id = to_new.clone();
+                self.push_command(Command::AddEdge { edge: copy });
+            }
+        }
+
+        self.selected_nodes = pasted_ids;
+        self.selected_edges.clear();
+        self.show_welcome_hint = false;
+        self.status_message = format!("已粘贴 {} 个节点", nodes.len());
+    }
+
     /// 保存 JSON 到当前文件或默认路径。
     fn save_json(&mut self) -> Result<()> {
         let path = self
@@ -262,6 +370,23 @@ impl App {
         let json = doc.to_json_pretty()?;
         std::fs::write(&path, json)?;
         self.status_message = format!("已保存到 {}", path.display());
+        Ok(())
+    }
+
+    /// 从 JSON 文件加载图。
+    fn load_json(&mut self, path: &PathBuf) -> Result<()> {
+        let json = std::fs::read_to_string(path)?;
+        let doc = GraphDocument::from_json(&json)?;
+        self.graph = doc.graph;
+        self.canvas = Canvas::with_viewport(doc.viewport);
+        self.current_file = Some(path.clone());
+        self.selected_nodes.clear();
+        self.selected_edges.clear();
+        self.undo_stack.clear();
+        self.redo_stack.clear();
+        self.show_welcome_hint = self.graph.nodes.is_empty();
+        self.validate();
+        self.status_message = format!("已加载 {}", path.display());
         Ok(())
     }
 
@@ -287,6 +412,20 @@ impl App {
         generate_code_to_file(&self.graph, &path)?;
         self.status_message = format!("已导出 .code 到 {}", path.display());
         Ok(())
+    }
+
+    /// 新建空图。
+    fn new_graph(&mut self) {
+        self.graph = Graph::default();
+        self.canvas = Canvas::new();
+        self.selected_nodes.clear();
+        self.selected_edges.clear();
+        self.undo_stack.clear();
+        self.redo_stack.clear();
+        self.current_file = None;
+        self.show_welcome_hint = true;
+        self.validate();
+        self.status_message = String::from("新建工程");
     }
 
     /// 运行预览（当前仅提示，需要在游戏中加载 .code 文件）。
@@ -324,6 +463,14 @@ impl eframe::App for App {
                     self.status_message = format!("保存失败: {}", e);
                 }
             }
+            if i.modifiers.ctrl && i.key_pressed(egui::Key::C) {
+                self.copy_selected();
+            }
+            if i.modifiers.ctrl && i.key_pressed(egui::Key::V) {
+                if let Some(pos) = self.hover_world_pos(ctx, self.canvas_rect(ctx)) {
+                    self.paste_at(Vec2::new(pos.x, pos.y));
+                }
+            }
             if i.key_pressed(egui::Key::Delete) {
                 self.delete_selected();
             }
@@ -332,6 +479,16 @@ impl eframe::App for App {
         // 顶部工具栏
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                if ui.button("新建").clicked() {
+                    self.new_graph();
+                }
+                if ui.button("打开 JSON").clicked() {
+                    if let Some(path) = rfd::FileDialog::new().add_filter("JSON", &["json"]).pick_file() {
+                        if let Err(e) = self.load_json(&path) {
+                            self.status_message = format!("加载失败: {}", e);
+                        }
+                    }
+                }
                 if ui.button("保存 (Ctrl+S)").clicked() {
                     if let Err(e) = self.save_json() {
                         self.status_message = format!("保存失败: {}", e);
@@ -358,11 +515,19 @@ impl eframe::App for App {
                     self.redo();
                 }
                 ui.separator();
-                if ui.button("添加节点 (Space)").clicked() {
-                    self.search_window_open = !self.search_window_open;
+                if ui.button("复制 (Ctrl+C)").clicked() {
+                    self.copy_selected();
+                }
+                if ui.button("粘贴 (Ctrl+V)").clicked() {
+                    if let Some(pos) = self.hover_world_pos(ctx, self.canvas_rect(ctx)) {
+                        self.paste_at(Vec2::new(pos.x, pos.y));
+                    }
                 }
                 if ui.button("删除 (Del)").clicked() {
                     self.delete_selected();
+                }
+                if ui.button("添加节点 (Space)").clicked() {
+                    self.search_window_open = !self.search_window_open;
                 }
             });
         });
@@ -410,7 +575,7 @@ impl eframe::App for App {
                 StatusBarPanel::show(
                     ui,
                     &self.status_message,
-                    self.validation_errors.len(),
+                    &self.validation_errors,
                     self.hover_world_pos(ctx, self.canvas_rect(ctx)),
                     self.canvas.viewport.zoom,
                 );
@@ -489,8 +654,9 @@ impl App {
             }
         }
 
-        // 渲染连线
+        // 渲染连线并收集命中区域
         let edge_renderer = EdgeRenderer::default();
+        let mut edge_hits: Vec<(String, Rect)> = Vec::new();
         for edge in self.graph.edges.values() {
             let Some(&from_pos) =
                 port_positions.get(&(edge.from.node_id.clone(), edge.from.port_id.clone()))
@@ -511,14 +677,9 @@ impl App {
                 })
                 .collect();
             let is_selected = self.selected_edges.contains(&edge.id);
-            edge_renderer.render_edge(
-                ui,
-                from_pos,
-                to_pos,
-                &edge.edge_type,
-                &waypoints,
-                is_selected,
-            );
+            edge_renderer.render_edge(ui, from_pos, to_pos, &edge.edge_type, &waypoints, is_selected);
+            let hit_rect = edge_renderer.hit_rect(from_pos, to_pos, &waypoints);
+            edge_hits.push((edge.id.clone(), hit_rect));
         }
 
         // 绘制临时拖线
@@ -527,7 +688,8 @@ impl App {
                 let end_pos = ctx
                     .input(|i| i.pointer.hover_pos())
                     .unwrap_or(canvas_rect.center());
-                edge_renderer.render_edge(ui, start_pos, end_pos, &PortType::Flow, &[], true);
+                let target_color = self.interaction.edge_target_color(&Theme::WIRE_DEFAULT);
+                edge_renderer.render_edge_with_color(ui, start_pos, end_pos, target_color, &[]);
             }
         }
 
@@ -537,15 +699,38 @@ impl App {
             ui,
             &canvas_response,
             &node_hits,
+            &edge_hits,
             &port_hits,
             &mut self.graph,
             &mut self.selected_nodes,
             &mut self.selected_edges,
+            &mut self.clipboard,
             &mut self.canvas,
             &mut self.status_message,
         );
         for cmd in commands {
-            self.push_command(cmd);
+            match cmd {
+                Command::CopySelected => self.copy_selected(),
+                Command::PasteAt { screen_pos } => {
+                    let world = self
+                        .canvas
+                        .screen_to_world(screen_pos, canvas_response.canvas_rect);
+                    self.paste_at(Vec2::new(world.x, world.y));
+                }
+                _ => self.push_command(cmd),
+            }
+        }
+
+        // 空画布欢迎提示
+        if self.show_welcome_hint && self.graph.nodes.is_empty() {
+            let center = canvas_rect.center();
+            ui.painter().text(
+                center,
+                Align2::CENTER_CENTER,
+                "按 Space 添加第一个节点\n或从左侧节点库选择",
+                FontId::proportional(18.0),
+                Theme::TEXT_DIM,
+            );
         }
 
         // 画布信息覆盖层
@@ -573,72 +758,6 @@ impl App {
 /// 从端口定义构造运行时端口。
 fn port_from_def(p: &PortDefinition) -> Port {
     Port::new(&p.id, p.port_type.clone(), &p.label).required(p.required)
-}
-
-/// 构建示例图：Start -> If -> Log。
-fn build_sample_graph() -> Graph {
-    let mut graph = Graph::default();
-
-    let Some(start_def) = get_definition(NodeType::Start) else {
-        return graph;
-    };
-    let Some(if_def) = get_definition(NodeType::If) else {
-        return graph;
-    };
-    let Some(log_def) = get_definition(NodeType::Log) else {
-        return graph;
-    };
-
-    let mut start = Node::new(NodeType::Start, Vec2::new(-200.0, 0.0));
-    start.outputs = start_def.outputs.iter().map(port_from_def).collect();
-    start.category = start_def.category.clone();
-
-    let mut if_node = Node::new(NodeType::If, Vec2::new(0.0, 0.0));
-    if_node.inputs = if_def.inputs.iter().map(port_from_def).collect();
-    if_node.outputs = if_def.outputs.iter().map(port_from_def).collect();
-    if_node.set_param("condition", ParamValue::Literal(serde_json::json!(true)));
-    if_node.category = if_def.category.clone();
-
-    let mut log = Node::new(NodeType::Log, Vec2::new(240.0, 0.0));
-    log.inputs = log_def.inputs.iter().map(port_from_def).collect();
-    log.outputs = log_def.outputs.iter().map(port_from_def).collect();
-    log.set_param("output", ParamValue::Literal(serde_json::json!("流程结束")));
-    log.category = log_def.category.clone();
-
-    graph.add_node(start);
-    graph.add_node(if_node);
-    graph.add_node(log);
-
-    let id_start = id_by_type(&graph, NodeType::Start);
-    let id_if = id_by_type(&graph, NodeType::If);
-    let id_log = id_by_type(&graph, NodeType::Log);
-
-    if !id_start.is_empty() && !id_if.is_empty() {
-        let _ = graph.add_edge(Edge::new(
-            EdgeEndpoint::new(&id_start, "out_flow"),
-            EdgeEndpoint::new(&id_if, "in_flow"),
-            PortType::Flow,
-        ));
-    }
-    if !id_if.is_empty() && !id_log.is_empty() {
-        let _ = graph.add_edge(Edge::new(
-            EdgeEndpoint::new(&id_if, "out_true"),
-            EdgeEndpoint::new(&id_log, "in_flow"),
-            PortType::Flow,
-        ));
-    }
-
-    graph
-}
-
-/// 按类型查找节点 ID。
-fn id_by_type(graph: &Graph, node_type: NodeType) -> String {
-    graph
-        .nodes
-        .iter()
-        .find(|(_, n)| n.node_type == node_type)
-        .map(|(id, _)| id.clone())
-        .unwrap_or_default()
 }
 
 /// 加载字体以支持中文显示。

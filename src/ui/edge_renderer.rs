@@ -1,4 +1,4 @@
-use egui::{Color32, Pos2, Stroke};
+use egui::{Color32, Pos2, Rect, Stroke};
 
 use crate::graph::types::PortType;
 use crate::ui::theme::Theme;
@@ -9,6 +9,8 @@ pub struct EdgeRenderer {
     pub normal_width: f32,
     /// 高亮连线宽度
     pub highlighted_width: f32,
+    /// 命中测试时曲线采样点数
+    pub hit_samples: usize,
 }
 
 impl Default for EdgeRenderer {
@@ -16,6 +18,7 @@ impl Default for EdgeRenderer {
         Self {
             normal_width: 2.0,
             highlighted_width: 3.0,
+            hit_samples: 12,
         }
     }
 }
@@ -56,6 +59,54 @@ impl EdgeRenderer {
             });
         }
     }
+
+    /// 使用指定颜色渲染一条临时连线（不依赖端口类型）。
+    pub fn render_edge_with_color(
+        &self,
+        ui: &mut egui::Ui,
+        from: Pos2,
+        to: Pos2,
+        color: Color32,
+        waypoints: &[Pos2],
+    ) {
+        let stroke: egui::Stroke = Stroke::new(self.normal_width, color);
+        let points = collect_points(from, to, waypoints);
+        for window in points.windows(2) {
+            let segment_from = window[0];
+            let segment_to = window[1];
+            let (cp1, cp2) = control_points(segment_from, segment_to);
+            ui.painter().add(egui::epaint::CubicBezierShape {
+                points: [segment_from, cp1, cp2, segment_to],
+                closed: false,
+                fill: Color32::TRANSPARENT,
+                stroke: stroke.into(),
+            });
+        }
+    }
+
+    /// 计算连线的近似命中矩形，用于点击/框选检测。
+    ///
+    /// 以贝塞尔曲线采样点的外接框向外扩展一定边距作为命中区域。
+    pub fn hit_rect(&self, from: Pos2, to: Pos2, waypoints: &[Pos2]) -> Rect {
+        const PADDING: f32 = 6.0;
+        let points = collect_points(from, to, waypoints);
+        let mut min = from;
+        let mut max = from;
+        for window in points.windows(2) {
+            let a = window[0];
+            let b = window[1];
+            let (cp1, cp2) = control_points(a, b);
+            for t in 0..=self.hit_samples {
+                let t = t as f32 / self.hit_samples as f32;
+                let p = cubic_bezier(a, cp1, cp2, b, t);
+                min.x = min.x.min(p.x);
+                min.y = min.y.min(p.y);
+                max.x = max.x.max(p.x);
+                max.y = max.y.max(p.y);
+            }
+        }
+        Rect::from_min_max(min, max).expand(PADDING)
+    }
 }
 
 /// 收集连线经过的所有点（包含起点和终点）。
@@ -74,6 +125,19 @@ fn control_points(from: Pos2, to: Pos2) -> (Pos2, Pos2) {
     let cp1 = Pos2::new(from.x + offset, from.y);
     let cp2 = Pos2::new(to.x - offset, to.y);
     (cp1, cp2)
+}
+
+/// 计算三次贝塞尔曲线上 t ∈ [0, 1] 处的点。
+fn cubic_bezier(p0: Pos2, p1: Pos2, p2: Pos2, p3: Pos2, t: f32) -> Pos2 {
+    let u = 1.0 - t;
+    let a = u * u * u;
+    let b = 3.0 * u * u * t;
+    let c = 3.0 * u * t * t;
+    let d = t * t * t;
+    Pos2::new(
+        a * p0.x + b * p1.x + c * p2.x + d * p3.x,
+        a * p0.y + b * p1.y + c * p2.y + d * p3.y,
+    )
 }
 
 /// 根据连线类型和高亮状态返回颜色。
@@ -113,5 +177,14 @@ mod tests {
         assert_eq!(points[0], from);
         assert_eq!(points[1], wp[0]);
         assert_eq!(points[2], to);
+    }
+
+    #[test]
+    fn test_hit_rect_contains_curve() {
+        let renderer = EdgeRenderer::default();
+        let from = Pos2::new(0.0, 0.0);
+        let to = Pos2::new(100.0, 0.0);
+        let rect = renderer.hit_rect(from, to, &[]);
+        assert!(rect.contains(Pos2::new(50.0, 0.0)));
     }
 }

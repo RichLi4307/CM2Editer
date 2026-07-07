@@ -157,6 +157,41 @@ impl Vec2 {
     pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
 }
 
+impl std::ops::Add for Vec2 {
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        Self::new(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
+impl std::ops::AddAssign for Vec2 {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
+impl std::ops::Sub for Vec2 {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self::new(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl std::ops::Div<f32> for Vec2 {
+    type Output = Self;
+    fn div(self, rhs: f32) -> Self::Output {
+        Self::new(self.x / rhs, self.y / rhs)
+    }
+}
+
+impl std::ops::DivAssign<f32> for Vec2 {
+    fn div_assign(&mut self, rhs: f32) {
+        self.x /= rhs;
+        self.y /= rhs;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
