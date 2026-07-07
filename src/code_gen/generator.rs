@@ -221,16 +221,21 @@ impl<'a> CodeGenerator<'a> {
 
         let mut params = Vec::new();
         for param in &def.params {
-            match self.resolve_param_opt(node, &param.name) {
-                Some(value) => params.push(format!("{}={}", param.name, value)),
+            let value = match self.resolve_param_opt(node, &param.name) {
+                Some(v) => v,
                 None if param.required => {
-                    return Err(FlowError::Validation(format!(
-                        "Node {} missing required parameter '{}'",
-                        node.id, param.name
-                    )));
+                    // 缺失的必填参数使用默认值，避免导出失败
+                    match param.default_value() {
+                        ParamValue::Ref { node: ref_node, port } => {
+                            format!("ref:{}/{}", ref_node, port)
+                        }
+                        ParamValue::Literal(v) => format_literal(&v),
+                        ParamValue::Null => "null".to_string(),
+                    }
                 }
-                None => {}
-            }
+                None => continue,
+            };
+            params.push(format!("{}={}", param.name, value));
         }
         let param_str = params.join(", ");
 
@@ -271,9 +276,28 @@ impl<'a> CodeGenerator<'a> {
         Ok(None)
     }
 
-    /// 解析参数值，必填参数缺失时返回错误
+    /// 解析参数值，必填参数缺失时使用默认值。
     fn require_param(&self, node: &Node, name: &str) -> Result<String> {
-        self.resolve_param(node, name)
+        if let Some(value) = self.resolve_param_opt(node, name) {
+            return Ok(value);
+        }
+        let def = self
+            .registry
+            .get(&node.node_type)
+            .ok_or_else(|| FlowError::UnknownNodeType(format!("{:?}", node.node_type)))?;
+        let param = def
+            .params
+            .iter()
+            .find(|p| p.name == name)
+            .ok_or_else(|| FlowError::Validation(format!(
+                "Node {} has no parameter '{}'",
+                node.id, name
+            )))?;
+        Ok(match param.default_value() {
+            ParamValue::Ref { node: ref_node, port } => format!("ref:{}/{}", ref_node, port),
+            ParamValue::Literal(v) => format_literal(&v),
+            ParamValue::Null => "null".to_string(),
+        })
     }
 
     /// 解析参数值为 `.code` 字符串，缺失时返回 `None`（用于可选参数）

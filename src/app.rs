@@ -242,6 +242,9 @@ impl App {
         node.inputs = def.inputs.iter().map(port_from_def).collect();
         node.outputs = def.outputs.iter().map(port_from_def).collect();
         node.category = def.category.clone();
+        for param in &def.params {
+            node.set_param(&param.name, param.default_value());
+        }
         self.selected_nodes.clear();
         self.selected_nodes.insert(node.id.clone());
         self.show_welcome_hint = false;
@@ -403,6 +406,16 @@ impl App {
         self.undo_stack.clear();
         self.redo_stack.clear();
         self.show_welcome_hint = self.graph.nodes.is_empty();
+        // 为缺少必填参数的节点补默认值，兼容旧 JSON
+        for node in self.graph.nodes.values_mut() {
+            if let Some(def) = get_definition(node.node_type) {
+                for param in &def.params {
+                    if !node.params.contains_key(&param.name) {
+                        node.set_param(&param.name, param.default_value());
+                    }
+                }
+            }
+        }
         self.validate();
         self.graph_version += 1;
         self.status_message = format!("已加载 {}", path.display());

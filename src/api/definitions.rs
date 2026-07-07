@@ -35,6 +35,11 @@ impl ParamType {
             ParamType::Object => PortType::Object,
         }
     }
+
+    /// Returns a sensible default value for this parameter type.
+    pub fn default_value(self) -> ParamValue {
+        default_param_value(self)
+    }
 }
 
 /// Static definition of a single port on a node.
@@ -123,6 +128,13 @@ impl ParamDefinition {
     pub fn with_description(mut self, description: &str) -> Self {
         self.description = Some(description.to_string());
         self
+    }
+
+    /// Returns a sensible default value for this parameter definition.
+    pub fn default_value(&self) -> ParamValue {
+        self.default
+            .clone()
+            .unwrap_or_else(|| default_param_value(self.param_type))
     }
 }
 
@@ -247,6 +259,19 @@ fn p_req(name: &str, display: &str, param_type: ParamType) -> ParamDefinition {
 
 fn p_opt(name: &str, display: &str, param_type: ParamType) -> ParamDefinition {
     p(name, display, param_type).required(false)
+}
+
+/// Returns a sensible default value for a parameter type.
+fn default_param_value(param_type: ParamType) -> ParamValue {
+    ParamValue::Literal(match param_type {
+        ParamType::Number => serde_json::json!(0.0),
+        ParamType::String => serde_json::json!(""),
+        ParamType::Boolean => serde_json::json!(true),
+        ParamType::List | ParamType::Color | ParamType::Vector | ParamType::Quaternion => {
+            serde_json::json!([])
+        }
+        ParamType::Object => serde_json::json!({}),
+    })
 }
 
 // -------------------------------------------------------------------------
