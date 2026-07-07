@@ -1,0 +1,148 @@
+{
+  "version": "1.3",
+  "meta": {},
+  "nodes": [
+    {
+      "id": "node_d24970ad",
+      "type": "Start",
+      "category": "Control",
+      "position": {
+        "x": -459.99997,
+        "y": -184.20627
+      },
+      "size": {
+        "width": 180.0,
+        "height": 120.0
+      },
+      "collapsed": false,
+      "params": {},
+      "ports": {
+        "inputs": [],
+        "outputs": [
+          {
+            "id": "out_flow",
+            "type": "Flow",
+            "label": "下一步",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_cd50bd53",
+      "type": "If",
+      "category": "Control",
+      "position": {
+        "x": -190.40002,
+        "y": -174.60625
+      },
+      "size": {
+        "width": 180.0,
+        "height": 120.0
+      },
+      "collapsed": false,
+      "params": {
+        "condition": true
+      },
+      "ports": {
+        "inputs": [
+          {
+            "id": "in_flow",
+            "type": "Flow",
+            "label": "执行",
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out_true",
+            "type": "Flow",
+            "label": "True",
+            "required": true
+          },
+          {
+            "id": "out_false",
+            "type": "Flow",
+            "label": "False",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "node_337e2c71",
+      "type": "Log",
+      "category": "General Functions",
+      "position": {
+        "x": 68.79993,
+        "y": -174.60623
+      },
+      "size": {
+        "width": 180.0,
+        "height": 120.0
+      },
+      "collapsed": false,
+      "params": {
+        "output": [
+          1234
+        ]
+      },
+      "ports": {
+        "inputs": [
+          {
+            "id": "in_flow",
+            "type": "Flow",
+            "label": "执行",
+            "required": true
+          }
+        ],
+        "outputs": [
+          {
+            "id": "out_flow",
+            "type": "Flow",
+            "label": "下一步",
+            "required": true
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_node_d24970ad_out_flow_node_cd50bd53_in_flow",
+      "from": {
+        "node": "node_d24970ad",
+        "port": "out_flow"
+      },
+      "to": {
+        "node": "node_cd50bd53",
+        "port": "in_flow"
+      },
+      "type": "Flow",
+      "waypoints": []
+    },
+    {
+      "id": "edge_node_cd50bd53_out_true_node_337e2c71_in_flow",
+      "from": {
+        "node": "node_cd50bd53",
+        "port": "out_true"
+      },
+      "to": {
+        "node": "node_337e2c71",
+        "port": "in_flow"
+      },
+      "type": "Flow",
+      "waypoints": []
+    }
+  ],
+  "labels": {},
+  "threads": [],
+  "comments": [],
+  "viewport": {
+    "x": 0.0,
+    "y": 0.0,
+    "zoom": 1.0,
+    "grid_size": 20.0,
+    "show_grid": true
+  }
+}

@@ -1,0 +1,5 @@
+main:
+	If(true) [
+		Log(output="hello")
+	] [
+	]
