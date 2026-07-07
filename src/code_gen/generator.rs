@@ -306,6 +306,8 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// 收集所有标签，按字母顺序排序，并确保 `main` 在最前
+    /// 收集标签。如果图为空标签，则自动为所有 Start 节点生成 `main` 标签，
+    /// 避免从 UI 创建的图导出为空文件。
     fn collect_labels(&self) -> Vec<(String, Vec<String>)> {
         let mut labels: Vec<(String, Vec<String>)> = self
             .graph
@@ -313,6 +315,20 @@ impl<'a> CodeGenerator<'a> {
             .iter()
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
+
+        if labels.is_empty() {
+            let start_nodes: Vec<String> = self
+                .graph
+                .nodes
+                .values()
+                .filter(|n| n.node_type == NodeType::Start)
+                .map(|n| n.id.clone())
+                .collect();
+            if !start_nodes.is_empty() {
+                labels.push(("main".to_string(), start_nodes));
+            }
+        }
+
         labels.sort_by(|a, b| {
             if a.0 == "main" {
                 return std::cmp::Ordering::Less;

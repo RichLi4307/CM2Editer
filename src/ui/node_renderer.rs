@@ -46,6 +46,8 @@ impl Default for NodeRenderer {
 pub struct PortGeometry {
     /// 端口 ID
     pub id: String,
+    /// 端口标签
+    pub label: String,
     /// 端口类型
     pub port_type: PortType,
     /// 端口圆心屏幕坐标
@@ -93,6 +95,7 @@ impl NodeRenderer {
             );
             ports.push(PortGeometry {
                 id: port.id.clone(),
+                label: port.label.clone(),
                 port_type: port.port_type.clone(),
                 center,
                 is_input: true,
@@ -111,6 +114,7 @@ impl NodeRenderer {
             );
             ports.push(PortGeometry {
                 id: port.id.clone(),
+                label: port.label.clone(),
                 port_type: port.port_type.clone(),
                 center,
                 is_input: false,
@@ -226,7 +230,7 @@ impl NodeRenderer {
         let port_def = Port {
             id: port.id.clone(),
             port_type: port.port_type.clone(),
-            label: String::new(),
+            label: port.label.clone(),
             required: false,
         };
         self.paint_port(ui, port.center, &port_def, port.is_input);
