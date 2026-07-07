@@ -17,7 +17,7 @@ impl Default for EdgeRenderer {
     fn default() -> Self {
         Self {
             normal_width: 2.0,
-            highlighted_width: 3.0,
+            highlighted_width: 3.5,
             hit_samples: 12,
         }
     }
@@ -28,7 +28,7 @@ impl EdgeRenderer {
     ///
     /// `from` 和 `to` 为屏幕坐标；`waypoints` 为中间经过点的屏幕坐标。
     /// `edge_type` 决定连线颜色：Flow 为白色，Data 为对应端口类型颜色。
-    /// `is_highlighted` 为 true 时加粗并提高亮度。
+    /// `is_highlighted` 为 true 时加粗并绘制蓝色发光外框。
     pub fn render_edge(
         &self,
         ui: &mut egui::Ui,
@@ -45,8 +45,23 @@ impl EdgeRenderer {
             self.normal_width
         };
         let stroke: egui::Stroke = Stroke::new(width, color);
-
         let points = collect_points(from, to, waypoints);
+
+        if is_highlighted {
+            let glow_stroke: egui::Stroke = Stroke::new(width + 6.0, Theme::SELECTED_GLOW.gamma_multiply(0.4));
+            for window in points.windows(2) {
+                let segment_from = window[0];
+                let segment_to = window[1];
+                let (cp1, cp2) = control_points(segment_from, segment_to);
+                ui.painter().add(egui::epaint::CubicBezierShape {
+                    points: [segment_from, cp1, cp2, segment_to],
+                    closed: false,
+                    fill: Color32::TRANSPARENT,
+                    stroke: glow_stroke.into(),
+                });
+            }
+        }
+
         for window in points.windows(2) {
             let segment_from = window[0];
             let segment_to = window[1];
@@ -147,8 +162,7 @@ fn edge_color(edge_type: &PortType, is_highlighted: bool) -> Color32 {
         _ => crate::ui::theme::port_color(edge_type),
     };
     if is_highlighted {
-        // 高亮时提亮颜色
-        base.additive()
+        Theme::SELECTED_GLOW
     } else {
         base
     }

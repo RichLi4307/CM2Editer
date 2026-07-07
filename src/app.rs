@@ -483,6 +483,11 @@ impl eframe::App for App {
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete)) {
             self.delete_selected();
         }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S)) {
+            if let Err(e) = self.save_json() {
+                self.status_message = format!("保存失败: {}", e);
+            }
+        }
 
         // 顶部工具栏
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
