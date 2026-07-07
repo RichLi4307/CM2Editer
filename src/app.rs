@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -12,16 +14,32 @@ use crate::graph::graph::Graph;
 use crate::graph::node::{Node, ParamValue, Port, Vec2};
 use crate::graph::types::{NodeType, PortType};
 use crate::graph::validation::GraphValidator;
+use crate::project::Project;
 use crate::serializer::json::GraphDocument;
 use crate::ui::canvas::Canvas;
 use crate::ui::edge_renderer::EdgeRenderer;
 use crate::ui::interaction::InteractionController;
 use crate::ui::node_renderer::{NodeRenderer, PortGeometry};
 use crate::ui::panels::{
-    json_preview::JsonPreviewPanel, node_library::NodeLibraryPanel, properties::PropertiesPanel,
+    code_editor::CodeEditorPanel,
+    json_preview::JsonPreviewPanel,
+    meta_editor::MetaEditorPanel,
+    node_library::NodeLibraryPanel,
+    project_tree::{ProjectTreeAction, ProjectTreePanel},
+    properties::PropertiesPanel,
     status_bar::StatusBarPanel,
 };
 use crate::ui::theme::Theme;
+
+/// 左栏当前显示的标签页。
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum LeftPanelTab {
+    /// 工程文件树。
+    #[default]
+    Project,
+    /// 节点库。
+    NodeLibrary,
+}
 
 /// 可撤销/重做命令。
 #[derive(Debug, Clone)]
@@ -146,7 +164,10 @@ pub struct App {
     pub undo_stack: Vec<Command>,
     pub redo_stack: Vec<Command>,
     pub clipboard: Clipboard,
-    pub current_file: Option<PathBuf>,
+    /// 当前打开的工程。
+    pub project: Option<Project>,
+    /// 是否显示 meta.json 而非节点图属性。
+    pub show_meta_editor: bool,
     pub validation_errors: Vec<FlowError>,
     pub error_nodes: HashSet<String>,
     pub search_window_open: bool,
@@ -160,6 +181,22 @@ pub struct App {
     pub cached_json_version: u64,
     /// 图版本号，变化时重新生成缓存 JSON
     pub graph_version: u64,
+    /// 左栏当前标签页
+    left_panel_tab: LeftPanelTab,
+    /// 新建工程对话框状态
+    new_project_dialog_open: bool,
+    new_project_parent: Option<PathBuf>,
+    new_project_name: String,
+    /// 新建 .code 对话框状态
+    new_code_dialog_open: bool,
+    new_code_name: String,
+    /// 重命名 .code 对话框状态
+    rename_code_dialog_open: bool,
+    rename_old_name: String,
+    rename_new_name: String,
+    /// 导出工程对话框状态
+    export_project_dialog_open: bool,
+    export_destination: Option<PathBuf>,
 }
 
 impl App {
@@ -176,7 +213,8 @@ impl App {
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             clipboard: Clipboard::default(),
-            current_file: None,
+            project: None,
+            show_meta_editor: false,
             validation_errors: Vec::new(),
             search_window_open: false,
             search_query: String::new(),
@@ -186,6 +224,17 @@ impl App {
             cached_json: String::from("{}"),
             cached_json_version: 0,
             graph_version: 0,
+            left_panel_tab: LeftPanelTab::default(),
+            new_project_dialog_open: false,
+            new_project_parent: None,
+            new_project_name: String::new(),
+            new_code_dialog_open: false,
+            new_code_name: String::new(),
+            rename_code_dialog_open: false,
+            rename_old_name: String::new(),
+            rename_new_name: String::new(),
+            export_project_dialog_open: false,
+            export_destination: None,
         }
     }
 
@@ -248,6 +297,7 @@ impl App {
         self.selected_nodes.clear();
         self.selected_nodes.insert(node.id.clone());
         self.show_welcome_hint = false;
+        self.show_meta_editor = false;
         self.push_command(Command::AddNode { node });
         self.status_message = format!("已添加 {}", def.display_name);
     }
@@ -370,88 +420,122 @@ impl App {
         self.status_message = format!("已粘贴 {} 个节点", nodes.len());
     }
 
-    /// 保存 JSON 到当前文件或弹出对话框选择路径。
-    fn save_json(&mut self) -> Result<()> {
-        let path = if let Some(ref p) = self.current_file {
-            p.clone()
-        } else if let Some(p) = rfd::FileDialog::new()
-            .add_filter("JSON", &["json"])
-            .save_file()
-        {
-            p
-        } else {
-            self.status_message = "已取消保存".to_string();
+    /// 保存工程。若当前没有工程，则打开新建工程对话框。
+    fn save_project(&mut self) -> Result<()> {
+        if self.project.is_none() {
+            self.new_project_dialog_open = true;
+            self.status_message = String::from("请先创建或打开工程");
             return Ok(());
-        };
-        let doc = GraphDocument::from_graph(
-            self.graph.clone(),
-            serde_json::Value::Object(serde_json::Map::new()),
-            self.canvas.viewport.clone(),
-            Vec::new(),
-            Vec::new(),
-        );
-        let json = doc.to_json_pretty()?;
-        std::fs::write(&path, json)?;
-        self.current_file = Some(path.clone());
-        self.status_message = format!("已保存到 {}", path.display());
+        }
+        self.sync_active_to_project();
+        if let Some(project) = &mut self.project {
+            project.save()?;
+            self.status_message = format!("已保存工程 {}", project.root.display());
+        }
         Ok(())
     }
 
-    /// 从 JSON 文件加载图。
-    fn load_json(&mut self, path: &PathBuf) -> Result<()> {
-        let json = std::fs::read_to_string(path)?;
-        let doc = GraphDocument::from_json(&json)?;
-        self.graph = doc.graph;
-        self.canvas = Canvas::with_viewport(doc.viewport);
-        self.current_file = Some(path.clone());
+    /// 从工程文件夹加载工程。
+    fn load_project(&mut self, root: PathBuf) -> Result<()> {
+        let root_display = root.display().to_string();
+        let project = Project::open(root)?;
+        self.project = Some(project);
+        self.load_active_code();
+        self.status_message = format!("已打开工程 {}", root_display);
+        Ok(())
+    }
+
+    /// 将当前 App 中的图同步到工程当前激活的 `.code` 文件。
+    fn sync_active_to_project(&mut self) {
+        if let Some(project) = &mut self.project {
+            let viewport = self.canvas.viewport.clone();
+            let _ = project.sync_active_code(self.graph.clone(), viewport);
+        }
+    }
+
+    /// 将工程当前激活的 `.code` 文件加载到 App 的图与画布中。
+    fn load_active_code(&mut self) {
+        if let Some(project) = &self.project {
+            if let Some(code_file) = project.active_code_file() {
+                self.graph = code_file.graph_doc.graph.clone();
+                self.canvas = Canvas::with_viewport(code_file.graph_doc.viewport.clone());
+                self.selected_nodes.clear();
+                self.selected_edges.clear();
+                self.undo_stack.clear();
+                self.redo_stack.clear();
+                self.show_welcome_hint = self.graph.nodes.is_empty();
+                self.show_meta_editor = false;
+                // 为缺少必填参数的节点补默认值，兼容旧 JSON
+                for node in self.graph.nodes.values_mut() {
+                    if let Some(def) = get_definition(node.node_type) {
+                        for param in &def.params {
+                            if !node.params.contains_key(&param.name) {
+                                node.set_param(&param.name, param.default_value());
+                            }
+                        }
+                    }
+                }
+                self.validate();
+                self.graph_version += 1;
+            }
+        }
+    }
+
+    /// 切换到指定 `.code` 文件或 `meta.json`。
+    fn switch_to_code(&mut self, name: &str) {
+        self.sync_active_to_project();
+        if let Some(project) = &mut self.project {
+            if let Err(e) = project.set_active_code(name) {
+                self.status_message = format!("切换失败: {}", e);
+                return;
+            }
+        }
+        self.load_active_code();
+        self.status_message = format!("切换到 {}.code", name);
+    }
+
+    /// 切换到 meta.json 编辑。
+    fn switch_to_meta(&mut self) {
+        self.sync_active_to_project();
+        self.show_meta_editor = true;
+        if let Some(project) = &mut self.project {
+            project.active_code = String::new();
+            let _ = project.refresh_meta_text();
+        }
+        self.status_message = String::from("编辑 meta.json");
+    }
+
+    /// 新建空图（在工程模式下清空当前激活的代码图）。
+    fn confirm_new_graph(&mut self) {
+        if !self.graph.nodes.is_empty() {
+            let confirmed = rfd::MessageDialog::new()
+                .set_title("确认新建")
+                .set_description("当前画布有未保存的节点，是否清空？")
+                .set_buttons(rfd::MessageButtons::YesNo)
+                .show();
+            if !matches!(confirmed, rfd::MessageDialogResult::Yes) {
+                return;
+            }
+        }
+        self.new_graph();
+    }
+
+    /// 清空当前激活的代码图。
+    fn new_graph(&mut self) {
+        self.graph = Graph::default();
+        self.canvas = Canvas::new();
         self.selected_nodes.clear();
         self.selected_edges.clear();
         self.undo_stack.clear();
         self.redo_stack.clear();
-        self.show_welcome_hint = self.graph.nodes.is_empty();
-        // 为缺少必填参数的节点补默认值，兼容旧 JSON
-        for node in self.graph.nodes.values_mut() {
-            if let Some(def) = get_definition(node.node_type) {
-                for param in &def.params {
-                    if !node.params.contains_key(&param.name) {
-                        node.set_param(&param.name, param.default_value());
-                    }
-                }
-            }
-        }
+        self.show_welcome_hint = true;
+        self.show_meta_editor = false;
         self.validate();
         self.graph_version += 1;
-        self.status_message = format!("已加载 {}", path.display());
-        Ok(())
+        self.status_message = String::from("已清空当前代码图");
     }
 
-    /// 导出 JSON（弹出保存对话框）。导出成功后更新 `current_file`，
-    /// 使后续 Ctrl+S 保存到同一文件。
-    fn export_json(&mut self) -> Result<()> {
-        let path = if let Some(p) = rfd::FileDialog::new()
-            .add_filter("JSON", &["json"])
-            .save_file()
-        {
-            p
-        } else {
-            self.status_message = "已取消导出".to_string();
-            return Ok(());
-        };
-        let doc = GraphDocument::from_graph(
-            self.graph.clone(),
-            serde_json::Value::Object(serde_json::Map::new()),
-            self.canvas.viewport.clone(),
-            Vec::new(),
-            Vec::new(),
-        );
-        let json = doc.to_json_pretty()?;
-        std::fs::write(&path, json)?;
-        self.current_file = Some(path.clone());
-        self.status_message = format!("已导出 JSON 到 {}", path.display());
-        Ok(())
-    }
-
-    /// 导出 `.code` 文件（弹出保存对话框）。
+    /// 导出 `.code` 文件（弹出保存对话框），保留单文件导出能力。
     fn export_code(&mut self) -> Result<()> {
         let path = if let Some(p) = rfd::FileDialog::new()
             .add_filter("Code", &["code"])
@@ -476,41 +560,29 @@ impl App {
         Ok(())
     }
 
-    /// 新建空图，若有未保存节点则先确认。
-    fn confirm_new_graph(&mut self) {
-        if !self.graph.nodes.is_empty() {
-            let confirmed = rfd::MessageDialog::new()
-                .set_title("确认新建")
-                .set_description("当前画布有未保存的节点，是否新建？")
-                .set_buttons(rfd::MessageButtons::YesNo)
-                .show();
-            if !matches!(confirmed, rfd::MessageDialogResult::Yes) {
-                return;
-            }
+    /// 导出工程到指定文件夹。
+    fn export_project(&mut self, destination: &std::path::Path) -> Result<()> {
+        if self.project.is_none() {
+            self.status_message = String::from("没有打开的工程");
+            return Ok(());
         }
-        self.new_graph();
-    }
-
-    /// 新建空图。
-    fn new_graph(&mut self) {
-        self.graph = Graph::default();
-        self.canvas = Canvas::new();
-        self.selected_nodes.clear();
-        self.selected_edges.clear();
-        self.undo_stack.clear();
-        self.redo_stack.clear();
-        self.current_file = None;
-        self.show_welcome_hint = true;
-        self.validate();
-        self.graph_version += 1;
-        self.status_message = String::from("新建工程");
+        self.sync_active_to_project();
+        if let Some(project) = &self.project {
+            project.export(destination)?;
+            self.status_message = format!(
+                "已导出工程到 {}",
+                destination
+                    .join(project.root.file_name().unwrap_or_default())
+                    .display()
+            );
+        }
+        Ok(())
     }
 
     /// 运行预览（当前仅提示，需要在游戏中加载 .code 文件）。
     fn run_preview(&mut self) {
-        self.status_message = String::from(
-            "运行预览：请将导出的 .code 文件放入游戏 CustomMissions2 文件夹后启动游戏",
-        );
+        self.status_message =
+            String::from("运行预览：请将工程导出到 CustomMissions2 文件夹后启动游戏");
     }
 
     /// 获取当前鼠标悬停的世界坐标（如果可用）。
@@ -532,6 +604,75 @@ impl App {
         );
         doc.to_json_pretty()
             .unwrap_or_else(|e| format!("序列化失败: {}", e))
+    }
+
+    /// 处理工程文件树触发的动作。
+    fn handle_project_action(&mut self, action: ProjectTreeAction) {
+        match action {
+            ProjectTreeAction::None => {}
+            ProjectTreeAction::NewProjectDialog => {
+                self.new_project_dialog_open = true;
+                self.new_project_parent = None;
+                self.new_project_name.clear();
+            }
+            ProjectTreeAction::OpenProjectDialog => {
+                if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                    if let Err(e) = self.load_project(path) {
+                        self.status_message = format!("打开工程失败: {}", e);
+                        rfd::MessageDialog::new()
+                            .set_title("打开失败")
+                            .set_description(format!("无法打开工程: {}", e))
+                            .set_buttons(rfd::MessageButtons::Ok)
+                            .show();
+                    }
+                }
+            }
+            ProjectTreeAction::SaveProject => {
+                if let Err(e) = self.save_project() {
+                    self.status_message = format!("保存失败: {}", e);
+                }
+            }
+            ProjectTreeAction::ExportProjectDialog => {
+                self.export_project_dialog_open = true;
+                self.export_destination = None;
+            }
+            ProjectTreeAction::SelectMeta => {
+                self.switch_to_meta();
+            }
+            ProjectTreeAction::SelectCode(name) => {
+                self.switch_to_code(&name);
+            }
+            ProjectTreeAction::NewCodeDialog => {
+                self.new_code_dialog_open = true;
+                self.new_code_name.clear();
+            }
+            ProjectTreeAction::DeleteCode(name) => {
+                if let Some(project) = &mut self.project {
+                    if project.code_files.len() <= 1 {
+                        self.status_message = String::from("至少保留一个 .code 文件");
+                        return;
+                    }
+                    let confirmed = rfd::MessageDialog::new()
+                        .set_title("确认删除")
+                        .set_description(format!("是否删除 {}.code？", name))
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .show();
+                    if matches!(confirmed, rfd::MessageDialogResult::Yes) {
+                        if let Err(e) = project.remove_code_file(&name) {
+                            self.status_message = format!("删除失败: {}", e);
+                        } else {
+                            self.load_active_code();
+                            self.status_message = format!("已删除 {}.code", name);
+                        }
+                    }
+                }
+            }
+            ProjectTreeAction::RenameCode(name) => {
+                self.rename_old_name = name;
+                self.rename_new_name.clear();
+                self.rename_code_dialog_open = true;
+            }
+        }
     }
 }
 
@@ -592,7 +733,7 @@ impl eframe::App for App {
         });
 
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S)) {
-            if let Err(e) = self.save_json() {
+            if let Err(e) = self.save_project() {
                 self.status_message = format!("保存失败: {}", e);
             }
         }
@@ -600,38 +741,39 @@ impl eframe::App for App {
         // 顶部工具栏
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui.button("新建").clicked() {
-                    self.confirm_new_graph();
+                if ui.button("新建工程").clicked() {
+                    self.new_project_dialog_open = true;
+                    self.new_project_parent = None;
+                    self.new_project_name.clear();
                 }
-                if ui.button("打开 JSON").clicked() {
-                    if let Some(path) = rfd::FileDialog::new()
-                        .add_filter("JSON", &["json"])
-                        .pick_file()
-                    {
-                        if let Err(e) = self.load_json(&path) {
+                if ui.button("打开工程").clicked() {
+                    if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                        if let Err(e) = self.load_project(path) {
                             self.status_message = format!("加载失败: {}", e);
                             rfd::MessageDialog::new()
                                 .set_title("加载失败")
-                                .set_description(&format!("无法加载 JSON: {}", e))
+                                .set_description(format!("无法加载工程: {}", e))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }
                     }
                 }
-                if ui.button("保存 (Ctrl+S)").clicked() {
-                    if let Err(e) = self.save_json() {
+                if ui.button("保存工程 (Ctrl+S)").clicked() {
+                    if let Err(e) = self.save_project() {
                         self.status_message = format!("保存失败: {}", e);
                     }
                 }
-                if ui.button("导出 JSON").clicked() {
-                    if let Err(e) = self.export_json() {
-                        self.status_message = format!("导出 JSON 失败: {}", e);
-                    }
+                if ui.button("导出工程").clicked() {
+                    self.export_project_dialog_open = true;
+                    self.export_destination = None;
                 }
                 if ui.button("导出 .code").clicked() {
                     if let Err(e) = self.export_code() {
                         self.status_message = format!("导出 .code 失败: {}", e);
                     }
+                }
+                if ui.button("清空当前图").clicked() {
+                    self.confirm_new_graph();
                 }
                 if ui.button("运行预览").clicked() {
                     self.run_preview();
@@ -661,26 +803,57 @@ impl eframe::App for App {
             });
         });
 
-        // 左栏节点库
-        egui::SidePanel::left("node_library")
+        // 左栏：工程文件树 / 节点库 标签页
+        let mut left_action = ProjectTreeAction::None;
+        egui::SidePanel::left("side_panel")
             .width_range(180.0..=300.0)
             .show(ctx, |ui| {
-                let spawn_pos = self
-                    .hover_world_pos(ctx, self.canvas_rect(ctx))
-                    .map(|p| Vec2::new(p.x, p.y));
-                if let Some(node_type) =
-                    NodeLibraryPanel::show(ui, &mut self.search_query, &mut self.search_window_open)
-                {
-                    let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
-                    self.add_node_at(node_type, pos);
+                ui.horizontal(|ui| {
+                    let project_tab =
+                        ui.selectable_label(self.left_panel_tab == LeftPanelTab::Project, "工程");
+                    if project_tab.clicked() {
+                        self.left_panel_tab = LeftPanelTab::Project;
+                    }
+                    let node_tab = ui.selectable_label(
+                        self.left_panel_tab == LeftPanelTab::NodeLibrary,
+                        "节点库",
+                    );
+                    if node_tab.clicked() {
+                        self.left_panel_tab = LeftPanelTab::NodeLibrary;
+                    }
+                });
+                ui.separator();
+
+                match self.left_panel_tab {
+                    LeftPanelTab::Project => {
+                        left_action = ProjectTreePanel::show(ui, self.project.as_mut());
+                    }
+                    LeftPanelTab::NodeLibrary => {
+                        let spawn_pos = self
+                            .hover_world_pos(ctx, self.canvas_rect(ctx))
+                            .map(|p| Vec2::new(p.x, p.y));
+                        if let Some(node_type) = NodeLibraryPanel::show(
+                            ui,
+                            &mut self.search_query,
+                            &mut self.search_window_open,
+                        ) {
+                            let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
+                            self.add_node_at(node_type, pos);
+                        }
+                    }
                 }
             });
+        self.handle_project_action(left_action);
 
-        // 右栏属性面板
+        // 右栏：属性面板 / meta 编辑器
         egui::SidePanel::right("properties")
             .width_range(200.0..=400.0)
             .show(ctx, |ui| {
-                if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
+                if self.show_meta_editor {
+                    if let Some(project) = self.project.as_mut() {
+                        let _changed = MetaEditorPanel::show(ui, project);
+                    }
+                } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
                     if let Some(node) = self.graph.nodes.get(&node_id).cloned() {
                         if let Some((key, value)) = PropertiesPanel::show(ui, &node) {
                             if let Some(n) = self.graph.nodes.get(&node_id) {
@@ -694,6 +867,12 @@ impl eframe::App for App {
                             }
                         }
                     }
+                } else if self.project.is_some() {
+                    ui.heading("工程设置");
+                    ui.label("点击左侧 meta.json 或选择节点进行编辑");
+                } else {
+                    ui.heading("属性");
+                    ui.label("打开工程后编辑节点属性");
                 }
             });
 
@@ -708,6 +887,17 @@ impl eframe::App for App {
                     self.hover_world_pos(ctx, self.canvas_rect(ctx)),
                     self.canvas.viewport.zoom,
                 );
+            });
+
+        // 底部代码预览
+        egui::TopBottomPanel::bottom("code_preview")
+            .default_height(120.0)
+            .show(ctx, |ui| {
+                if let Some(project) = self.project.as_mut() {
+                    let _changed = CodeEditorPanel::show(ui, project);
+                } else {
+                    ui.label("打开工程后查看 .code 代码");
+                }
             });
 
         // 底部 JSON 预览
@@ -725,7 +915,11 @@ impl eframe::App for App {
         egui::CentralPanel::default()
             .frame(egui::Frame::central_panel(&ctx.style()).fill(Theme::BACKGROUND))
             .show(ctx, |ui| {
-                self.update_canvas(ctx, ui);
+                if self.show_meta_editor {
+                    self.show_meta_editor_view(ui);
+                } else {
+                    self.update_canvas(ctx, ui);
+                }
             });
 
         // 搜索窗口
@@ -752,15 +946,146 @@ impl eframe::App for App {
                     }
                 });
         }
+
+        // 对话框
+        self.draw_dialogs(ctx);
     }
 }
 
 impl App {
     /// 获取当前画布矩形（近似）。
     fn canvas_rect(&self, ctx: &egui::Context) -> Rect {
-        // 由于无法直接获取 CentralPanel 剩余矩形，使用整个屏幕区域减去已知面板。
-        // 实际交互中由 canvas.update 提供精确矩形。
         ctx.available_rect()
+    }
+
+    /// 在 meta 编辑器模式下显示提示（避免画布空荡）。
+    fn show_meta_editor_view(&mut self, ui: &mut egui::Ui) {
+        ui.centered_and_justified(|ui| {
+            ui.label(
+                egui::RichText::new("正在编辑 meta.json\n请在右侧面板修改")
+                    .size(18.0)
+                    .color(Theme::TEXT_DIM),
+            );
+        });
+    }
+
+    /// 渲染各种弹出对话框。
+    fn draw_dialogs(&mut self, ctx: &egui::Context) {
+        if self.new_project_dialog_open {
+            if let Some(root) = ProjectTreePanel::new_project_dialog(
+                ctx,
+                &mut self.new_project_dialog_open,
+                &mut self.new_project_parent,
+                &mut self.new_project_name,
+            ) {
+                match Project::create(
+                    root.parent().unwrap_or(&root),
+                    root.file_name()
+                        .map(|n| n.to_string_lossy())
+                        .unwrap_or_default()
+                        .as_ref(),
+                ) {
+                    Ok(project) => {
+                        let root_display = project.root.display().to_string();
+                        self.project = Some(project);
+                        self.load_active_code();
+                        self.status_message = format!("已创建工程 {}", root_display);
+                    }
+                    Err(e) => {
+                        self.status_message = format!("创建工程失败: {}", e);
+                    }
+                }
+                self.new_project_dialog_open = false;
+            }
+        }
+
+        if self.new_code_dialog_open {
+            if let Some(name) = ProjectTreePanel::new_code_dialog(
+                ctx,
+                &mut self.new_code_dialog_open,
+                &mut self.new_code_name,
+            ) {
+                if let Some(project) = &mut self.project {
+                    if let Err(e) = project.add_code_file(&name) {
+                        self.status_message = format!("创建失败: {}", e);
+                    } else {
+                        self.load_active_code();
+                        self.status_message = format!("已创建 {}.code", name);
+                    }
+                }
+                self.new_code_dialog_open = false;
+            }
+        }
+
+        if self.rename_code_dialog_open {
+            if let Some((old_name, new_name)) = ProjectTreePanel::rename_code_dialog(
+                ctx,
+                &mut self.rename_code_dialog_open,
+                &self.rename_old_name,
+                &mut self.rename_new_name,
+            ) {
+                if let Some(project) = &mut self.project {
+                    if let Err(e) = project.rename_code_file(&old_name, &new_name) {
+                        self.status_message = format!("重命名失败: {}", e);
+                    } else {
+                        if self.active_code_name() == old_name {
+                            self.load_active_code();
+                        }
+                        self.status_message = format!("已重命名为 {}.code", new_name);
+                    }
+                }
+                self.rename_code_dialog_open = false;
+            }
+        }
+
+        if self.export_project_dialog_open {
+            let mut open = self.export_project_dialog_open;
+            egui::Window::new("导出工程")
+                .collapsible(false)
+                .open(&mut open)
+                .show(ctx, |ui| {
+                    ui.label("选择目标文件夹（通常为 CustomMissions2）:");
+                    ui.horizontal(|ui| {
+                        if ui.button("选择文件夹").clicked() {
+                            if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                                self.export_destination = Some(path);
+                            }
+                        }
+                        if let Some(p) = &self.export_destination {
+                            ui.label(format!("目标: {}", p.display()));
+                        }
+                    });
+                    ui.horizontal(|ui| {
+                        let can_export =
+                            self.export_destination.is_some() && self.project.is_some();
+                        if ui
+                            .add_enabled(can_export, egui::Button::new("导出"))
+                            .clicked()
+                        {
+                            if let Some(dest) = self.export_destination.take() {
+                                if let Err(e) = self.export_project(dest.as_path()) {
+                                    self.status_message = format!("导出失败: {}", e);
+                                }
+                            }
+                            self.export_project_dialog_open = false;
+                        }
+                        if ui.button("取消").clicked() {
+                            self.export_project_dialog_open = false;
+                        }
+                    });
+                });
+            if !open {
+                self.export_project_dialog_open = false;
+            }
+        }
+    }
+
+    /// 获取当前激活的代码文件名。
+    fn active_code_name(&self) -> String {
+        self.project
+            .as_ref()
+            .map(|p| p.active_code.clone())
+            .unwrap_or_default()
     }
 
     /// 更新画布内容并处理交互。
@@ -894,7 +1219,7 @@ impl App {
             &mut self.selected_nodes,
             &mut self.selected_edges,
             &mut self.clipboard,
-            &mut self.canvas,
+            &self.canvas,
             &mut self.status_message,
         );
         for cmd in commands {

@@ -15,9 +15,9 @@
 我们在开发一个**节点式流编辑器（Node-based Flow Editor）**，用于编辑一款游戏的**自定义任务脚本**。
 
 - 目标用户：游戏 Mod 作者（非专业程序员）
-- 输出格式：可视化画布 → JSON 文件 → 游戏加载器读取
+- 输出格式：可视化画布 → 工程文件夹（`meta.json` + 多个 `.code` + 内部 `.cm2editor/*.code.json`） → 游戏加载器读取
 - 技术栈：Rust（后端逻辑 + 桌面 GUI）
-- 编辑器中间格式：JSON（见 [json_schema.md](json_schema.md)）
+- 编辑器中间格式：每个 `.code` 文件对应一个 JSON 节点图（见 [json_schema.md](json_schema.md)）
 - 游戏脚本格式：`.code`（由 `code_gen` 模块生成）
 - 许可证：MIT
 
@@ -92,7 +92,8 @@ graph/       → 核心数据结构（Node / Edge / Graph），只依赖 api::ty
 serializer/  → JSON 读写与版本迁移，依赖 graph
              → 注意：serializer 不依赖 api，所有节点类型通过字符串反查
 code_gen/    → 生成 .code 文件，依赖 graph + api
-ui/          → 界面渲染与交互，依赖 graph + api
+project/     → 工程管理（meta.json、多 .code 文件、保存/导出），依赖 graph + serializer + code_gen + api
+ui/          → 界面渲染与交互，依赖 graph + api + project
 app/         → 主循环与状态管理，依赖所有上层模块
 ```
 
@@ -221,7 +222,7 @@ MyMission/
 - 编辑器内部使用 `.json` 文件保存每个 `.code` 对应的节点图（每个 `.code` 对应一个 Graph），并与工程文件夹一起保存/加载。
 - 新建/打开工程时必须选择项目文件夹并命名，不再使用单一文件对话框。
 
-> 当前代码尚未实现工程管理，属于发布前必做项。实现前请先阅读 `docs/问题清单.md` 第 1 条和 `docs/TODO.md` Phase 4.5。
+> 工程管理已 Phase 4.5 实现，入口在 `src/project.rs` 与 `src/app.rs`。新建/打开工程时使用文件夹对话框，保存时同步写回 `meta.json`、所有 `.code` 文件以及内部 `.cm2editor/*.code.json` 节点图。
 
 ---
 

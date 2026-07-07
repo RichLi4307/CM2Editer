@@ -55,9 +55,33 @@
 - 折叠节点高度：折叠时节点高度自适应为标题栏 + 端口最小高度。
 - 导出 JSON 路径同步：导出 JSON 成功后更新 `current_file`，后续 Ctrl+S 直接保存到同一文件。
 
+### 新增（Phase 4.5：工程/项目管理）
+
+- 工程管理核心模型：新增 `src/project.rs`，实现 `MissionMeta`、`Setting`、`Project`、`CodeFile` 数据结构，支持 `meta.json` 多语言标题/描述和设置项。
+- 工程文件夹结构：一个工程 = 文件夹 + `meta.json` + 多个 `.code` 文件 + 编辑器内部 `.cm2editor/*.code.json` 节点图。
+- 新建/打开工程：工具栏新增"新建工程""打开工程"，支持选择父文件夹并输入工程名称，自动创建 `meta.json` 和带 `Start` 节点的 `main.code`。
+- 保存工程：工具栏"保存工程 (Ctrl+S)" 同时写回 `meta.json`、所有 `.code` 文件和内部节点图 JSON。
+- 导出工程：工具栏"导出工程"将项目文件夹（含 `meta.json`、`.code`、资源目录）复制到目标文件夹（如 `CustomMissions2`）。
+- 左栏工程文件树：新增"工程"/"节点库"标签页，支持查看 `meta.json`、切换 `.code` 文件、新建/重命名/删除 `.code` 文件。
+- 右栏 `meta.json` 编辑器：以文本形式编辑 `meta.json`，实时解析并提示 JSON 错误。
+- 底部 `.code` 文本编辑器：查看和手动编辑当前 `.code` 文件代码，支持从节点图重新生成。
+- 多 `.code` 文件切换：每个 `.code` 文件对应独立节点图与画布状态，切换时自动同步当前图到工程。
+
+### 变更
+
+- 工具栏由单一文件操作升级为工程操作：移除"打开 JSON"/"导出 JSON"，改为"打开工程"/"保存工程"/"导出工程"；保留单文件"导出 .code"作为兼容入口。
+- `App` 移除旧 `current_file`，改为 `project: Option<Project>` 管理当前工程状态。
+
 ### 文档
 
-- 分析 `docs/examples/` 与 `docs/documentation_zh.html`：确认 Custom Missions 2 项目结构必须是"文件夹 + `meta.json` + 多个 `.code` 文件"，而当前编辑器仅支持单个 `.code` 导出。将工程/项目管理列为发布前必做任务，详见 `docs/TODO.md` Phase 4.5 与 `docs/问题清单.md` 第 1 条。
+- 更新 `README.md`：说明工程文件夹结构、多 `.code` 管理、`meta.json` 编辑和导出到 `CustomMissions2`。
+- 更新 `docs/TODO.md`：标记 Phase 4.5 全部 P0 任务完成。
+- 更新 `docs/agent_prompt.md`：反映工程管理已实现，并补充 `project/` 模块边界。
+
+### 测试
+
+- 新增 `src/project.rs` 单元测试：`MissionMeta` 序列化、Setting 反序列化、工程创建/打开/增删改 `.code` 文件。
+- `cargo test`：81 个 lib tests + 16 个 integration tests 全部通过，0 失败。
 - 归档旧 `docs/TODO.md` 至 `docs/archive/TODO-2026-07-08.md`。
 - 重构 `docs/TODO.md`：按工程复杂度（高/中/低/快速修复）重新组织 Phase 5 backlog。
 - 更新 `docs/问题清单.md`：筛去已解决问题，保留未解决问题、TODO 与作者全部原文建议，附录标注已解决/未解决标签。
