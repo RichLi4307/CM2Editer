@@ -5,6 +5,7 @@ use egui::{Align2, FontId, Pos2, Rect, Vec2 as EVec2};
 
 use crate::api::definitions::PortDefinition;
 use crate::api::registry::get_definition;
+use crate::code_gen::generator::generate_code_to_file;
 use crate::error::Result;
 use crate::graph::edge::{Edge, EdgeEndpoint};
 use crate::graph::graph::Graph;
@@ -264,6 +265,37 @@ impl App {
         Ok(())
     }
 
+    /// 导出 JSON 到固定导出路径。
+    fn export_json(&mut self) -> Result<()> {
+        let path = PathBuf::from("CM2Editer_export.json");
+        let doc = GraphDocument::from_graph(
+            self.graph.clone(),
+            serde_json::Value::Object(serde_json::Map::new()),
+            self.canvas.viewport.clone(),
+            Vec::new(),
+            Vec::new(),
+        );
+        let json = doc.to_json_pretty()?;
+        std::fs::write(&path, json)?;
+        self.status_message = format!("已导出 JSON 到 {}", path.display());
+        Ok(())
+    }
+
+    /// 导出 `.code` 文件。
+    fn export_code(&mut self) -> Result<()> {
+        let path = PathBuf::from("CM2Editer.code");
+        generate_code_to_file(&self.graph, &path)?;
+        self.status_message = format!("已导出 .code 到 {}", path.display());
+        Ok(())
+    }
+
+    /// 运行预览（当前仅提示，需要在游戏中加载 .code 文件）。
+    fn run_preview(&mut self) {
+        self.status_message = String::from(
+            "运行预览：请将导出的 .code 文件放入游戏 CustomMissions2 文件夹后启动游戏",
+        );
+    }
+
     /// 获取当前鼠标悬停的世界坐标（如果可用）。
     fn hover_world_pos(&self, ctx: &egui::Context, canvas_rect: Rect) -> Option<Pos2> {
         ctx.input(|i| {
@@ -305,12 +337,27 @@ impl eframe::App for App {
                         self.status_message = format!("保存失败: {}", e);
                     }
                 }
+                if ui.button("导出 JSON").clicked() {
+                    if let Err(e) = self.export_json() {
+                        self.status_message = format!("导出 JSON 失败: {}", e);
+                    }
+                }
+                if ui.button("导出 .code").clicked() {
+                    if let Err(e) = self.export_code() {
+                        self.status_message = format!("导出 .code 失败: {}", e);
+                    }
+                }
+                if ui.button("运行预览").clicked() {
+                    self.run_preview();
+                }
+                ui.separator();
                 if ui.button("撤销 (Ctrl+Z)").clicked() {
                     self.undo();
                 }
                 if ui.button("重做 (Ctrl+Y)").clicked() {
                     self.redo();
                 }
+                ui.separator();
                 if ui.button("添加节点 (Space)").clicked() {
                     self.search_window_open = !self.search_window_open;
                 }
