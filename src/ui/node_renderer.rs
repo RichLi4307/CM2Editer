@@ -75,10 +75,7 @@ impl NodeRenderer {
         } else {
             node.size.y.max(self.min_height)
         };
-        let size = Vec2::new(
-            node.size.x.max(self.min_width),
-            height,
-        );
+        let size = Vec2::new(node.size.x.max(self.min_width), height);
         Rect::from_min_size(screen_pos, size)
     }
 
@@ -90,10 +87,7 @@ impl NodeRenderer {
         } else {
             (max_ports - 1.0) * self.port_spacing
         };
-        self.header_height
-            + self.port_padding * 2.0
-            + self.port_radius * 2.0
-            + ports_height
+        self.header_height + self.port_padding * 2.0 + self.port_radius * 2.0 + ports_height
     }
 
     /// 计算节点端口在屏幕上的几何位置（不渲染）。
@@ -190,7 +184,8 @@ impl NodeRenderer {
             let glow = Theme::SELECTED_GLOW;
             let glow_faded =
                 egui::Color32::from_rgba_premultiplied(glow.r(), glow.g(), glow.b(), 128);
-            ui.painter().rect_filled(glow_rect, self.corner_radius, glow_faded);
+            ui.painter()
+                .rect_filled(glow_rect, self.corner_radius, glow_faded);
         }
 
         // 绘制错误状态边框
@@ -202,7 +197,8 @@ impl NodeRenderer {
         let border_stroke = Stroke::new(if has_errors { 2.0 } else { 1.0 }, border_color);
 
         // 绘制节点主体
-        ui.painter().rect_filled(rect, self.corner_radius as u8, body_color);
+        ui.painter()
+            .rect_filled(rect, self.corner_radius as u8, body_color);
         ui.painter().rect_stroke(
             rect,
             self.corner_radius as u8,
@@ -211,7 +207,8 @@ impl NodeRenderer {
         );
 
         // 绘制标题栏
-        let header_rect = Rect::from_min_size(rect.min, Vec2::new(rect.width(), self.header_height));
+        let header_rect =
+            Rect::from_min_size(rect.min, Vec2::new(rect.width(), self.header_height));
         let header_corner_radius = CornerRadius {
             nw: self.corner_radius as u8,
             ne: self.corner_radius as u8,
@@ -294,8 +291,11 @@ impl NodeRenderer {
         let port_count = node.inputs.len().max(node.outputs.len()) as f32;
         let body_top = rect.min.y + self.header_height;
         let params_x = rect.min.x + self.port_radius * 2.0 + 4.0;
-        let mut params_y = body_top + self.port_padding + self.port_radius
-            + (port_count - 1.0) * self.port_spacing + self.port_spacing * 0.5;
+        let mut params_y = body_top
+            + self.port_padding
+            + self.port_radius
+            + (port_count - 1.0) * self.port_spacing
+            + self.port_spacing * 0.5;
 
         for (name, value) in &node.params {
             if params_y > rect.max.y - self.port_padding {
@@ -336,8 +336,8 @@ mod tests {
 
     #[test]
     fn test_collapsed_node_height_is_smaller() {
-        use crate::graph::types::NodeType;
         use crate::graph::node::Vec2 as NodeVec2;
+        use crate::graph::types::NodeType;
         use crate::serializer::json::Viewport;
         use crate::ui::canvas::Canvas;
 
@@ -368,8 +368,8 @@ mod tests {
 
     #[test]
     fn test_collapsed_height_matches_ports() {
-        use crate::graph::types::NodeType;
         use crate::graph::node::Vec2 as NodeVec2;
+        use crate::graph::types::NodeType;
         use crate::serializer::json::Viewport;
         use crate::ui::canvas::Canvas;
 
@@ -388,7 +388,8 @@ mod tests {
         ];
 
         let rect = renderer.screen_rect(&canvas, &node, canvas_rect);
-        let expected_min = renderer.header_height + renderer.port_padding * 2.0 + renderer.port_radius * 2.0;
+        let expected_min =
+            renderer.header_height + renderer.port_padding * 2.0 + renderer.port_radius * 2.0;
         assert!(rect.height() >= expected_min);
         // 2 output ports means one spacing step between them
         let expected_with_ports = expected_min + renderer.port_spacing;

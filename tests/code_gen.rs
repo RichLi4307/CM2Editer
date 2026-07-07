@@ -26,8 +26,8 @@ fn generate_code_to_file_creates_file() -> Result<()> {
     generate_code_to_file(&doc.graph, output_path)?;
 
     assert!(output_path.exists());
-    let content =
-        fs::read_to_string(output_path).map_err(|e| CM2Editer::error::FlowError::Io(e.to_string()))?;
+    let content = fs::read_to_string(output_path)
+        .map_err(|e| CM2Editer::error::FlowError::Io(e.to_string()))?;
     assert!(content.contains("main:"));
     assert!(content.contains("If(true) ["));
     assert!(content.contains("_result = null"));

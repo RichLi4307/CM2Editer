@@ -341,7 +341,11 @@ mod tests {
         add_flow_edge(&mut graph, "node_3", "node_1");
 
         let errors = GraphValidator::collect_errors(&graph);
-        assert!(errors.iter().any(|e| matches!(e, FlowError::CycleDetected(_))));
+        assert!(
+            errors
+                .iter()
+                .any(|e| matches!(e, FlowError::CycleDetected(_)))
+        );
     }
 
     #[test]

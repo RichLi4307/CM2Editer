@@ -1,5 +1,5 @@
-use egui::Pos2;
 use crate::error::FlowError;
+use egui::Pos2;
 
 /// 状态栏面板。
 pub struct StatusBarPanel;

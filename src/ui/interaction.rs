@@ -113,7 +113,11 @@ impl InteractionController {
                 source_port,
                 source_type,
                 ..
-            } => Some((source_node.clone(), source_port.clone(), source_type.clone())),
+            } => Some((
+                source_node.clone(),
+                source_port.clone(),
+                source_type.clone(),
+            )),
             _ => None,
         }
     }
@@ -136,8 +140,7 @@ impl InteractionController {
         port_hits: &[(String, String, Pos2, PortType, bool)],
     ) -> Option<PortTargetStatus> {
         let (source_node, source_port, source_type) = self.edge_source_info()?;
-        let (target_node, target_port, target_type, is_input) =
-            find_port_at(mouse_pos, port_hits)?;
+        let (target_node, target_port, target_type, is_input) = find_port_at(mouse_pos, port_hits)?;
         Some(evaluate_target(
             graph,
             &source_node,
@@ -266,13 +269,7 @@ impl InteractionController {
                     status_message,
                 );
             } else {
-                self.show_canvas_context_menu(
-                    ctx,
-                    pos,
-                    clipboard,
-                    &mut commands,
-                    status_message,
-                );
+                self.show_canvas_context_menu(ctx, pos, clipboard, &mut commands, status_message);
             }
         }
 
@@ -476,7 +473,10 @@ impl InteractionController {
         }
 
         // 更新状态中的目标状态
-        if let CanvasState::DrawingEdge { target_status: ts, .. } = &mut self.state {
+        if let CanvasState::DrawingEdge {
+            target_status: ts, ..
+        } = &mut self.state
+        {
             *ts = target_status;
         }
 

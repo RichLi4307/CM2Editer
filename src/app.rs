@@ -374,7 +374,10 @@ impl App {
     fn save_json(&mut self) -> Result<()> {
         let path = if let Some(ref p) = self.current_file {
             p.clone()
-        } else if let Some(p) = rfd::FileDialog::new().add_filter("JSON", &["json"]).save_file() {
+        } else if let Some(p) = rfd::FileDialog::new()
+            .add_filter("JSON", &["json"])
+            .save_file()
+        {
             p
         } else {
             self.status_message = "已取消保存".to_string();
@@ -425,7 +428,10 @@ impl App {
     /// 导出 JSON（弹出保存对话框）。导出成功后更新 `current_file`，
     /// 使后续 Ctrl+S 保存到同一文件。
     fn export_json(&mut self) -> Result<()> {
-        let path = if let Some(p) = rfd::FileDialog::new().add_filter("JSON", &["json"]).save_file() {
+        let path = if let Some(p) = rfd::FileDialog::new()
+            .add_filter("JSON", &["json"])
+            .save_file()
+        {
             p
         } else {
             self.status_message = "已取消导出".to_string();
@@ -447,7 +453,10 @@ impl App {
 
     /// 导出 `.code` 文件（弹出保存对话框）。
     fn export_code(&mut self) -> Result<()> {
-        let path = if let Some(p) = rfd::FileDialog::new().add_filter("Code", &["code"]).save_file() {
+        let path = if let Some(p) = rfd::FileDialog::new()
+            .add_filter("Code", &["code"])
+            .save_file()
+        {
             p
         } else {
             self.status_message = "已取消导出".to_string();
@@ -521,7 +530,8 @@ impl App {
             Vec::new(),
             Vec::new(),
         );
-        doc.to_json_pretty().unwrap_or_else(|e| format!("序列化失败: {}", e))
+        doc.to_json_pretty()
+            .unwrap_or_else(|e| format!("序列化失败: {}", e))
     }
 }
 
@@ -529,7 +539,9 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // 全局快捷键（在 UI 绘制之前处理，防止被控件消费）
         // Space 仅在画布未捕获键盘输入时触发搜索，避免在文本框中输入空格时打开搜索窗口
-        if !ctx.wants_keyboard_input() && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space)) {
+        if !ctx.wants_keyboard_input()
+            && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space))
+        {
             self.search_window_open = !self.search_window_open;
         }
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Z)) {
@@ -592,7 +604,10 @@ impl eframe::App for App {
                     self.confirm_new_graph();
                 }
                 if ui.button("打开 JSON").clicked() {
-                    if let Some(path) = rfd::FileDialog::new().add_filter("JSON", &["json"]).pick_file() {
+                    if let Some(path) = rfd::FileDialog::new()
+                        .add_filter("JSON", &["json"])
+                        .pick_file()
+                    {
                         if let Err(e) = self.load_json(&path) {
                             self.status_message = format!("加载失败: {}", e);
                             rfd::MessageDialog::new()
@@ -758,7 +773,8 @@ impl App {
         let edge_renderer = EdgeRenderer::default();
 
         // 第一遍：计算所有节点屏幕区域和端口几何（不渲染，支持裁剪和 z 序）
-        let mut node_data: Vec<(&Node, &NodeDefinition, Rect, Vec<PortGeometry>, bool, bool)> = Vec::new();
+        let mut node_data: Vec<(&Node, &NodeDefinition, Rect, Vec<PortGeometry>, bool, bool)> =
+            Vec::new();
         let mut port_positions: HashMap<(String, String), Pos2> = HashMap::new();
         let mut port_hits: Vec<(String, String, Pos2, PortType, bool)> = Vec::new();
 
@@ -813,12 +829,22 @@ impl App {
             let waypoints: Vec<Pos2> = edge
                 .waypoints
                 .iter()
-                .map(|wp| self.canvas.world_to_screen(Pos2::new(wp.x, wp.y), canvas_rect))
+                .map(|wp| {
+                    self.canvas
+                        .world_to_screen(Pos2::new(wp.x, wp.y), canvas_rect)
+                })
                 .collect();
             let hit_rect = edge_renderer.hit_rect(from_pos, to_pos, &waypoints);
             if cull_rect.intersects(hit_rect) {
                 let is_selected = self.selected_edges.contains(&edge.id);
-                edge_renderer.render_edge(ui, from_pos, to_pos, &edge.edge_type, &waypoints, is_selected);
+                edge_renderer.render_edge(
+                    ui,
+                    from_pos,
+                    to_pos,
+                    &edge.edge_type,
+                    &waypoints,
+                    is_selected,
+                );
             }
             edge_hits.push((edge.id.clone(), hit_rect));
         }
@@ -841,7 +867,10 @@ impl App {
                     .unwrap_or(canvas_rect.center());
                 let target_color = self.interaction.edge_target_color(&Theme::WIRE_DEFAULT);
                 edge_renderer.render_edge_with_color(ui, start_pos, end_pos, target_color, &[]);
-                if let Some(status) = self.interaction.edge_target_status(&self.graph, end_pos, &port_hits) {
+                if let Some(status) =
+                    self.interaction
+                        .edge_target_status(&self.graph, end_pos, &port_hits)
+                {
                     if let Some((_, _, center, _, _)) = port_hits
                         .iter()
                         .find(|(_, _, c, _, _)| c.distance(end_pos) <= 10.0)
@@ -931,8 +960,7 @@ fn setup_fonts(ctx: &egui::Context) {
     // 1. 优先加载仓库内置的思源黑体 Regular
     let bundled_regular =
         r"assets\fonts\思源黑体\OTF\SimplifiedChinese\SourceHanSansSC-Regular.otf";
-    let bundled_bold =
-        r"assets\fonts\思源黑体\OTF\SimplifiedChinese\SourceHanSansSC-Bold.otf";
+    let bundled_bold = r"assets\fonts\思源黑体\OTF\SimplifiedChinese\SourceHanSansSC-Bold.otf";
 
     if let Ok(bytes) = std::fs::read(bundled_regular) {
         fonts
@@ -951,9 +979,10 @@ fn setup_fonts(ctx: &egui::Context) {
 
         // 同时加载 Bold 以支持粗体中文
         if let Ok(bytes) = std::fs::read(bundled_bold) {
-            fonts
-                .font_data
-                .insert("cjk-bold".to_owned(), egui::FontData::from_owned(bytes).into());
+            fonts.font_data.insert(
+                "cjk-bold".to_owned(),
+                egui::FontData::from_owned(bytes).into(),
+            );
             fonts
                 .families
                 .entry(egui::FontFamily::Proportional)

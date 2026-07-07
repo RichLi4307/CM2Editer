@@ -1,0 +1,139 @@
+{
+  "version": "1.3",
+  "meta": {
+    "title": { "En": "Test" }
+  },
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "position": { "x": 0, "y": 0 },
+      "ports": {
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "开始" }]
+      }
+    },
+    {
+      "id": "node_ct",
+      "type": "CreateThread",
+      "position": { "x": 100, "y": 0 },
+      "params": { "labelName": "testmission" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }],
+        "outputs": [
+          { "id": "out_flow", "type": "Flow", "label": "下一步" },
+          { "id": "out_thread", "type": "Object", "label": "线程" }
+        ]
+      }
+    },
+    {
+      "id": "node_log_start",
+      "type": "Log",
+      "position": { "x": 200, "y": 0 },
+      "params": { "output": "mission started" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }],
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "下一步" }]
+      }
+    },
+    {
+      "id": "node_return",
+      "type": "Return",
+      "position": { "x": 300, "y": 0 },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }]
+      }
+    },
+    {
+      "id": "node_t_start",
+      "type": "Start",
+      "position": { "x": 0, "y": 200 },
+      "ports": {
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "开始" }]
+      }
+    },
+    {
+      "id": "node_listener",
+      "type": "CreateListener",
+      "position": { "x": 100, "y": 200 },
+      "params": { "labelName": "reset" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }],
+        "outputs": [
+          { "id": "out_flow", "type": "Flow", "label": "下一步" },
+          { "id": "out_listener", "type": "Object", "label": "监听器" }
+        ]
+      }
+    },
+    {
+      "id": "node_log_ready",
+      "type": "Log",
+      "position": { "x": 200, "y": 200 },
+      "params": { "output": "thread ready" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }],
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "下一步" }]
+      }
+    },
+    {
+      "id": "node_t_return",
+      "type": "Return",
+      "position": { "x": 300, "y": 200 },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "执行" }]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": { "node": "node_start", "port": "out_flow" },
+      "to": { "node": "node_ct", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e2",
+      "from": { "node": "node_ct", "port": "out_flow" },
+      "to": { "node": "node_log_start", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e3",
+      "from": { "node": "node_log_start", "port": "out_flow" },
+      "to": { "node": "node_return", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e4",
+      "from": { "node": "node_t_start", "port": "out_flow" },
+      "to": { "node": "node_listener", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e5",
+      "from": { "node": "node_listener", "port": "out_flow" },
+      "to": { "node": "node_log_ready", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e6",
+      "from": { "node": "node_log_ready", "port": "out_flow" },
+      "to": { "node": "node_t_return", "port": "in_flow" },
+      "type": "Flow"
+    }
+  ],
+  "labels": {
+    "main": ["node_start", "node_ct", "node_log_start", "node_return"],
+    "testmission": ["node_t_start", "node_listener", "node_log_ready", "node_t_return"]
+  },
+  "threads": [
+    {
+      "id": "thread_main",
+      "name": "main",
+      "entry_label": "main",
+      "parent": null,
+      "auto_start": true
+    }
+  ],
+  "comments": [],
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

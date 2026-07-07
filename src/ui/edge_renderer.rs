@@ -48,7 +48,8 @@ impl EdgeRenderer {
         let points = collect_points(from, to, waypoints);
 
         if is_highlighted {
-            let glow_stroke: egui::Stroke = Stroke::new(width + 6.0, Theme::SELECTED_GLOW.gamma_multiply(0.4));
+            let glow_stroke: egui::Stroke =
+                Stroke::new(width + 6.0, Theme::SELECTED_GLOW.gamma_multiply(0.4));
             for window in points.windows(2) {
                 let segment_from = window[0];
                 let segment_to = window[1];

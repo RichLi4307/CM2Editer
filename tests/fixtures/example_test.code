@@ -1,0 +1,8 @@
+main:
+	var_node_ct_out_thread = CreateThread(labelName="testmission")
+	Log(output="mission started")
+	_result = null
+testmission:
+	var_node_listener_out_listener = CreateListener(labelName="reset")
+	Log(output="thread ready")
+	_result = null

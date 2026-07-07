@@ -3,7 +3,7 @@
 > 用途：单人项目管理 + Agent 任务追踪
 > 更新规则：每次 Agent 交付后，由用户（或 Agent）更新对应条目状态
 > 文件位置：`docs/TODO.md`
-> 更新时间：2026-07-08 03:59
+> 更新时间：2026-07-08 04:40
 
 ---
 
@@ -28,7 +28,7 @@
 | 任务 | 状态 | 复杂度 | 依赖 | 备注 |
 |------|------|--------|------|------|
 | 4.1 端到端测试：创建图 → 保存 JSON → 加载 → 验证 → 生成 `.code` | ✅ | 中 | 无 | 已有 `tests/code_gen.rs` 和 `json_roundtrip.rs` 覆盖，待补充完整流程 |
-| 4.2 用 `docs/examples/` 全部 4 个示例完整验证序列化与代码生成 | 🔄 | 中 | 4.1 | 目前 `tests/fixtures/` 仅覆盖部分示例，需全部 4 个 |
+| 4.2 用 `docs/examples/` 全部 4 个示例完整验证序列化与代码生成 | ✅ | 中 | 4.1 | 为 Test/NPC_type/drop bra and panties/MessengerExample 各建代表性图档 fixture，新增 `tests/examples_verify.rs`（9 项测试：序列化往返 + 代码生成比对 + 文件回写），总计 92 tests 通过 |
 | 4.3 性能测试：100+ 节点画布不卡顿 | ✅ | 低 | 无 | 视口裁剪 + JSON 缓存已实现，测试通过 |
 | 4.4 边界测试：空图、单节点、全折叠、全展开 | ✅ | 低 | 无 | 空图导出警告、折叠高度自适应已覆盖 |
 | 4.5 错误处理：加载损坏 JSON 时友好提示（不 panic） | ✅ | 低 | 无 | `load_json` 已捕获错误，`testerror.json` 已提供 |
@@ -49,12 +49,14 @@
 > ⚠️ 经分析 `docs/examples/` 与 `docs/documentation_zh.html`，发现当前编辑器仅导出单个 `.code` 文件，而真实 Custom Missions 2 项目是一个**文件夹工程**，必须包含 `meta.json` 和可拆分的多个 `.code` 文件。因此编辑器必须从"单一文件编辑器"升级为"工程管理器"。
 >
 > **依据：**
+>
 > - `documentation_zh.html#File-Structure`：每个项目在游戏 `CustomMissions2` 文件夹中有自己的子文件夹。
 > - `documentation_zh.html#Code`：项目可以拆分成多个 `.code` 文件，加载时合并。
 > - `documentation_zh.html#Meta`：项目必须包含 `meta.json`，定义多语言标题、描述、设置菜单（`_settings` 全局变量）。
 > - `docs/examples/` 中所有示例（`Test`、`NPC_type`、`drop bra and panties`、`MessengerExample` 等）均符合：文件夹 + `meta.json` + 一个或多个 `.code` 文件。
 >
 > **当前问题：**
+>
 > 1. `export_code` 只生成一个 `.code` 文件，没有生成对应的项目文件夹和 `meta.json`。
 > 2. `save_json` 将编辑器内部状态保存为单个 `.json`，与真实项目结构脱节。
 > 3. 没有内置文本编辑器，无法查看/修改生成的 `.code` 文件。
@@ -62,6 +64,7 @@
 > 5. 新建/保存工程时没有让用户选择项目文件夹并命名。
 >
 > **解决方案：**
+>
 > 1. 引入 `Project` 概念：一个工程文件夹 = `meta.json` + 一个或多个 `.code` 文件 + 编辑器内部 `.json` 文件（每张 `.code` 对应一个节点图）。
 > 2. 编辑器保存时生成/更新 `meta.json` 和所有 `.code` 文件；加载时读取整个文件夹。
 > 3. 左栏增加"工程"文件树面板，支持创建/重命名/删除 `.code` 文件和 `meta.json`。
@@ -212,6 +215,7 @@
 | 2026-07-08 | 第三轮修复 | Log 输出类型改为 String、空图导出警告、多 Start 独立标签、Space 快捷键屏蔽文本输入、折叠节点高度自适应、导出 JSON 更新 `current_file`；76+7 tests 通过 | ✅ |
 | 2026-07-08 | 文档归档 | 合并所有问题清单归档，生成最终 `docs/问题清单.md`，附录标注已解决/未解决标签 | ✅ |
 | 2026-07-08 | 当前任务 | 归档旧 TODO，按工程复杂度重构新 TODO，同步 README/CHANGELOG/agent_prompt 等文档 | 🔄 |
+| 2026-07-08 | 4.2 | 为 4 个示例（Test/NPC_type/drop bra and panties/MessengerExample）建立代表性图档 fixture 与期望 `.code`，新增 `tests/examples_verify.rs` 覆盖序列化往返 + 代码生成比对 + 文件回写；92 tests 通过 | ✅ |
 
 ---
 

@@ -226,7 +226,10 @@ impl<'a> CodeGenerator<'a> {
                 None if param.required => {
                     // 缺失的必填参数使用默认值，避免导出失败
                     match param.default_value() {
-                        ParamValue::Ref { node: ref_node, port } => {
+                        ParamValue::Ref {
+                            node: ref_node,
+                            port,
+                        } => {
                             format!("ref:{}/{}", ref_node, port)
                         }
                         ParamValue::Literal(v) => format_literal(&v),
@@ -285,16 +288,14 @@ impl<'a> CodeGenerator<'a> {
             .registry
             .get(&node.node_type)
             .ok_or_else(|| FlowError::UnknownNodeType(format!("{:?}", node.node_type)))?;
-        let param = def
-            .params
-            .iter()
-            .find(|p| p.name == name)
-            .ok_or_else(|| FlowError::Validation(format!(
-                "Node {} has no parameter '{}'",
-                node.id, name
-            )))?;
+        let param = def.params.iter().find(|p| p.name == name).ok_or_else(|| {
+            FlowError::Validation(format!("Node {} has no parameter '{}'", node.id, name))
+        })?;
         Ok(match param.default_value() {
-            ParamValue::Ref { node: ref_node, port } => format!("ref:{}/{}", ref_node, port),
+            ParamValue::Ref {
+                node: ref_node,
+                port,
+            } => format!("ref:{}/{}", ref_node, port),
             ParamValue::Literal(v) => format_literal(&v),
             ParamValue::Null => "null".to_string(),
         })
