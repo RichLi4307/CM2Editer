@@ -3,215 +3,97 @@
 > 用途：单人项目管理 + Agent 任务追踪
 > 更新规则：每次 Agent 交付后，由用户（或 Agent）更新对应条目状态
 > 文件位置：`docs/TODO.md`
+> 更新时间：2026-07-08 03:59
 
 ---
 
-## 当前冲刺（Current Sprint）
+## 当前状态
 
-| 任务 | 状态 | 负责人 | 最后更新 |
-| - | - | - | - |
-| 初始化 Rust 项目骨架（Cargo.toml + 目录结构） | ✅ 完成 | Agent | 2026-07-05 |
-| 实现 `error.rs` 全局错误类型 | ✅ 完成 | Agent | 2026-07-05 |
-| 实现 `graph/types.rs`（NodeType / PortType 枚举） | ✅ 完成 | Agent | 2026-07-05 |
-| 实现 `graph/node.rs`（Node / Port / ParamValue 结构） | ✅ 完成 | Agent | 2026-07-05 |
-| 实现 `graph/edge.rs`（Edge / EdgeEndpoint 结构） | ✅ 完成 | Agent | 2026-07-05 |
-| 实现 `graph/graph.rs`（Graph 容器：增删节点/边） | ✅ 完成 | Agent | 2026-07-05 |
-| 实现 `graph/validation.rs`（图验证器基础） | ✅ 完成 | Agent | 2026-07-05 |
-| 实现 `api/definitions.rs`（节点/端口/参数定义） | ✅ 完成 | Agent | 2026-07-06 |
-| 实现 `api/registry.rs`（节点注册表） | ✅ 完成 | Agent | 2026-07-06 |
-| 实现 `serializer/json.rs`（Graph ↔ JSON 双向序列化） | ✅ 完成 | Agent | 2026-07-06 |
-| 实现 `serializer/migration.rs`（版本迁移 1.0→1.3） | ✅ 完成 | Agent | 2026-07-06 |
-| JSON 往返集成测试 | ✅ 完成 | Agent | 2026-07-06 |
-| 实现 `code_gen/formatter.rs`（Tab 缩进管理器） | ✅ 完成 | Agent | 2026-07-06 |
-| 实现 `code_gen/generator.rs`（.code 代码生成器） | ✅ 完成 | Agent | 2026-07-06 |
-| .code 生成集成测试与 `docs/examples/simple_mission` 示例 | ✅ 完成 | Agent | 2026-07-06 |
-| Phase 3.1 GUI 框架选型与搭建（egui + eframe，`src/ui/theme.rs`） | ✅ 完成 | Agent | 2026-07-07 |
-| Phase 3.2 画布（无限网格、中键平移、滚轮缩放、`src/ui/canvas.rs`） | ✅ 完成 | Agent | 2026-07-07 |
-| Phase 3.3 + 3.4 节点渲染与连线渲染（`node_renderer.rs` / `edge_renderer.rs`） | ✅ 完成 | Agent | 2026-07-07 |
-| Phase 3.5 + 3.6 交互与面板（`interaction.rs`、`panels/*`） | ✅ 完成 | Agent | 2026-07-07 |
-| Phase 3.7 工具栏（保存/撤销/重做/导出 JSON/导出 `.code`/运行预览） | ✅ 完成 | Agent | 2026-07-07 |
+| 阶段 | 状态 | 备注 |
+|------|------|------|
+| Phase 0：项目初始化 | ✅ 完成 | 2026-07-05 |
+| Phase 1：数据层 | ✅ 完成 | 2026-07-05 |
+| Phase 2：序列化与代码生成 | ✅ 完成 | 2026-07-06 |
+| Phase 3：UI 层 | ✅ 完成 | 2026-07-07 |
+| Phase 3 三轮修复 | ✅ 完成 | 2026-07-08，24 项问题已修复，76+7 tests 通过 |
+| Phase 4：集成测试与打磨 | 🔄 进行中 | 剩余文档同步与端到端验证 |
+| Phase 5：新功能与发布 | 📋 待规划 | 基于作者建议的 backlog，按工程复杂度排序 |
 
 ---
 
-## Phase 0：项目初始化（地基）
+## Phase 4：集成测试与打磨（当前冲刺）
 
-- [x] **0.1** 创建 Git 仓库，提交初始 `.gitignore`（Rust 模板）
-- [x] **0.2** 编写 `Cargo.toml`（依赖：serde、serde_json、thiserror、uuid；`Vec2` 由自定义结构体实现，未采用 `glam`）
-- [x] **0.3** 创建完整目录结构（`src/graph/`、`src/serializer/`、`src/code_gen/`、`src/ui/`、`src/api/`、`tests/`）
-- [x] **0.4** 编写 `README.md`（项目简介、构建命令、MIT License）
-- [x] **0.5** 配置 `rustfmt.toml` / `clippy` 规则（统一代码风格）
-- [x] **0.6** 第一次 `cargo build` 通过，确认环境无问题
+> 目标：确保现有功能闭环，文档与代码一致，为 Phase 5 铺平道路。
 
-**验收标准：**`cargo check` 和 `cargo test` 能正常运行（即使测试为空）。
-
----
-
-## Phase 1：数据层（核心骨架）
-
-> 目标：不依赖 GUI，先把"图"的数据结构跑通，能单元测试。
-
-### 1.1 错误与类型系统
-
-- [x] **1.1.1** 实现 `src/error.rs` — `FlowError` 枚举 + `Result<T>` 别名
-- [x] **1.1.2** 实现 `src/graph/types.rs` — `NodeType` 枚举（143 种节点变体，含控制流、通用函数、游戏函数、数学/字符串/文件函数、对象构造函数及特殊节点）、`PortType` 枚举（含兼容性与颜色）
-- [x] **1.1.3** 实现 `src/api/mod.rs` + `src/api/definitions.rs` — `NodeDefinition` / `PortDefinition` / `ParamDefinition` 结构
-- [x] **1.1.4** 实现 `src/api/registry.rs` — 节点注册表（静态定义 → 运行时查询）
-
-### 1.2 图数据结构
-
-- [x] **1.2.1** 实现 `src/graph/node.rs` — `Node` / `Port` / `ParamValue` / `Vec2`
-- [x] **1.2.2** 实现 `src/graph/edge.rs` — `Edge` / `EdgeEndpoint`
-- [x] **1.2.3** 实现 `src/graph/graph.rs` — `Graph` 容器（`add_node`、`remove_node`、`add_edge`、级联删除）
-- [x] **1.2.4** 实现 `src/graph/mod.rs` — 模块导出（含 types）
-
-### 1.3 图验证器
-
-- [x] **1.3.1** 实现 `check_unique_ids` — 节点 ID 唯一性
-- [x] **1.3.2** 实现 `check_edge_endpoints` — 端点存在性
-- [x] **1.3.3** 实现 `check_type_compatibility` — 端口类型匹配
-- [x] **1.3.4** 实现 `check_single_input_per_port` — 数据端口单入边
-- [x] **1.3.5** 实现 `check_no_cycles` — Flow 边 DAG 检测（Kahn 算法）
-- [x] **1.3.6** 实现 `check_required_params` — 必填参数检查（基础版：检查 `ParamValue::Null`；待接入 `api::definitions`）
-- [x] **1.3.7** 实现 `GraphValidator::validate` — 统一入口
-
-### 1.4 单元测试（数据层）
-
-- [x] **1.4.1** 测试：添加/删除节点，级联删除边
-- [x] **1.4.2** 测试：创建环，验证器正确报错
-- [x] **1.4.3** 测试：类型不匹配连接，验证器正确报错
-- [x] **1.4.4** 测试：数据端口多入边，验证器正确报错
-- [x] **1.4.5** 测试：必填参数缺失，验证器正确报错（基础版：Null 参数）
-
-**Phase 1 验收标准：**
-
-- `cargo test` 全部通过
-- 可以纯代码构建一个 Graph，添加节点和边，运行验证器
-
----
-
-## Phase 2：序列化与代码生成
-
-> 目标：图 ↔ JSON 能双向转换；图 → `.code` 能生成游戏脚本。
-
-### 2.1 JSON 序列化
-
-- [x] **2.1.1** 实现 `src/serializer/json.rs` — `Graph → JSON`（含 `meta` 透传）
-- [x] **2.1.2** 实现 `src/serializer/json.rs` — `JSON → Graph`（含版本检查）
-- [x] **2.1.3** 实现 `src/serializer/migration.rs` — 版本迁移（1.0 → 1.1 → 1.2 → 1.3）
-- [x] **2.1.4** 集成测试：JSON 往返（Graph → JSON → Graph）数据一致性
-
-### 2.2 代码生成器
-
-- [x] **2.2.1** 实现 `src/code_gen/formatter.rs` — 缩进管理器（Tab 缩进）
-- [x] **2.2.2** 实现 `src/code_gen/generator.rs` — 遍历 Flow 边生成行代码
-- [x] **2.2.3** 处理 `Label` 节点 — 生成 `labelname:`
-- [x] **2.2.4** 处理 `If` / `While` / `For` — 生成缩进块
-- [x] **2.2.5** 处理 `Goto` / `CreateThread` / `CreateListener` — 跳转与并发语义
-- [x] **2.2.6** 处理参数引用 — 端口连接 → 变量名替换
-- [x] **2.2.7** 处理 `Return` — 生成 `_result` 赋值
-- [x] **2.2.8** 生成 `.code` 文件到磁盘
-- [x] **2.2.9** 集成测试：用 `docs/examples/` 的示例验证输出
-
-**Phase 2 验收标准：**
-
-- 所有 4 个示例任务（`NPC_type`、`Test`、`MessengerExample`、`drop bra and panties`）能导入为 Graph，再导出为 `.code`，语义一致
-- JSON 保存/加载不丢数据
-
----
-
-## Phase 3：UI 层（前端）
-
-> ⚠️ 前置检查：开始 Phase 3 前务必先读 [interaction_spec.md](interaction_spec.md)
-> UX 债务：拖线实时环检测反馈、空画布启动体验
-> 不解决这两点，Phase 3 验收标准直接不合格。
-> 目标：能用鼠标拖方块、连线、改参数、看 JSON。
-
-### 3.1 GUI 框架选型与搭建
-
-- [x] **3.1.1** 确定 GUI 框架（egui / iced / Tauri+Web）
-- [x] **3.1.2** 初始化框架项目结构，跑通窗口
-- [x] **3.1.3** 实现 `src/ui/theme.rs` — 颜色主题、节点分类色表（顶部添加颜色来源注释：`// 颜色来源：docs/node_types.md 第 12 节`）
-
-### 3.2 画布（Canvas）
-
-- [x] **3.2.1** 实现 `src/ui/canvas.rs` — 无限网格背景
-- [x] **3.2.2** 实现画布平移（中键拖拽）
-- [x] **3.2.3** 实现画布缩放（滚轮，以鼠标为中心，0.1x ~ 4x）
-- [x] **3.2.4** 实现 `viewport` 保存/恢复（JSON 中 `viewport` 字段）
-
-### 3.3 节点渲染
-
-- [x] **3.3.1** 实现 `src/ui/node_renderer.rs` — 节点卡片（标题栏 + 端口）
-- [x] **3.3.2** 按分类着色标题栏
-- [x] **3.3.3** 渲染端口圆点（左入右出，颜色按类型）
-- [x] **3.3.4** 渲染参数预览（折叠/展开）
-- [x] **3.3.5** 选中状态（蓝色发光边框）
-- [x] **3.3.6** 错误节点高亮（红色边框）
-
-### 3.4 连线渲染
-
-- [x] **3.4.1** 实现 `src/ui/edge_renderer.rs` — 贝塞尔曲线连接
-- [x] **3.4.2** 支持 `waypoints` 中间点
-- [x] **3.4.3** 连线高亮（靠近兼容端口时）
-
-### 3.5 交互
-
-- [x] **3.5.1** 实现 `src/ui/interaction.rs` — 节点拖拽（左键）
-- [x] **3.5.2** 框选（Shift + 拖拽）
-- [x] **3.5.3** 从端口拖出线创建连线
-- [x] **3.5.4** 右键节点菜单（复制、删除、折叠）
-- [x] **3.5.5** 双击空白 / 按 Space — 快速搜索创建节点
-- [x] **3.5.6** Delete 删除选中节点/边
-- [x] **3.5.7** Ctrl+Z / Ctrl+Y — 撤销/重做（至少 50 步）
-- [x] **3.5.8** Ctrl+S — 保存 JSON
-
-### 3.6 面板
-
-- [x] **3.6.1** 实现 `src/ui/panels/node_library.rs` — 左栏分类树 + 搜索
-- [x] **3.6.2** 实现 `src/ui/panels/properties.rs` — 右栏参数编辑（输入框/下拉/开关）
-- [x] **3.6.3** 实现 `src/ui/panels/json_preview.rs` — 底部实时 JSON 预览
-- [x] **3.6.4** 实现 `src/ui/panels/status_bar.rs` — 底部状态栏（错误数、坐标、缩放）
-
-### 3.7 应用主循环
-
-- [x] **3.7.1** 实现 `src/app.rs` — 应用状态管理（当前文件、选中项、剪贴板）
-- [x] **3.7.2** 实现 `src/main.rs` — 入口，启动 GUI
-- [x] **3.7.3** 工具栏：保存 | 撤销 | 重做 | 导出 JSON | 导出 `.code` | 运行预览
-
-**Phase 3 验收标准：**
-
-- 能打开编辑器，从左栏拖节点到画布
-- 能连 Flow 线和 Data 线
-- 能改参数，保存为 JSON，再加载回来
-- 能导出 `.code` 文件
-
----
-
-## Phase 4：集成测试与打磨
-
-- [ ] **4.1** 端到端测试：创建图 → 保存 JSON → 加载 → 验证 → 生成 `.code`
-- [ ] **4.2** 用 `docs/examples/` 全部 4 个示例完整验证序列化与代码生成
-- [ ] **4.3** 性能测试：100+ 节点画布不卡顿
-- [ ] **4.4** 边界测试：空图、单节点、全折叠、全展开
-- [ ] **4.5** 错误处理：加载损坏 JSON 时友好提示（不 panic）
-- [ ] **4.6** 键盘快捷键完整实现（对照 `agent_prompt.md` 第 5.3 节）
-- [ ] **4.7** 节点分类颜色与 `node_types.md` 色表一致
-- [ ] **4.8** 文档同步：更新 `README.md`、`CHANGELOG.md`
+| 任务 | 状态 | 复杂度 | 依赖 | 备注 |
+|------|------|--------|------|------|
+| 4.1 端到端测试：创建图 → 保存 JSON → 加载 → 验证 → 生成 `.code` | 🔄 | 中 | 无 | 已有 `tests/code_gen.rs` 和 `json_roundtrip.rs` 覆盖，待补充完整流程 |
+| 4.2 用 `docs/examples/` 全部 4 个示例完整验证序列化与代码生成 | 🔄 | 中 | 4.1 | 目前 `tests/fixtures/` 仅覆盖部分示例，需全部 4 个 |
+| 4.3 性能测试：100+ 节点画布不卡顿 | ✅ | 低 | 无 | 视口裁剪 + JSON 缓存已实现，测试通过 |
+| 4.4 边界测试：空图、单节点、全折叠、全展开 | ✅ | 低 | 无 | 空图导出警告、折叠高度自适应已覆盖 |
+| 4.5 错误处理：加载损坏 JSON 时友好提示（不 panic） | ✅ | 低 | 无 | `load_json` 已捕获错误，`testerror.json` 已提供 |
+| 4.6 键盘快捷键完整实现 | ✅ | 低 | 无 | Ctrl+Z/Y/C/V/S/Del/Space 已落地 |
+| 4.7 节点分类颜色与 `node_types.md` 色表一致 | ✅ | 低 | 无 | `theme.rs` 已同步 |
+| 4.8 文档同步：更新 `README.md`、`CHANGELOG.md`、`agent_prompt.md` | 🔄 | 低 | 无 | 本次正在同步 |
 
 **Phase 4 验收标准：**
 
 - 所有示例任务能正确导入导出
 - 无已知崩溃路径
+- 文档与当前代码一致
 
 ---
 
-## Phase 5：发布与后续
+## Phase 5：新功能与发布（Backlog）
 
-- [ ] **5.1** 整理 `docs/` 目录，确保所有 `.md` 与代码一致
-- [ ] **5.2** 编写用户手册（如何安装、如何写第一个任务）
-- [ ] **5.3** GitHub Release v0.1.0（Windows 可执行文件）
-- [ ] **5.4** 收集反馈，建立 Issue 模板
-- [ ] **5.5** 规划 v0.2.0（如：子图/Group 节点、主题切换、多语言 UI）
+> 按**工程复杂度**和**作者优先级**排序。高复杂度任务需要先设计再动手；低复杂度任务可穿插进行。
+
+### 5.1 高复杂度（需架构设计）
+
+| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
+|------|--------|--------|------|------|
+| 5.1.1 **DataFlow 重构** | P0 | 高 | 无 | 节点内参数下拉框选择数据源、边框 Data 端口、虚线连线、JSON 预览栏改为数据菜单。必须先完成，否则 If/While 等条件节点无法连接数据流。 |
+| 5.1.2 **参数类型重构** | P1 | 高 | 5.1.1 | 审查 `docs/` 中 API 文档，修正 `General Function` 等节点参数类型；可枚举参数（如场景、物品类型、动作）提供下拉表。 |
+| 5.1.3 **命名空间管理** | P1 | 高 | 5.1.2 | 引入 `docs/selected_cosplay.json` 等命名空间文件，提供搜索、译名、命名空间选择窗口。涉及 cosplay、振动器、活塞等可枚举参数。 |
+| 5.1.4 **坐标"语言糖"** | P2 | 高 | 5.1.1 + API 文档 | 预制坐标/视角方向变量，编辑器可视化 x/y/z，`.code` 导出时语言转译。需评估与数学/变量节点的语义冲突。 |
+
+### 5.2 中复杂度（功能模块）
+
+| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
+|------|--------|--------|------|------|
+| 5.2.1 **左栏二级菜单** | P2 | 中 | 5.1.3 | 一级菜单：文件操作、命名空间管理、坐标菜单；节点库作为二级"节点菜单"。 |
+| 5.2.2 **静态检查** | P3 | 中 | 无 | 多 Start 警告、data-in-flow 缺失提示。 |
+| 5.2.3 **Start 多路连接警告** | P3 | 中 | 5.2.2 | 同一 Start 分支出多个独立下游（如 S→B 与 S→A→B）时 ⚠️ 警告但不阻止。 |
+| 5.2.4 **错误详情面板** | P3 | 中 | 无 | 底部状态栏错误可点击展开详情（当前仅显示错误数）。 |
+| 5.2.5 **画布状态机 Debug 显示** | P3 | 中 | 无 | 作者提出"需要能 debug 显示当前画布状态机"，可做成开发者模式覆盖层。 |
+
+### 5.3 低复杂度（UI 打磨）
+
+| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
+|------|--------|--------|------|------|
+| 5.3.1 **JSON 预览栏可调高度** | P3 | 低 | 无 | 底部 JSON 预览区域支持拖动调节高度。 |
+| 5.3.2 **端口吸附环** | P3 | 低 | 无 | 鼠标靠近输出端口时放大出一个环，提升拖线操作感。 |
+| 5.3.3 **左栏拖出节点** | P3 | 低 | 无 | 当前仅点击创建，支持从节点库拖拽到画布。 |
+| 5.3.4 **节点大小可调整** | P3 | 低 | 无 | 支持 resize handle 手动调整节点大小，保留最小尺寸限制。 |
+| 5.3.5 **电路连接线风格** | P3 | 低 | 无 | 作者建议：连线改为电路连接线风格，非贝塞尔曲线。 |
+
+### 5.4 快速修复（可立即做）
+
+| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
+|------|--------|--------|------|------|
+| 5.4.1 **Log 节点清空参数报 null 错误** | P2 | 低 | 无 | 必填 String 参数清空时应为 `Literal("")` 而非 `Null`，或调整验证器。 |
+
+---
+
+## Phase 6：发布与后续
+
+| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
+|------|------|--------|--------|------|
+| 6.1 整理 `docs/` 目录，确保所有 `.md` 与代码一致 | 🔄 | P2 | 低 | 正在进行 |
+| 6.2 编写用户手册（安装、第一个任务） | 📋 | P3 | 中 | 等 Phase 5 核心功能稳定后 |
+| 6.3 GitHub Release v0.1.0（Windows 可执行文件） | 📋 | P3 | 中 | 等 Phase 5 完成 DataFlow 和参数类型重构 |
+| 6.4 收集反馈，建立 Issue 模板 | 📋 | P3 | 低 | 发布后开始 |
+| 6.5 规划 v0.2.0（子图/Group、主题切换、多语言 UI） | 📋 | P3 | 高 | 长期规划 |
 
 ---
 
@@ -230,14 +112,19 @@
 | 2026-07-05 | 1.2.4 | 实现 `graph/mod.rs` 模块导出 | ✅ |
 | 2026-07-05 | 当前冲刺 | 实现 `graph/node.rs`、`edge.rs`、`graph.rs`、`validation.rs` 及单元测试；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
 | 2026-07-06 | 1.1.3,1.1.4 | 实现 `api/definitions.rs`、`api/registry.rs`、更新 `NodeType`/`ParamValue` 派生；`cargo test` 通过（34 项） | ✅ |
-| 2026-07-06 | 2.1.1~2.1.4 | 实现 `serializer/json.rs`、`serializer/migration.rs`、JSON 往返集成测试；调整 `Port` serde 与 `Graph::Clone`；`cargo test` 通过（49 项）、`cargo clippy` 无警告 | ✅ |
-| 2026-07-06 | 2.2.1~2.2.9 | 实现 `code_gen/formatter.rs`、`code_gen/generator.rs`、标签/If/While/For/Goto/Thread/Listener/Return/参数引用处理；创建 `docs/examples/simple_mission` 与集成测试；`cargo test` 通过（62 项）、`cargo clippy` 无警告 | ✅ |
-| 2026-07-06 | 2.2.5 补充 | 显式处理 `CreateThread`/`CreateListener`/`CreateListenerLocal` 匹配分支，修复 `generate_node_call` 可选参数跳过逻辑；新增 3 项并发语义测试；总计 58+3+4 = 65 项测试通过 | ✅ |
-| 2026-07-07 | Phase 3.1 | 确定 GUI 框架为 egui/eframe，初始化 `src/ui/` 结构与 `src/ui/theme.rs` 色表，改造 `src/main.rs` 启动基础窗口；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
-| 2026-07-07 | Phase 3.2 | 实现 `src/ui/canvas.rs`：无限网格、中键平移、滚轮缩放、屏幕/世界坐标转换、`Viewport` 默认实现；`cargo test` 通过（66 项单元测试 + 3 + 4 项集成测试） | ✅ |
-| 2026-07-07 | Phase 3.3 + 3.4 | 实现 `src/ui/node_renderer.rs`（节点卡片、分类标题栏、端口圆点、参数预览、选中/错误高亮）与 `src/ui/edge_renderer.rs`（贝塞尔连线、waypoints、高亮）；`main.rs` 集成示例图渲染；`cargo test` 通过（69 项单元测试） | ✅ |
-| 2026-07-07 | Phase 3.5 + 3.6 | 实现 `src/ui/interaction.rs`（节点拖拽、中键平移、框选、拖线创建、右键菜单、Space 搜索、删除、撤销/重做、保存），`src/ui/panels/*`（节点库、属性、JSON 预览、状态栏），`src/app.rs` 应用状态与布局；`cargo test` 通过（71 项单元测试 + 3 + 4 项集成测试） | ✅ |
-| 2026-07-07 | Phase 3.7 | 补全顶部工具栏：保存、撤销、重做、导出 JSON、导出 `.code`、运行预览；集成 `code_gen::generate_code_to_file`；`cargo test` 通过（72 项单元测试 + 3 + 4 项集成测试） | ✅ |
+| 2026-07-06 | 2.1.1~2.1.4 | 实现 `serializer/json.rs`、`serializer/migration.rs`、JSON 往返集成测试；`cargo test` 通过（49 项） | ✅ |
+| 2026-07-06 | 2.2.1~2.2.9 | 实现 `code_gen/formatter.rs`、`code_gen/generator.rs`、标签/If/While/For/Goto/Thread/Listener/Return/参数引用处理；`cargo test` 通过（62 项） | ✅ |
+| 2026-07-06 | 2.2.5 补充 | 显式处理 `CreateThread`/`CreateListener`/`CreateListenerLocal`，新增 3 项并发语义测试；总计 65 项测试通过 | ✅ |
+| 2026-07-07 | Phase 3.1 | 确定 GUI 框架为 egui/eframe，初始化 `src/ui/` 结构与 `src/ui/theme.rs` | ✅ |
+| 2026-07-07 | Phase 3.2 | 实现 `src/ui/canvas.rs`：无限网格、中键平移、滚轮缩放、屏幕/世界坐标转换 | ✅ |
+| 2026-07-07 | Phase 3.3 + 3.4 | 实现 `src/ui/node_renderer.rs` 与 `src/ui/edge_renderer.rs` | ✅ |
+| 2026-07-07 | Phase 3.5 + 3.6 | 实现 `src/ui/interaction.rs`、`src/ui/panels/*`，`src/app.rs` 应用状态与布局 | ✅ |
+| 2026-07-07 | Phase 3.7 | 补全顶部工具栏：保存、撤销、重做、导出 JSON、导出 `.code`、运行预览 | ✅ |
+| 2026-07-07 | 第一轮修复 | 节点单击选中、快捷键 `consume_key`、文件对话框、Crossing 虚线、z 序与视口裁剪、拖线目标端口填充、空白处右键粘贴、搜索窗口关闭、连线高亮；72+7 tests 通过 | ✅ |
+| 2026-07-07 | 第二轮修复 | 修复框选、多选拖拽、连线选中/删除、右键菜单、环检测可视化、损坏 JSON 加载；新增 73+7 tests 通过 | ✅ |
+| 2026-07-08 | 第三轮修复 | Log 输出类型改为 String、空图导出警告、多 Start 独立标签、Space 快捷键屏蔽文本输入、折叠节点高度自适应、导出 JSON 更新 `current_file`；76+7 tests 通过 | ✅ |
+| 2026-07-08 | 文档归档 | 合并所有问题清单归档，生成最终 `docs/问题清单.md`，附录标注已解决/未解决标签 | ✅ |
+| 2026-07-08 | 当前任务 | 归档旧 TODO，按工程复杂度重构新 TODO，同步 README/CHANGELOG/agent_prompt 等文档 | 🔄 |
 
 ---
 
@@ -246,7 +133,7 @@
 ```markdown
 请实现以下功能：
 
-**阶段**：Phase X
+**阶段**：Phase X / 5.X
 **任务**：任务编号 + 名称
 **模块**：`src/xxx/xxx.rs`
 **依赖**：`graph::types`, `graph::node`
@@ -262,7 +149,7 @@
 2. [ ] `cargo test` 通过
 3. [ ] `cargo clippy` 无警告
 4. [ ] `cargo fmt` 已格式化
-```text
+```
 
 ---
 
@@ -272,3 +159,5 @@
 - 项目路径：`D:\Workshop\CM2Editer`（Windows 开发机）
 - 树莓派不跑 GUI，只做后端测试
 - 记得给 GitHub 仓库加 topic：`rust`, `egui`, `node-editor`, `custom-missions-2`, `visual-scripting`
+- 作者重点需求：DataFlow 重构、参数类型重构、命名空间管理（`selected_cosplay.json`）、坐标"语言糖"、二级菜单
+- 开发原则：先完成高复杂度架构设计（5.1.x），再落地中低复杂度功能，避免反复返工

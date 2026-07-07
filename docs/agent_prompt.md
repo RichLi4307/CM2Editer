@@ -288,8 +288,9 @@ pub struct ParamDefinition {
 - [Rust 项目骨架](rust_project_skeleton.md)
 - [示例任务](examples/new%20npc%20type/main.code) 与 [meta.json](examples/new%20npc%20type/meta.json)
 - [中文文档](documentation_zh.html)
+- [项目进度与 backlog](TODO.md) — 当前进入 Phase 5：DataFlow 重构、参数类型重构、命名空间管理、坐标"语言糖"
 
-> 备注：本项目中 `ui_spec.md` 尚未提供，UI 细节以 [agent_prompt_phase3.md](agent_prompt_phase3.md) 和 [node_types.md](node_types.md) 颜色编码表为准。
+> 备注：本项目中 `ui_spec.md` 尚未提供，UI 细节以 [agent_prompt_phase3.md](agent_prompt_phase3.md) 和 [node_types.md](node_types.md) 颜色编码表为准。Phase 5 将重点实现 DataFlow 数据流连线，届时参数引用与端口连接语义会进一步扩展。
 
 ---
 

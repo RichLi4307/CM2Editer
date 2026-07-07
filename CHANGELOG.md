@@ -46,9 +46,32 @@
 - 更新 `README.md`，说明编辑器内置思源黑体字体及其许可证。
 - 更新 `docs/问题清单.md`，标记 P0–P3 问题为已解决并附手工验证清单。
 
-### 修复（2026-07-07 第二轮）
+### 修复（2026-07-08 第三轮）
 
-- 节点单击选中：修复单击节点无法选中（之前仅拖拽可选中），单击边/空白正常清除选区。
+- Log 节点参数编辑：将 `output` 参数类型从 `List` 改为 `String`，新建 Log 节点可正常输入非数字字符串。
+- 空图导出警告：导出 `.code` 时若图为空，弹出提示"图为空，导出的 .code 文件内容为空"。
+- 多 Start 节点标签：无显式标签时，每个 Start 节点生成独立标签 `main`、`main_1`、`main_2`…
+- Space 快捷键屏蔽：在文本输入控件中按 Space 不再误触搜索窗口，仅在画布无键盘焦点时触发。
+- 折叠节点高度：折叠时节点高度自适应为标题栏 + 端口最小高度。
+- 导出 JSON 路径同步：导出 JSON 成功后更新 `current_file`，后续 Ctrl+S 直接保存到同一文件。
+
+### 文档
+
+- 归档旧 `docs/TODO.md` 至 `docs/archive/TODO-2026-07-08.md`。
+- 重构 `docs/TODO.md`：按工程复杂度（高/中/低/快速修复）重新组织 Phase 5 backlog。
+- 更新 `docs/问题清单.md`：筛去已解决问题，保留未解决问题、TODO 与作者全部原文建议，附录标注已解决/未解决标签。
+- 同步 `README.md`、`CHANGELOG.md`、`agent_prompt.md`、`agent_prompt_phase3.md` 与当前进度一致。
+- 新增测试：`test_generate_two_starts_produce_separate_labels`、`test_generate_empty_graph_produces_empty_code`、`test_collapsed_node_height_is_smaller`、`test_collapsed_height_matches_ports`。
+
+### 测试
+
+- `cargo test`：76 个 lib tests + 7 个 integration tests 全部通过，0 失败。
+
+---
+
+> 后续计划：进入 Phase 5，优先完成 DataFlow 重构、参数类型重构、命名空间管理（`selected_cosplay.json`）等高复杂度任务。
+
+### 修复（2026-07-07 第二轮）：修复单击节点无法选中（之前仅拖拽可选中），单击边/空白正常清除选区。
 - 快捷键失效：全局快捷键 Ctrl+C/Ctrl+V/Ctrl+Z/Ctrl+Y/Delete 改用 `consume_key`，避免被文本输入消费。
 - 保存/导出对话框：保存 JSON、导出 JSON、导出 .code 按钮均改为 `rfd` 文件保存对话框。
 - 框选虚线：Crossing 模式（右→左拖拽）选择框改为虚线绘制。
