@@ -4,7 +4,7 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
-**注意：CHANGELOG 的写法**：每次变更只在 `[Unreleased]` 下追加新条目，**不删除** 已有内容。发布版本时再将 `[Unreleased]` 内的内容整体移至 `[v0.x.0] - YYYY-MM-DD` 段。
+> **维护说明**：每次新增变更时，在所有已有条目的**末尾追加**新条目，严禁删除或覆盖旧条目。所有旧版本均保存在 git 历史中（`git show <commit>:CHANGELOG.md`）。
 
 ---
 
@@ -32,11 +32,16 @@
 - `FlowError` 改为可 `Clone`，`CycleDetected` 携带环上节点 ID；`Io`/`Json` 变体存储字符串以支持 Clone。
 - `StatusBarPanel` 接收 `&[FlowError]` 以显示错误数量。
 
+### 已解决问题
+
+- P0.1 滚轮缩放跳跃：改为方向判定，一格放大/缩小 10%。
+- P0.2 中键平移去重：仅 `Canvas` 处理，移除 `interaction.rs` 的 `Panning` 状态。
+- P1.1 中文显示方块：优先使用内置思源黑体，缺失时回退 Windows 系统字体（微软雅黑 / 黑体）。
+- P1.2 左栏目录排序：分类聚合改用 `BTreeMap` 稳定排序。
+
 ### 文档
 
 - 归档旧 `docs/紧急修复清单.md` 至 `docs/archive/紧急修复清单-2026-07-07-14-34.md`。
-- 重构并新增 `docs/问题清单.md`，末尾生成临时检查单。
+- 重构并新增 `docs/问题清单.md`，仅保留当前未解决问题，末尾生成临时检查单。
 - 更新 `README.md`，说明编辑器内置思源黑体字体及其许可证。
 - 更新 `docs/问题清单.md`，标记 P0–P3 问题为已解决并附手工验证清单。
-
----
