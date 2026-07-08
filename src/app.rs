@@ -41,11 +41,13 @@ use crate::ui::theme::Theme;
 /// 左栏当前显示的标签页。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 enum LeftPanelTab {
-    /// 工程文件树。
+    /// 工程：文件树 + 节点库。
     #[default]
     Project,
-    /// 节点库。
-    NodeLibrary,
+    /// 命名空间管理。
+    Namespace,
+    /// 坐标预设。
+    Coordinate,
 }
 
 /// 可撤销/重做命令。
@@ -863,35 +865,40 @@ impl eframe::App for App {
             });
         });
 
-        // 左栏：工程文件树 / 节点库 标签页
+        // 左栏：工程 / 命名空间 / 坐标 标签页
         let mut left_action = ProjectTreeAction::None;
         egui::SidePanel::left("side_panel")
             .width_range(180.0..=300.0)
             .show(ctx, |ui| {
+                let active = self.left_panel_tab;
                 ui.horizontal(|ui| {
-                    let project_tab =
-                        ui.selectable_label(self.left_panel_tab == LeftPanelTab::Project, "工程");
-                    if project_tab.clicked() {
+                    if ui
+                        .selectable_label(active == LeftPanelTab::Project, "工程")
+                        .clicked()
+                    {
                         self.left_panel_tab = LeftPanelTab::Project;
                     }
-                    let node_tab = ui.selectable_label(
-                        self.left_panel_tab == LeftPanelTab::NodeLibrary,
-                        "节点库",
-                    );
-                    if node_tab.clicked() {
-                        self.left_panel_tab = LeftPanelTab::NodeLibrary;
+                    if ui
+                        .selectable_label(active == LeftPanelTab::Namespace, "命名空间")
+                        .clicked()
+                    {
+                        self.left_panel_tab = LeftPanelTab::Namespace;
+                    }
+                    if ui
+                        .selectable_label(active == LeftPanelTab::Coordinate, "坐标")
+                        .clicked()
+                    {
+                        self.left_panel_tab = LeftPanelTab::Coordinate;
                     }
                 });
                 ui.separator();
 
                 match self.left_panel_tab {
                     LeftPanelTab::Project => {
-                        left_action = ProjectTreePanel::show(ui, self.project.as_mut());
-                    }
-                    LeftPanelTab::NodeLibrary => {
                         let spawn_pos = self
                             .hover_world_pos(ctx, self.canvas_rect(ctx))
                             .map(|p| Vec2::new(p.x, p.y));
+                        // 节点库（置顶，可搜索）
                         if let Some(node_type) = NodeLibraryPanel::show(
                             ui,
                             &mut self.search_query,
@@ -899,6 +906,47 @@ impl eframe::App for App {
                         ) {
                             let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
                             self.add_node_at(node_type, pos);
+                        }
+                        ui.separator();
+                        // 工程文件树
+                        left_action = ProjectTreePanel::show(ui, self.project.as_mut());
+                    }
+                    LeftPanelTab::Namespace => {
+                        ui.heading("命名空间");
+                        ui.label("cosplay.adult_toy 等");
+                        ui.separator();
+                        if self.namespace_registry.namespace_names().is_empty() {
+                            ui.label("未加载到命名空间文件");
+                            ui.label("请检查 assets/namespaces/");
+                        } else {
+                            for name in self.namespace_registry.namespace_names() {
+                                let ns = self.namespace_registry.get(name);
+                                if let Some(ns) = ns {
+                                    let count = ns.entries.len();
+                                    ui.label(format!("{}  ({} 项)", name, count));
+                                }
+                            }
+                        }
+                    }
+                    LeftPanelTab::Coordinate => {
+                        ui.heading("坐标预设");
+                        ui.separator();
+                        if self.coordinate_registry.entries.is_empty() {
+                            ui.label("未加载到坐标预设");
+                            ui.label("请编辑 assets/coordinates/default.json");
+                        } else {
+                            for stage in self.coordinate_registry.stage_names() {
+                                let count = self
+                                    .coordinate_registry
+                                    .entries
+                                    .iter()
+                                    .filter(|e| e.stage == stage)
+                                    .count();
+                                ui.horizontal(|ui| {
+                                    ui.label(stage);
+                                    ui.label(format!("({} 点)", count));
+                                });
+                            }
                         }
                     }
                 }
