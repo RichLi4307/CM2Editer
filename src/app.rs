@@ -976,13 +976,13 @@ impl eframe::App for App {
                         // 内联添加表单
                         ui.horizontal(|ui| {
                             ui.label("空间:");
-                            ui.text_edit_singleline(&mut self.ns_add_target);
+                            ui.add_sized([70.0, 20.0], egui::TextEdit::singleline(&mut self.ns_add_target));
                             ui.label("Key:");
-                            ui.text_edit_singleline(&mut self.ns_add_key);
+                            ui.add_sized([80.0, 20.0], egui::TextEdit::singleline(&mut self.ns_add_key));
                         });
                         ui.horizontal(|ui| {
                             ui.label("名称:");
-                            ui.text_edit_singleline(&mut self.ns_add_name);
+                            ui.add_sized([90.0, 20.0], egui::TextEdit::singleline(&mut self.ns_add_name));
                             if ui.button("确定添加").clicked()
                                 && !self.ns_add_target.is_empty()
                                 && !self.ns_add_key.is_empty()
@@ -1177,19 +1177,19 @@ impl eframe::App for App {
                             // 内联坐标添加表单
                             ui.horizontal(|ui| {
                                 ui.label("ID:");
-                                ui.text_edit_singleline(&mut self.coord_add_id);
+                                ui.add_sized([60.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_id));
                                 ui.label("名:");
-                                ui.text_edit_singleline(&mut self.coord_add_name);
+                                ui.add_sized([60.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_name));
                                 ui.label("场景:");
-                                ui.text_edit_singleline(&mut self.coord_add_stage);
+                                ui.add_sized([60.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_stage));
                             });
                             ui.horizontal(|ui| {
                                 ui.label("x:");
-                                ui.text_edit_singleline(&mut self.coord_add_x);
+                                ui.add_sized([40.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_x));
                                 ui.label("y:");
-                                ui.text_edit_singleline(&mut self.coord_add_y);
+                                ui.add_sized([40.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_y));
                                 ui.label("z:");
-                                ui.text_edit_singleline(&mut self.coord_add_z);
+                                ui.add_sized([40.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_z));
                                 if ui.button("确定添加").clicked()
                                     && !self.coord_add_id.is_empty()
                                     && !self.coord_add_stage.is_empty()
