@@ -980,73 +980,92 @@ impl eframe::App for App {
                 }
             });
 
-        // 底部代码预览（可拖拽高度）
-        egui::TopBottomPanel::bottom("code_preview")
-            .resizable(true)
-            .default_height(120.0)
-            .min_height(60.0)
-            .show(ctx, |ui| {
-                if let Some(project) = self.project.as_mut() {
-                    let _changed = CodeEditorPanel::show(ui, project);
-                } else {
-                    ui.label("打开工程后查看 .code 代码");
-                }
-            });
-
-        // 底部数据 / JSON 预览面板（可拖拽高度）
+        // ──────────────────────────────────────────────
+        // 底部面板（代码 ┃ JSON ┃ DataFlow）— 统一可拖拽
+        // ──────────────────────────────────────────────
         if self.graph_version != self.cached_json_version {
             self.cached_json = Self::serialize_graph(&self.graph, &self.canvas.viewport);
             self.cached_json_version = self.graph_version;
         }
 
-        egui::TopBottomPanel::bottom("bottom_data_panel")
+        egui::TopBottomPanel::bottom("bottom_main")
             .resizable(true)
-            .default_height(200.0)
-            .min_height(120.0)
+            .default_height(260.0)
+            .min_height(140.0)
             .show(ctx, |ui| {
-                let full_width = ui.available_width();
-                let full_height = ui.available_height();
+                let panel_w = ui.available_width().max(200.0);
+                let panel_h = ui.available_height().max(20.0);
 
-                // 水平可拖拽分隔：JSON 左 | Data 右
-                let split_id = egui::Id::new("json_data_splitter");
-                let mut split = ui.ctx().data_mut(|d| d.get_temp::<f32>(split_id)).unwrap_or(0.5);
-                split = split.clamp(0.2, 0.8);
+                // 两个可拖拽分隔线的比例（左/（左+中+右）总宽）
+                let s1_id = egui::Id::new("split_code_json");
+                let s2_id = egui::Id::new("split_json_data");
+                let data = ui.ctx().data_mut(|d| {
+                    (d.get_temp::<f32>(s1_id).unwrap_or(0.33),
+                     d.get_temp::<f32>(s2_id).unwrap_or(0.60))
+                });
+                let mut split1 = data.0;
+                let mut split2 = data.1;
 
-                let left_w = (full_width * split).round().max(120.0);
-                let right_w = (full_width - left_w).max(120.0);
+                // 三列计算
+                let w1 = (panel_w * split1).round() as f32;
+                let w2 = (panel_w * split2).round() as f32;
 
-                // 左：JSON 预览
-                let json_rect = egui::Rect::from_min_size(
+                // ── 列 1：代码预览 ──
+                let rc1 = egui::Rect::from_min_size(
                     ui.next_widget_position(),
-                    egui::vec2(left_w - 1.0, full_height),
+                    egui::vec2(w1 - 1.0, panel_h),
                 );
-                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(json_rect), |ui| {
+                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc1), |ui| {
+                    if let Some(project) = self.project.as_mut() {
+                        let _changed = CodeEditorPanel::show(ui, project);
+                    } else {
+                        ui.label("打开工程后查看 .code 代码");
+                    }
+                });
+
+                // ── 分隔线 1 ──
+                let rs1 = egui::Rect::from_min_size(
+                    rc1.right_top(),
+                    egui::vec2(6.0, panel_h),
+                );
+                let r1 = ui.allocate_rect(rs1, egui::Sense::drag());
+                if r1.hovered() || r1.dragged() {
+                    ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+                }
+                if r1.dragged() {
+                    split1 = (split1 + r1.drag_delta().x / panel_w).clamp(0.15, split2 - 0.1);
+                    ui.ctx().data_mut(|d| d.insert_temp(s1_id, split1));
+                }
+
+                // ── 列 2：JSON 预览 ──
+                let rc2 = egui::Rect::from_min_size(
+                    egui::pos2(rs1.right_top().x, rc1.top()),
+                    egui::vec2(w2 - rs1.right_top().x - 1.0, panel_h),
+                );
+                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc2), |ui| {
                     JsonPreviewPanel::show(ui, &self.cached_json);
                 });
 
-                // 拖拽分隔线
-                let sep_rect = egui::Rect::from_min_size(
-                    json_rect.right_top(),
-                    egui::vec2(6.0, full_height),
+                // ── 分隔线 2 ──
+                let rs2 = egui::Rect::from_min_size(
+                    rc2.right_top(),
+                    egui::vec2(6.0, panel_h),
                 );
-                let _sep_id = egui::Id::new("json_data_sep");
-                let sep_resp = ui.allocate_rect(sep_rect, egui::Sense::drag());
-                if sep_resp.hovered() || sep_resp.dragged() {
+                let r2 = ui.allocate_rect(rs2, egui::Sense::drag());
+                if r2.hovered() || r2.dragged() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
                 }
-                if sep_resp.dragged() {
-                    if let Some(pos) = sep_resp.interact_pointer_pos() {
-                        split = (pos.x / full_width).clamp(0.2, 0.8);
-                        ui.ctx().data_mut(|d| d.insert_temp(split_id, split));
-                    }
+                if r2.dragged() {
+                    split2 = (split2 + r2.drag_delta().x / panel_w).clamp(split1 + 0.1, 0.85);
+                    ui.ctx().data_mut(|d| d.insert_temp(s2_id, split2));
                 }
 
-                // 右：数据面板
-                let data_rect = egui::Rect::from_min_size(
-                    sep_rect.right_top(),
-                    egui::vec2(right_w, full_height),
+                // ── 列 3：DataFlow ──
+                let rc3 = egui::Rect::from_min_size(
+                    rs2.right_top(),
+                    egui::vec2(panel_w - rs2.right_top().x, panel_h),
                 );
-                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(data_rect), |ui| {
+                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc3), |ui| {
                     if let Some(node_id) =
                         DataMenuPanel::show(ui, &self.graph, &self.selected_nodes)
                     {
