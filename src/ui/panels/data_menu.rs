@@ -58,7 +58,9 @@ impl DataMenuPanel {
         }
 
         // 使用滚动区域包裹巧克力板布局
-        egui::ScrollArea::vertical().show(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .id_salt("data_tiles_scroll")
+            .show(ui, |ui| {
             for (node_id, tiles) in &node_groups {
                 let is_selected = selected_nodes.contains(node_id);
                 ui.horizontal(|ui| {

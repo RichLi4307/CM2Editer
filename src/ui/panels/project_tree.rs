@@ -39,7 +39,9 @@ impl ProjectTreePanel {
         ui.separator();
         ui.label(".code 文件");
 
-        egui::ScrollArea::vertical().show(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .id_salt("project_tree_scroll")
+            .show(ui, |ui| {
             for code_file in &project.code_files {
                 let is_active = project.active_code == code_file.name;
                 ui.horizontal(|ui| {

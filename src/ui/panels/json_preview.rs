@@ -8,7 +8,9 @@ impl JsonPreviewPanel {
             ui.heading("JSON 预览");
         });
 
-        egui::ScrollArea::vertical().show(ui, |ui| {
+        egui::ScrollArea::vertical()
+            .id_salt("json_preview_scroll")
+            .show(ui, |ui| {
             let mut text = json.to_string();
             ui.add(
                 egui::TextEdit::multiline(&mut text)

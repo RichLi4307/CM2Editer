@@ -26,43 +26,47 @@ impl NodeLibraryPanel {
         }
 
         let mut created = None;
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            for (category, items) in categories {
-                let filtered: Vec<_> = items
-                    .iter()
-                    .filter(|d| {
-                        search_query.is_empty()
-                            || d.display_name
-                                .to_lowercase()
-                                .contains(&search_query.to_lowercase())
-                            || format!("{:?}", d.node_type)
-                                .to_lowercase()
-                                .contains(&search_query.to_lowercase())
-                    })
-                    .copied()
-                    .collect();
-                if filtered.is_empty() {
-                    continue;
-                }
+        egui::ScrollArea::vertical()
+            .id_salt("node_library_scroll")
+            .show(ui, |ui| {
+                for (category, items) in categories {
+                    let filtered: Vec<_> = items
+                        .iter()
+                        .filter(|d| {
+                            search_query.is_empty()
+                                || d.display_name
+                                    .to_lowercase()
+                                    .contains(&search_query.to_lowercase())
+                                || format!("{:?}", d.node_type)
+                                    .to_lowercase()
+                                    .contains(&search_query.to_lowercase())
+                        })
+                        .copied()
+                        .collect();
+                    if filtered.is_empty() {
+                        continue;
+                    }
 
-                ui.collapsing(category, |ui| {
-                    for def in filtered {
-                        let color = category_color(&def.category);
-                        ui.horizontal(|ui| {
-                            ui.painter().circle_filled(
-                                ui.cursor().min + egui::vec2(8.0, 8.0),
-                                6.0,
-                                color,
-                            );
-                            ui.add_space(16.0);
-                            if ui.button(&def.display_name).clicked() {
-                                created = Some(def.node_type);
+                    egui::CollapsingHeader::new(category)
+                        .id_salt(format!("cat_{}", category))
+                        .show(ui, |ui| {
+                            for def in filtered {
+                                let color = category_color(&def.category);
+                                ui.horizontal(|ui| {
+                                    ui.painter().circle_filled(
+                                        ui.cursor().min + egui::vec2(8.0, 8.0),
+                                        6.0,
+                                        color,
+                                    );
+                                    ui.add_space(16.0);
+                                    if ui.button(&def.display_name).clicked() {
+                                        created = Some(def.node_type);
+                                    }
+                                });
                             }
                         });
-                    }
-                });
-            }
-        });
+                }
+            });
 
         if ui.button("Space 搜索添加节点").clicked() {
             *search_window_open = !*search_window_open;
@@ -90,6 +94,7 @@ impl NodeLibraryPanel {
 
         let mut created = None;
         egui::ScrollArea::vertical()
+            .id_salt("node_search_scroll")
             .max_height(300.0)
             .show(ui, |ui| {
                 for def in matched {

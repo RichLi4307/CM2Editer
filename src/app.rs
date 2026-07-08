@@ -998,7 +998,7 @@ impl eframe::App for App {
         }
         egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
-            .default_height(self.bottom_panel_height)
+            .default_height(200.0)
             .min_height(120.0)
             .show(ctx, |ui| {
                 self.bottom_panel_height = ui.available_size().y;
@@ -1027,11 +1027,6 @@ impl eframe::App for App {
                         },
                     );
                 });
-                // 再次记录实际高度，确保即使 egui 内部调整了尺寸也能更新
-                self.bottom_panel_height = self
-                    .bottom_panel_height
-                    .max(ui.min_rect().height())
-                    .max(120.0);
             });
 
         // 错误详情弹窗

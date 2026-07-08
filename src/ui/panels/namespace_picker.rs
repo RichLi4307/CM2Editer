@@ -85,6 +85,7 @@ impl NamespacePicker {
 
                 let row_height = 20.0;
                 egui::ScrollArea::vertical()
+                    .id_salt("namespace_picker_scroll")
                     .max_height(300.0)
                     .show_rows(ui, row_height, entries.len(), |ui, range| {
                         for entry in &entries[range] {

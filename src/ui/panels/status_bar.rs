@@ -73,7 +73,9 @@ impl ErrorDetailWindow {
             .resizable(true)
             .default_size([400.0, 250.0])
             .show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
+                egui::ScrollArea::vertical()
+                    .id_salt("error_detail_scroll")
+                    .show(ui, |ui| {
                     for err in errors {
                         let severity = if err.is_warning() { "⚠" } else { "❌" };
                         let color = if err.is_warning() {
