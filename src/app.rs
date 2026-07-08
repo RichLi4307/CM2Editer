@@ -1052,16 +1052,16 @@ impl eframe::App for App {
                                                 .or_default()
                                                 .push(e);
                                         }
-                                        for (cat, entries) in &by_cat {
-                                            ui.label(
-                                                egui::RichText::new(*cat)
-                                                    .color(egui::Color32::from_gray(170))
-                                                    .size(11.0),
-                                            );
-                                            egui::ScrollArea::vertical()
-                                                .id_salt(format!("ns_scroll_{name}_{cat}"))
-                                                .max_height(240.0)
-                                                .show(ui, |ui| {
+                                        egui::ScrollArea::vertical()
+                                            .id_salt(format!("ns_scroll_{name}"))
+                                            .max_height(ui.available_height().max(160.0))
+                                            .show(ui, |ui| {
+                                                for (cat, entries) in &by_cat {
+                                                    ui.label(
+                                                        egui::RichText::new(*cat)
+                                                            .color(egui::Color32::from_gray(170))
+                                                            .size(11.0),
+                                                    );
                                                     ui.horizontal_wrapped(|ui| {
                                                         for e in entries {
                                                             if ui.add(ns_card(e, name)).clicked() {
@@ -1077,9 +1077,9 @@ impl eframe::App for App {
                                                             }
                                                         }
                                                     });
-                                                });
-                                            ui.add_space(4.0);
-                                        }
+                                                    ui.add_space(6.0);
+                                                }
+                                            });
                                     } else {
                                         egui::ScrollArea::vertical()
                                             .id_salt(format!("ns_scroll_{name}"))
