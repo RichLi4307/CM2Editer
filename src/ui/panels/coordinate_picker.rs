@@ -75,18 +75,18 @@ impl CoordinatePicker {
                     .id_salt("coord_picker_scroll")
                     .show(ui, |ui| {
                         for (stage, stage_entries) in &by_stage {
-                            ui.collapsing(format!("{}  ({} 项)", stage, stage_entries.len()), |ui| {
-                                ui.horizontal_wrapped(|ui| {
-                                    for e in stage_entries {
-                                        if ui
-                                            .add(coordinate_card(e))
-                                            .clicked()
-                                        {
-                                            picked = Some(e.id.clone());
+                            let header = format!("{}  ({} 项)", stage, stage_entries.len());
+                            egui::CollapsingHeader::new(header)
+                                .id_salt(format!("coord_stage_{}", stage))
+                                .show(ui, |ui| {
+                                    ui.horizontal_wrapped(|ui| {
+                                        for e in stage_entries {
+                                            if ui.add(coordinate_card(e)).clicked() {
+                                                picked = Some(e.id.clone());
+                                            }
                                         }
-                                    }
+                                    });
                                 });
-                            });
                         }
                     });
 
