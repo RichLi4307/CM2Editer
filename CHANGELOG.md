@@ -171,4 +171,39 @@
 - `cargo clippy`：仅 4 个 pre-existing 警告，零新增。
 - Release 构建产物：`target/release/CM2Editer.exe`（~6.5 MB）。
 
+---
+
+## [0.1.0] — 2026-07-08（续）
+
+### 新增（Phase 6：Monitor→Condition 管道）
+
+- 7 个纯数据 Boolean 节点：`Boolean`、`GetStateBool`、`GetStateNumber`、`CompareNumbers`、`LogicAnd`、`LogicOr`、`LogicNot`。均无 Flow 端口，通过 DataFlow 连线组合后喂给 If/While 的 condition 端口。
+- `evaluate_data_output()` 递归解析 Data 边链：从源码节点沿 Data 边回溯，生成完整 `.code` 表达式（如 `(_state.Ecstasy >= 50) && (_state.NearNPC)`）。
+- If/While 属性面板新增 **30+ 条条件模板 ComboBox**（字面量/角色状态/环境/装备/数值比较），选中即填入表达式，Data 连线时自动隐藏。
+- 代码生成语法对齐官方 DSL：`If(true) [`→`if true`、`While(false) [`→`while false`、`For(x) as i [`→`for i in x`、`Break`→`break`。
+
+### 修复
+
+- **Bodypaint 类型修正**：官方文档确认为 Number（非 Boolean），从 `GetStateBool` 移至 `GetStateNumber`。
+- **Break 节点**：确认 Break 自 Phase 1 即存在；仅修正 code_gen 大小写 `Break`→`break`。
+- **`documentation_zh.html` 引用**：全部文档和代码注释重定向到 `docs/code_api_reference.md`（官方英文原版 + 80+ 例反推）。
+- **旧图档必填参数 Null**：`NodeData→Node` 反序列化时补填缺失 required 参数默认值。
+- **egui ID 冲突**：7 个 `ScrollArea` + 1 个 `CollapsingHeader` 加 `id_salt`，消除运行时红色警告。
+- **底栏弹回/自缩**：三合一面板统一控制高度 + `ScrollArea` 防溢出。
+
+### 文档
+
+- `docs/code_api_reference.md`：基于官方英文 `documentation.html` + 80+ 个前辈手搓 `.code` 反推的 CM2 DSL 权威参考（419 行）。
+- `docs/if_condition_design.md`：Monitor→Condition→If 管道架构，含 7 节点规格表、DataFlow 示例、三阶段实施方案。
+- `docs/TODO.md` 重构：分 Phase 5/6/7，16 条工作日志。
+- `README.md`、`CHANGELOG.md` 同步至 v0.1.0。
+- 旧版 TODO 归档至 `docs/archive/TODO_20260708_v5.md`。
+
+### 测试
+
+- NodeType 变体：143 → 150。
+- `cargo test`：108 项全部通过。
+- `cargo clippy`：仅 4 个 pre-existing 警告。
+
+
 

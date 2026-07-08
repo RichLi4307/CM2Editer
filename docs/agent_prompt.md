@@ -308,9 +308,46 @@ pub struct ParamDefinition {
 - [Rust 项目骨架](rust_project_skeleton.md)
 - [示例任务](examples/new%20npc%20type/main.code) 与 [meta.json](examples/new%20npc%20type/meta.json)
 - [`.code` DSL 权威参考](code_api_reference.md)（基于官方英文文档 `documentation.html`）
-- [项目进度与 backlog](TODO.md) — 当前进入 Phase 5：DataFlow 重构、参数类型重构、命名空间管理、坐标"语言糖"
+- [项目进度与 backlog](TODO.md) — 当前进入 Phase 5-6：DataFlow 重构、Monitor→Condition 管道、Boolean 节点系统
 
-> 备注：本项目中 `ui_spec.md` 尚未提供，UI 细节以 [agent_prompt_phase3.md](agent_prompt_phase3.md) 和 [node_types.md](node_types.md) 颜色编码表为准。Phase 5 将重点实现 DataFlow 数据流连线，届时参数引用与端口连接语义会进一步扩展。
+## 九、交付与维护规则
+
+### 9.1 每次交付必须做的事
+
+1. **更新 `CHANGELOG.md`** — 每次功能交付后追加条目，记录新增/修复/变更/测试数据。发布到 GitHub 时可直接用作 Release Notes。
+2. **更新 `docs/TODO.md`** — 标记已完成任务 ✅，追加工作日志条目（日期 + 任务编号 + 说明 + 状态）。
+3. **`cargo test` 全过再 commit** — 108 项全部通过为提交门槛。`cargo clippy` 只允许 pre-existing 警告。
+4. **commit message 用英文 feat/fix/docs/chore 前缀** — 方便 `git log` 生成 CHANGELOG。
+
+### 9.2 重要文档归档
+
+重大重构前后，将旧版文件归档到 `docs/archive/`，命名格式 `{文件名}_{YYYYMMDD}_v{序号}.{ext}`。
+
+示例：
+```
+docs/archive/TODO_20260708_v5.md
+docs/archive/agent_prompt_v1_full.md
+```
+
+git 可以找回历史，但归档文件作为"快照"更方便追溯设计决策。
+
+### 9.3 CHANGELOG 格式
+
+```markdown
+## [0.1.0] — 2026-07-08（续）
+
+### 新增（功能模块）
+- 功能点...
+
+### 修复
+- 修复点...
+
+### 文档
+- 文档变更...
+
+### 测试
+- 测试数据：N tests passed
+```
 
 ---
 
