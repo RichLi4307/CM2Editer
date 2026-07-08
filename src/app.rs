@@ -914,22 +914,78 @@ impl eframe::App for App {
                     LeftPanelTab::Namespace => {
                         ui.heading("命名空间");
                         ui.separator();
+                        ui.horizontal(|ui| {
+                            if ui.button("Import 导入").clicked() {
+                                if let Some(path) = rfd::FileDialog::new()
+                                    .add_filter("JSON", &["json"])
+                                    .pick_file()
+                                {
+                                    let dir = std::path::PathBuf::from("assets/namespaces");
+                                    let _ = std::fs::create_dir_all(&dir);
+                                    let dest = dir.join(path.file_name().unwrap_or_default());
+                                    if let Err(e) = std::fs::copy(&path, &dest) {
+                                        self.status_message = format!("导入失败: {}", e);
+                                    } else {
+                                        self.namespace_registry = NamespaceRegistry::load_bundled();
+                                        self.status_message = format!("已导入 {}", path.display());
+                                    }
+                                }
+                            }
+                            if ui.button("Export 导出").clicked() {
+                                if let Some(path) = rfd::FileDialog::new()
+                                    .add_filter("JSON", &["json"])
+                                    .save_file()
+                                {
+                                    let all_entries: std::collections::BTreeMap<_, _> = self
+                                        .namespace_registry
+                                        .namespace_names()
+                                        .iter()
+                                        .filter_map(|n| {
+                                            self.namespace_registry
+                                                .get(n)
+                                                .map(|ns| (n.to_string(), ns.entries.clone()))
+                                        })
+                                        .collect();
+                                    if let Ok(j) = serde_json::to_string_pretty(&all_entries) {
+                                        let _ = std::fs::write(&path, j);
+                                    }
+                                }
+                            }
+                            if ui.button("Add 新增").clicked() {
+                                self.status_message =
+                                    "请在 assets/namespaces/ 中编辑 JSON 新增条目".to_string();
+                            }
+                        });
+                        ui.separator();
                         if self.namespace_registry.namespace_names().is_empty() {
-                            ui.label("未加载到命名空间文件");
+                            ui.label("未加载到命名空间");
                             ui.label("请检查 assets/namespaces/");
                         } else {
                             for name in self.namespace_registry.namespace_names() {
-                                let ns = self.namespace_registry.get(name);
-                                if let Some(ns) = ns {
-                                    let count = ns.entries.len();
-                                    if ui.button(format!("{name}  ({count} 项)")).clicked() {
-                                        self.namespace_picker = Some(NamespacePickerState::new(
-                                            name.clone(),
-                                            "namespace_browse",
-                                            false,
-                                        ));
-                                    }
-                                }
+                                let ns = match self.namespace_registry.get(name) {
+                                    Some(n) => n,
+                                    None => continue,
+                                };
+                                let header = format!("{name}  ({} 项)", ns.entries.len());
+                                egui::CollapsingHeader::new(header)
+                                    .id_salt(format!("left_ns_{name}"))
+                                    .show(ui, |ui| {
+                                        ui.horizontal_wrapped(|ui| {
+                                            for e in &ns.entries {
+                                                if ui.add(ns_card(e)).clicked() {
+                                                    ui.ctx().output_mut(|o| {
+                                                        o.commands.push(
+                                                            egui::OutputCommand::CopyText(
+                                                                e.key.clone(),
+                                                            ),
+                                                        )
+                                                    });
+                                                    self.status_message =
+                                                        format!("已复制: {}", e.key);
+                                                }
+                                            }
+                                        });
+                                    });
                             }
                         }
                     }
@@ -1685,6 +1741,50 @@ impl App {
             FontId::proportional(14.0),
             Theme::TEXT,
         );
+    }
+}
+
+/// 命名空间条目卡片 — 显示中文名 + key，点击复制 key。
+fn ns_card(entry: &crate::api::namespace::NamespaceEntry) -> impl egui::Widget + '_ {
+    move |ui: &mut egui::Ui| {
+        let (rect, response) =
+            ui.allocate_exact_size(egui::vec2(140.0, 48.0), egui::Sense::click());
+        let fill = if response.hovered() {
+            egui::Color32::from_gray(48)
+        } else {
+            egui::Color32::from_gray(28)
+        };
+        ui.painter().rect_filled(rect, 4.0, fill);
+        ui.painter().text(
+            rect.left_top() + egui::vec2(6.0, 6.0),
+            egui::Align2::LEFT_TOP,
+            entry.display_name("zh"),
+            egui::FontId::proportional(13.0),
+            egui::Color32::WHITE,
+        );
+        let key_text = if entry.key.len() > 18 {
+            format!("{}..", &entry.key[..18])
+        } else {
+            entry.key.clone()
+        };
+        ui.painter().text(
+            rect.left_top() + egui::vec2(6.0, 26.0),
+            egui::Align2::LEFT_TOP,
+            key_text,
+            egui::FontId::proportional(10.0),
+            egui::Color32::from_gray(150),
+        );
+        if response.hovered() {
+            egui::show_tooltip_at_pointer(
+                ui.ctx(),
+                egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("ns_tooltip")),
+                egui::Id::new(format!("ns_card_{}", entry.key)),
+                |ui: &mut egui::Ui| {
+                    ui.label(format!("点击复制: {}", entry.key));
+                },
+            );
+        }
+        response
     }
 }
 
