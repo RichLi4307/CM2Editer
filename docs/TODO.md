@@ -18,7 +18,7 @@
 | Phase 3 三轮修复 | ✅ 完成 | 2026-07-08，24 项问题已修复，76+7 tests 通过 |
 | Phase 4：集成测试与打磨 | ✅ 完成 | 2026-07-08，文档同步与端到端验证完成 |
 | Phase 4.5：工程/项目管理 | ✅ 完成 | 2026-07-08，实现工程文件夹、`meta.json`、多 `.code`、文件树、文本编辑器、导出，81+16 tests 通过 |
-| Phase 5：新功能与发布 | 📋 待规划 | 基于作者建议的 backlog，按工程复杂度排序 |
+| Phase 5：新功能与发布 | 🔄 5.1 已完成 | 基于作者建议的 backlog，按工程复杂度排序 |
 
 ---
 
@@ -144,8 +144,8 @@
 | 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
 |------|--------|--------|------|------|
 | 5.1.1 **DataFlow 重构** | P0 | 高 | 无 | 节点内参数下拉框选择数据源、边框 Data 端口、虚线连线、Data 菜单、单选节点时显示相关 Data 边。✅ 已完成 |
-| 5.1.2 **参数类型重构** | P1 | 高 | 5.1.1 | 审查 `docs/` 中 API 文档`documentation_zh.html`，修正 `General Function` 等节点参数类型；可枚举参数（如场景、物品类型、动作）提供下拉表。 |
-| 5.1.3 **命名空间管理** | P1 | 高 | 5.1.2 | 引入 `documentation_zh.html` 附录>游戏常量。其中有命名空间信息，提供搜索、译名、命名空间选择窗口。涉及 cosplay、振动器、活塞等可枚举参数。 构想详见`问题清单.md`|
+| 5.1.2 **参数类型重构** | P1 | 高 | 5.1.1 | 审查 `docs/` 中 API 文档`documentation_zh.html`，修正 `General Function` 等节点参数类型；可枚举参数（如场景、物品类型、动作）提供下拉表。✅ 已完成 |
+| 5.1.3 **命名空间管理** | P1 | 高 | 5.1.2 | 引入 `documentation_zh.html` 附录>游戏常量。其中有命名空间信息，提供搜索、译名、命名空间选择窗口。涉及 cosplay、振动器、活塞等可枚举参数。✅ 已完成 |
 | 5.1.4 **坐标"语言糖"** | P2 | 高 | 5.1.1 + API 文档 | 预制坐标/视角方向变量，编辑器可视化 x/y/z，`.code` 导出时语言转译。需评估与数学/变量节点的语义冲突。 |
 
 ### 5.2 中复杂度（功能模块）
@@ -218,6 +218,8 @@
 | 2026-07-08 | 当前任务 | 归档旧 TODO，按工程复杂度重构新 TODO，同步 README/CHANGELOG/agent_prompt 等文档 | ✅ |
 | 2026-07-08 | 4.2 | 为 4 个示例（Test/NPC_type/drop bra and panties/MessengerExample）建立代表性图档 fixture 与期望 `.code`，新增 `tests/examples_verify.rs` 覆盖序列化往返 + 代码生成比对 + 文件回写；92 tests 通过 | ✅ |
 | 2026-07-08 | Phase 5.1.1 | 完成 DataFlow 重构：参数 Data 端口自动生成、属性面板数据源下拉框、Data 边虚线渲染、单选节点时显示相关 Data 边、JSON 预览栏改为 Data 菜单、代码生成优先使用 Data 端口连接；新增 4 项单元测试；83+16 tests 通过 | ✅ |
+| 2026-07-08 | Phase 5.1.2 | 新增 `ParamType::Enum`，从 `documentation_zh.html` 提取常量并建立 `src/api/enums.rs`；为场景/动作/技能/音效/物品/图形选项等参数提供固定下拉选项；90+16 tests 通过 | ✅ |
+| 2026-07-08 | Phase 5.1.3 | 实现命名空间注册表（`src/api/namespace.rs`），加载 `assets/namespaces/` 下 JSON 文件；新增 cosplay/adult_toy/avatar_type/fixed_type/hair_type/body_paint_type/player_data 命名空间；实现悬浮命名空间选择器窗口（搜索、多选/单选）；为 cosplay/toy/avatarType/dataName 参数提供命名空间选择按钮；90+16 tests 通过 | ✅ |
 
 ---
 
