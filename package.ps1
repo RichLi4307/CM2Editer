@@ -1,68 +1,65 @@
-# CM2Editer 发行包生成脚本
-# 用法: powershell -File package.ps1
-# 输出: dist/CM2Editer_v0.1.1.zip
+# CM2Editer release packaging script
+# Usage: powershell -File package.ps1
+# Output: dist/CM2Editer_v0.1.1.zip
 
+$ErrorActionPreference = "Stop"
 $version = "0.1.1"
-$distDir = "dist\CM2Editer_v$version"
-$exe = "target\release\CM2Editer.exe"
+$root = $PSScriptRoot
+$distDir = Join-Path $root "dist\CM2Editer_v$version"
+$exe = Join-Path $root "target\release\CM2Editer.exe"
 
 if (-not (Test-Path $exe)) {
-    Write-Host "错误: 未找到 $exe，请先执行 cargo build --release" -ForegroundColor Red
+    Write-Host "ERROR: $exe not found. Run cargo build --release first." -ForegroundColor Red
     exit 1
 }
 
-# 清理旧目录
+# Clean + create structure
 if (Test-Path $distDir) { Remove-Item -Recurse -Force $distDir }
+$null = New-Item -ItemType Directory -Path (Join-Path $distDir "assets") -Force
 
-# 拷贝主程序
-New-Item -ItemType Directory -Path $distDir -Force | Out-Null
-Copy-Item $exe -Destination $distDir\
+# Copy main binary
+Copy-Item $exe -Destination $distDir
 
-# 拷贝必需数据目录
-Copy-Item "assets\namespaces" -Destination "$distDir\assets\" -Recurse
-Copy-Item "assets\coordinates" -Destination "$distDir\assets\" -Recurse
+# Copy data directories
+Copy-Item (Join-Path $root "assets\namespaces") -Destination (Join-Path $distDir "assets\namespaces") -Recurse
+Copy-Item (Join-Path $root "assets\coordinates") -Destination (Join-Path $distDir "assets\coordinates") -Recurse
 
-# 拷贝字体（仅 Regular + Bold）
-$fontDst = "$distDir\assets\fonts"
-New-Item -ItemType Directory -Path $fontDst -Force | Out-Null
-Get-ChildItem "assets\fonts" -Recurse -Filter "SourceHanSansSC-*.otf" | ForEach-Object {
-    Copy-Item $_.FullName -Destination $fontDst\
+# Copy fonts (Regular + Bold only)
+$fontDst = Join-Path $distDir "assets\fonts"
+$null = New-Item -ItemType Directory -Path $fontDst -Force
+$fontFiles = Get-ChildItem (Join-Path $root "assets\fonts") -Recurse -Filter "SourceHanSansSC-*.otf"
+foreach ($f in $fontFiles) {
+    Copy-Item $f.FullName -Destination $fontDst
 }
 
-# 拷贝说明
-Copy-Item "README.md" -Destination $distDir\
+# Copy readme
+Copy-Item (Join-Path $root "README.md") -Destination $distDir
 
-# 大小统计
-$totalSize = (Get-ChildItem -Path $distDir -Recurse | Where-Object { -not $_.PSIsContainer } | Measure-Object -Property Length -Sum).Sum
-
+# Print listing
 Write-Host ""
-Write-Host "=== 发行包内容 ===" -ForegroundColor Green
-Get-ChildItem -Path $distDir -Recurse | Where-Object { -not $_.PSIsContainer } | ForEach-Object {
-    $size = "{0,8:N1} KB" -f ($_.Length / 1KB)
-    $rel = $_.FullName.Substring((Resolve-Path $distDir).Path.Length + 1)
-    Write-Host "  $size  $rel"
+Write-Host "=== Package contents ===" -ForegroundColor Green
+$total = 0
+Get-ChildItem -Path $distDir -Recurse -File | ForEach-Object {
+    $kb = $_.Length / 1KB
+    $total += $_.Length
+    $rel = $_.FullName.Replace($distDir + "\", "")
+    Write-Host ("  {0,8:N1} KB  {1}" -f $kb, $rel)
 }
 
 Write-Host ""
-    Write-Host ("总大小: {0:N1} MB" -f ($totalSize / 1MB)) -ForegroundColor Green
+$totalMsg = ("Total: {0:N1} MB" -f ($total / 1MB))
+Write-Host $totalMsg -ForegroundColor Green
 
-# 打包 zip
-$zip = "dist\CM2Editer_v$version.zip"
+# Create zip
+$zip = Join-Path $root "dist\CM2Editer_v$version.zip"
 if (Test-Path $zip) { Remove-Item $zip }
-$7z = Get-Command "7z" -ErrorAction SilentlyContinue
-if ($7z) {
-    & 7z a -tzip $zip "$distDir\*" | Out-Null
-    $zipSize = "{0:N1} MB" -f ((Get-Item $zip).Length / 1MB)
-    Write-Host ""
-    Write-Host "打包: $zip ($zipSize)" -ForegroundColor Green
-} else {
-    # 用系统自带 Compress-Archive
-    Compress-Archive -Path "$distDir\*" -DestinationPath $zip -Force
-    $zipSize = "{0:N1} MB" -f ((Get-Item $zip).Length / 1MB)
-    Write-Host ""
-    Write-Host "打包: $zip ($zipSize) [Compress-Archive]" -ForegroundColor Green
-}
+$items = Get-ChildItem $distDir | ForEach-Object { $_.FullName }
+Compress-Archive -Path $items -DestinationPath $zip -Force
 
-# 清理临时目录
+$zipSize = (Get-Item $zip).Length / 1MB
+$msg = "Package: $zip ({0:N1} MB)" -f $zipSize
+Write-Host $msg -ForegroundColor Green
+
+# Clean up temp
 Remove-Item -Recurse -Force $distDir
-Write-Host "临时目录已清理。发行包: $zip" -ForegroundColor Green
+Write-Host "Done." -ForegroundColor Green
