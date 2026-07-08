@@ -17,12 +17,15 @@ use crate::graph::types::{NodeType, PortType};
 use crate::graph::validation::GraphValidator;
 use crate::project::Project;
 use crate::serializer::json::GraphDocument;
+
+use crate::api::coordinate::CoordinateRegistry;
 use crate::ui::canvas::Canvas;
 use crate::ui::edge_renderer::EdgeRenderer;
 use crate::ui::interaction::InteractionController;
 use crate::ui::node_renderer::{NodeRenderer, PortGeometry};
 use crate::ui::panels::{
     code_editor::CodeEditorPanel,
+    coordinate_picker::{CoordinatePicker, CoordinatePickerState},
     data_menu::DataMenuPanel,
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
@@ -191,6 +194,10 @@ pub struct App {
     pub namespace_registry: NamespaceRegistry,
     /// 命名空间选择器窗口状态。
     pub namespace_picker: Option<NamespacePickerState>,
+    /// 坐标预设注册表，加载 assets/coordinates 下的 JSON 文件。
+    pub coordinate_registry: CoordinateRegistry,
+    /// 坐标选择器窗口状态。
+    pub coordinate_picker: Option<CoordinatePickerState>,
     /// 是否显示错误详情弹窗。
     pub show_error_detail: bool,
     /// 左栏当前标签页
@@ -229,6 +236,8 @@ impl App {
             project: None,
             namespace_registry: NamespaceRegistry::load_bundled(),
             namespace_picker: None,
+            coordinate_registry: CoordinateRegistry::load_bundled(),
+            coordinate_picker: None,
             show_error_detail: false,
             show_meta_editor: false,
             validation_errors: Vec::new(),
@@ -914,6 +923,8 @@ impl eframe::App for App {
                             &self.graph,
                             &self.namespace_registry,
                             &mut self.namespace_picker,
+                            &self.coordinate_registry,
+                            &mut self.coordinate_picker,
                         ) {
                             if let Some(n) = self.graph.nodes.get(&node_id) {
                                 let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
@@ -939,7 +950,7 @@ impl eframe::App for App {
         if let Some(picker) = self.namespace_picker.as_mut() {
             if picker.open {
                 if let Some(keys) = NamespacePicker::show(ctx, &self.namespace_registry, picker) {
-                    if let Some(node_id) = edited_node_id {
+                    if let Some(node_id) = edited_node_id.clone() {
                         let value = if picker.multi {
                             ParamValue::Literal(serde_json::json!(keys))
                         } else {
@@ -961,6 +972,31 @@ impl eframe::App for App {
                 }
             } else {
                 self.namespace_picker = None;
+            }
+        }
+
+        // 坐标选择器悬浮窗口
+        if let Some(picker) = self.coordinate_picker.as_mut() {
+            if picker.open {
+                if let Some(coord_id) = CoordinatePicker::show(ctx, &self.coordinate_registry, picker) {
+                    if let Some(entry) = self.coordinate_registry.get(coord_id.as_str()) {
+                        let value = ParamValue::Literal(serde_json::json!([entry.x, entry.y, entry.z]));
+                        let key = picker.param_key.clone();
+                        if let Some(node_id) = edited_node_id.as_ref() {
+                            if let Some(n) = self.graph.nodes.get(node_id) {
+                                let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
+                                self.push_command(Command::SetParam {
+                                    node_id: node_id.clone(),
+                                    key,
+                                    from,
+                                    to: value,
+                                });
+                            }
+                        }
+                    }
+                }
+            } else {
+                self.coordinate_picker = None;
             }
         }
 

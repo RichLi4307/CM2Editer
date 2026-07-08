@@ -1,9 +1,12 @@
 use crate::api::namespace::NamespaceRegistry;
+use crate::api::coordinate::CoordinateRegistry;
 use crate::api::registry::get_definition;
 use crate::graph::graph::Graph;
 use crate::graph::node::{Node, ParamValue};
 use crate::graph::types::{NodeType, PortType};
 use crate::ui::panels::namespace_picker::NamespacePickerState;
+use crate::ui::panels::coordinate_picker::CoordinatePickerState;
+use crate::api::definitions::ParamType;
 
 /// 属性面板。
 pub struct PropertiesPanel;
@@ -16,6 +19,8 @@ impl PropertiesPanel {
         graph: &Graph,
         registry: &NamespaceRegistry,
         picker: &mut Option<NamespacePickerState>,
+        coord: &CoordinateRegistry,
+        coord_picker: &mut Option<CoordinatePickerState>,
     ) -> Option<(String, ParamValue)> {
         ui.heading("属性");
         ui.separator();
@@ -36,7 +41,7 @@ impl PropertiesPanel {
                 let type_hint = param_type_label(node, key);
                 ui.label(format!("{} {}", key, type_hint));
                 if let Some((new_key, new_value)) =
-                    Self::param_editor(ui, node, graph, registry, picker, key, value)
+                    Self::param_editor(ui, node, graph, registry, picker, coord, coord_picker, key, value)
                 {
                     changed = Some((new_key, new_value));
                 }
@@ -68,6 +73,8 @@ impl PropertiesPanel {
         graph: &Graph,
         registry: &NamespaceRegistry,
         picker: &mut Option<NamespacePickerState>,
+        _coord: &CoordinateRegistry,
+        coord_picker: &mut Option<CoordinatePickerState>,
         key: &str,
         value: &ParamValue,
     ) -> Option<(String, ParamValue)> {
@@ -97,6 +104,17 @@ impl PropertiesPanel {
             && key == "condition"
         {
             return Self::condition_template_editor(ui, key, value);
+        }
+
+        // Vector 参数：坐标预设选择器按钮
+        if let Some(param_def) = get_definition(node.node_type)
+            .and_then(|def| def.params.iter().find(|p| p.name == key))
+        {
+            if param_def.param_type == ParamType::Vector || param_def.param_type == ParamType::Quaternion {
+                if ui.button("📍").on_hover_text("从预设坐标选取").clicked() {
+                    *coord_picker = Some(CoordinatePickerState::new(key));
+                }
+            }
         }
 
         // 如果参数有固定枚举选项，直接显示枚举下拉框。
