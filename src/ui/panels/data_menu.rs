@@ -3,16 +3,10 @@ use crate::graph::types::PortType;
 use crate::ui::theme::port_color;
 use std::collections::HashSet;
 
-/// 数据菜单面板。
-///
-/// 显示当前图中可用的数据变量，按节点分组，以小方块（巧克力板）形式排列。
-/// 点击方块可选中画布中的对应节点。
+/// 数据菜单面板。按节点分组，小方块（巧克力板）水平换行排列。点击选中节点。
 pub struct DataMenuPanel;
 
 impl DataMenuPanel {
-    /// 显示数据菜单，返回请求选中的节点 ID（如果有）。
-    ///
-    /// `selected_nodes` 用于高亮当前已选中的节点。
     pub fn show(
         ui: &mut egui::Ui,
         graph: &Graph,
@@ -20,35 +14,27 @@ impl DataMenuPanel {
     ) -> Option<String> {
         ui.horizontal(|ui| {
             ui.heading("数据");
-            ui.label("(DataFlow)").on_hover_text("列出图中可用的数据输出端口；点击方块选中节点");
+            ui.label("(DataFlow)");
         });
 
-        ui.separator();
-
         let mut requested_select = None;
-
-        // 收集所有数据输出
         let mut any = false;
         let mut node_groups: Vec<(String, Vec<DataTile>)> = Vec::new();
+
         for (node_id, node) in &graph.nodes {
-            let data_outputs: Vec<_> = node
-                .outputs
-                .iter()
-                .filter(|p| p.port_type != PortType::Flow)
-                .collect();
+            let data_outputs: Vec<_> = node.outputs.iter().filter(|p| p.port_type != PortType::Flow).collect();
             if data_outputs.is_empty() {
                 continue;
             }
             any = true;
-
-            let mut tiles = Vec::new();
-            for output in data_outputs {
-                tiles.push(DataTile {
-                    key: output.id.clone(),
-                    label: output.label.clone(),
-                    port_type: output.port_type.clone(),
-                });
-            }
+            let tiles: Vec<DataTile> = data_outputs
+                .iter()
+                .map(|o| DataTile {
+                    key: o.id.clone(),
+                    label: o.label.clone(),
+                    port_type: o.port_type.clone(),
+                })
+                .collect();
             node_groups.push((node_id.clone(), tiles));
         }
 
@@ -57,30 +43,32 @@ impl DataMenuPanel {
             return None;
         }
 
-        // 使用滚动区域包裹巧克力板布局
+        let _available_width = ui.available_width().max(80.0);
+
         egui::ScrollArea::vertical()
             .id_salt("data_tiles_scroll")
+            .auto_shrink([true, false])
             .show(ui, |ui| {
-            for (node_id, tiles) in &node_groups {
-                let is_selected = selected_nodes.contains(node_id);
-                ui.horizontal(|ui| {
-                    ui.label(format!("节点 {}", node_id));
-                    if is_selected {
-                        ui.label("▶");
-                    }
-                });
-
-                ui.horizontal_wrapped(|ui| {
-                    for tile in tiles {
-                        let tile_response = ui.add(tile_button(tile, is_selected));
-                        if tile_response.clicked() || tile_response.secondary_clicked() {
-                            requested_select = Some(node_id.clone());
+                for (node_id, tiles) in &node_groups {
+                    let is_selected = selected_nodes.contains(node_id);
+                    ui.horizontal(|ui| {
+                        if is_selected {
+                            ui.colored_label(egui::Color32::from_rgb(100, 180, 255), "▶");
                         }
-                    }
-                });
-                ui.add_space(4.0);
-            }
-        });
+                        ui.label(node_id);
+                    });
+
+                    ui.horizontal_wrapped(|ui| {
+                        for tile in tiles {
+                            let resp = ui.add(tile_button(tile, is_selected));
+                            if resp.clicked() || resp.secondary_clicked() {
+                                requested_select = Some(node_id.clone());
+                            }
+                        }
+                    });
+                    ui.separator();
+                }
+            });
 
         requested_select
     }
@@ -92,13 +80,10 @@ struct DataTile {
     port_type: PortType,
 }
 
-/// 绘制一个小方块数据按钮，颜色根据端口类型变化。
 fn tile_button(tile: &DataTile, is_node_selected: bool) -> impl egui::Widget + '_ {
     move |ui: &mut egui::Ui| {
-        let (rect, response) = ui.allocate_exact_size(
-            egui::vec2(72.0, 56.0),
-            egui::Sense::click_and_drag(),
-        );
+        let (rect, response) =
+            ui.allocate_exact_size(egui::vec2(64.0, 40.0), egui::Sense::click_and_drag());
 
         let color = port_color(&tile.port_type);
         let stroke_color = if is_node_selected {
@@ -112,16 +97,11 @@ fn tile_button(tile: &DataTile, is_node_selected: bool) -> impl egui::Widget + '
             color.gamma_multiply(0.15)
         };
 
-        ui.painter().rect_filled(rect, 6.0, fill_color);
-        ui.painter().rect_stroke(
-            rect,
-            6.0,
-            egui::Stroke::new(2.0, stroke_color),
-            egui::StrokeKind::Middle,
-        );
+        ui.painter().rect_filled(rect, 4.0, fill_color);
+        ui.painter().rect_stroke(rect, 4.0, egui::Stroke::new(1.5, stroke_color), egui::StrokeKind::Middle);
 
-        let text = if tile.label.len() > 8 {
-            format!("{}..", &tile.label[..8])
+        let text = if tile.label.len() > 6 {
+            format!("{}..", &tile.label[..6])
         } else {
             tile.label.clone()
         };
@@ -129,12 +109,8 @@ fn tile_button(tile: &DataTile, is_node_selected: bool) -> impl egui::Widget + '
             rect.center(),
             egui::Align2::CENTER_CENTER,
             text,
-            egui::FontId::proportional(12.0),
-            if is_node_selected || response.hovered() {
-                egui::Color32::WHITE
-            } else {
-                egui::Color32::LIGHT_GRAY
-            },
+            egui::FontId::proportional(11.0),
+            if is_node_selected || response.hovered() { egui::Color32::WHITE } else { egui::Color32::LIGHT_GRAY },
         );
 
         if response.hovered() {
@@ -156,7 +132,7 @@ fn tile_button(tile: &DataTile, is_node_selected: bool) -> impl egui::Widget + '
 mod tests {
     use super::*;
     use crate::graph::node::{Node, Port, Vec2};
-    use crate::graph::types::{NodeType, PortType};
+    use crate::graph::types::NodeType;
 
     #[test]
     fn test_tile_button_allocates_size() {
@@ -165,19 +141,17 @@ mod tests {
             label: "值".to_string(),
             port_type: PortType::Number,
         };
-        // tile_button 返回 impl Widget，只需确保类型可编译
         let _widget = tile_button(&tile, false);
     }
 
     #[test]
-    fn test_data_panel_returns_requested_select() {
+    fn test_data_panel_compiles() {
         let mut node = Node::new(NodeType::Random, Vec2::ZERO);
         node.id = "n1".to_string();
         node.outputs.push(Port::new("out_value", PortType::Number, "值"));
         let mut graph = Graph::default();
         graph.add_node(node);
         let selected: HashSet<String> = HashSet::new();
-        // 无法在此直接调用 DataMenuPanel::show（需要 egui::Ui），但类型可编译
         let _ = (&graph, &selected);
     }
 }
