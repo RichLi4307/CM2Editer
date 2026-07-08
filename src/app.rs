@@ -951,17 +951,57 @@ impl eframe::App for App {
                                     .id_salt(format!("left_coord_{stage}"))
                                     .show(ui, |ui| {
                                         for e in entries {
-                                            ui.horizontal(|ui| {
-                                                ui.label(format!("📍 {}", e.name));
-                                                ui.label(format!("({:.1}, {:.1}, {:.1})", e.x, e.y, e.z));
-                                            });
+                        ui.horizontal(|ui| {
+                            ui.label(format!("* {}", e.name));
+                            ui.label(e.coord_text());
+                        });
                                         }
                                     });
                             }
                             ui.separator();
-                            if ui.button("✏ 编辑坐标文件").clicked() {
-                                self.status_message = "请用文本编辑器编辑 assets/coordinates/default.json".to_string();
-                            }
+                            ui.horizontal(|ui| {
+                                if ui.button("Import 导入").clicked() {
+                                    if let Some(path) = rfd::FileDialog::new()
+                                        .add_filter("JSON", &["json"])
+                                        .pick_file()
+                                    {
+                                        let dir = std::path::PathBuf::from("assets/coordinates");
+                                        let _ = std::fs::create_dir_all(&dir);
+                                        let dest = dir.join(path.file_name().unwrap_or_default());
+                                        if let Err(e) = std::fs::copy(&path, &dest) {
+                                            self.status_message = format!("导入失败: {}", e);
+                                        } else {
+                                            self.coordinate_registry =
+                                                CoordinateRegistry::load_bundled();
+                                            self.status_message =
+                                                format!("已导入 {}", path.display());
+                                        }
+                                    }
+                                }
+                                if ui.button("Export 导出").clicked() {
+                                    if let Some(path) = rfd::FileDialog::new()
+                                        .add_filter("JSON", &["json"])
+                                        .save_file()
+                                    {
+                                        let json = serde_json::to_string_pretty(
+                                            &self.coordinate_registry.entries,
+                                        );
+                                        if let Ok(j) = json {
+                                            if let Err(e) = std::fs::write(&path, j) {
+                                                self.status_message =
+                                                    format!("导出失败: {}", e);
+                                            } else {
+                                                self.status_message =
+                                                    format!("已导出到 {}", path.display());
+                                            }
+                                        }
+                                    }
+                                }
+                                if ui.button("Add 新增").clicked() {
+                                    self.status_message =
+                                        "请在 assets/coordinates/ 中编辑 JSON 新增坐标".to_string();
+                                }
+                            });
                         }
                     }
                 }
@@ -1598,10 +1638,10 @@ impl App {
             );
 
             let open_clicked = ui
-                .put(btn_open, egui::Button::new("📂 打开工程..."))
+                .put(btn_open, egui::Button::new("Open 打开工程..."))
                 .clicked();
             let new_clicked = ui
-                .put(btn_new, egui::Button::new("🆕 新建工程..."))
+                .put(btn_new, egui::Button::new("New 新建工程..."))
                 .clicked();
 
             if open_clicked {

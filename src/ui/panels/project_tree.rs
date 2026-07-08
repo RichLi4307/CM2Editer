@@ -31,7 +31,7 @@ impl ProjectTreePanel {
 
         // meta.json
         let is_meta = project.active_code.is_empty();
-        let meta_response = ui.selectable_label(is_meta, "📄 meta.json");
+        let meta_response = ui.selectable_label(is_meta, "[meta] meta.json");
         if meta_response.clicked() {
             action = ProjectTreeAction::SelectMeta;
         }
@@ -45,15 +45,15 @@ impl ProjectTreePanel {
             for code_file in &project.code_files {
                 let is_active = project.active_code == code_file.name;
                 ui.horizontal(|ui| {
-                    let name_label = format!("🗎 {}.code", code_file.name);
+                    let name_label = format!("[{name}].code", name=code_file.name);
                     let response = ui.selectable_label(is_active, &name_label);
                     if response.clicked() {
                         action = ProjectTreeAction::SelectCode(code_file.name.clone());
                     }
-                    if !is_active && ui.small_button("×").on_hover_text("删除").clicked() {
+                    if !is_active && ui.small_button("Del").on_hover_text("删除").clicked() {
                         action = ProjectTreeAction::DeleteCode(code_file.name.clone());
                     }
-                    if ui.small_button("✎").on_hover_text("重命名").clicked() {
+                    if ui.small_button("Ren").on_hover_text("重命名").clicked() {
                         action = ProjectTreeAction::RenameCode(code_file.name.clone());
                     }
                 });

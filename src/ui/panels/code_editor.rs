@@ -39,7 +39,7 @@ impl CodeEditorPanel {
                     }
 
                     ui.horizontal(|ui| {
-                        if ui.button("🔄 从节点图生成").clicked() {
+                        if ui.button("[Regen] 从节点图生成").clicked() {
                             code_file.graph_doc.graph = graph.clone();
                             let _ = code_file.regenerate_code();
                             changed = true;

@@ -111,7 +111,7 @@ impl PropertiesPanel {
             .and_then(|def| def.params.iter().find(|p| p.name == key))
         {
             if param_def.param_type == ParamType::Vector || param_def.param_type == ParamType::Quaternion {
-                if ui.button("📍").on_hover_text("从预设坐标选取").clicked() {
+                if ui.button("...").on_hover_text("从预设坐标选取").clicked() {
                     *coord_picker = Some(CoordinatePickerState::new(key));
                 }
             }
@@ -119,7 +119,7 @@ impl PropertiesPanel {
 
         // GetPosition 节点：coord_id 字段也提供坐标选择器。
         if node.node_type == NodeType::GetPosition && key == "coord_id" {
-            if ui.button("📍 选坐标").on_hover_text("从坐标预设库选取").clicked() {
+            if ui.button("... 选坐标").on_hover_text("从坐标预设库选取").clicked() {
                 *coord_picker = Some(CoordinatePickerState::new("__getposition__"));
             }
         }
