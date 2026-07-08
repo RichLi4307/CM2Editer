@@ -2204,8 +2204,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
                 "Futanari", "Sitting", "Orgasm", "Moving", "Crouching",
                 "Peeing", "Dashing", "InLight", "NearNPC", "Watched",
                 "ShowingOff", "Bukkake", "Blindfolded", "Invisible",
-                "InOpenToilet", "Bodypaint", "FPCamera", "IsDayTime",
-                "GameOver",
+                "InOpenToilet", "FPCamera", "IsDayTime", "GameOver",
             ],
         )]),
         NodeDefinition::new(
@@ -2225,7 +2224,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "状态键",
             &[
                 "Ecstasy", "Detection", "Rank", "HeartRate",
-                "Stamina", "StaminaMax", "Moisture",
+                "Stamina", "StaminaMax", "Moisture", "Bodypaint",
             ],
         )]),
         NodeDefinition::new(

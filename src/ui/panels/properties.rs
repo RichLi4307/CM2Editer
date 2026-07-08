@@ -456,6 +456,7 @@ static IF_CONDITION_TEMPLATES: &[(&str, &str)] = &[
     ("无手铐", "_state.AdultToys.Handcuff == null"),
     ("有跳蛋", "_state.AdultToys.Vibrator != null"),
     ("── 数值比较 ──", ""),
+    ("身体涂鸦 > 0", "_state.Bodypaint > 0"),
     ("快感 ≥", "_state.Ecstasy >= "),
     ("侦测 ≥", "_state.Detection >= "),
     ("体力 ≥", "_state.Stamina >= "),
