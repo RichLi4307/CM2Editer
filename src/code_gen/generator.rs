@@ -101,7 +101,7 @@ impl<'a> CodeGenerator<'a> {
             NodeType::While => self.generate_while(node_id, stop_at)?,
             NodeType::For => self.generate_for(node_id, stop_at)?,
             NodeType::Break => {
-                self.formatter.write_line("Break");
+                self.formatter.write_line("break");
             }
             NodeType::Return => {
                 let value = self
