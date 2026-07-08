@@ -980,9 +980,11 @@ impl eframe::App for App {
                 }
             });
 
-        // 底部代码预览（不参与拖拽竞争，与底栏主体分离）
+        // 底部代码预览（可拖拽高度）
         egui::TopBottomPanel::bottom("code_preview")
+            .resizable(true)
             .default_height(120.0)
+            .min_height(60.0)
             .show(ctx, |ui| {
                 if let Some(project) = self.project.as_mut() {
                     let _changed = CodeEditorPanel::show(ui, project);
@@ -991,69 +993,69 @@ impl eframe::App for App {
                 }
             });
 
-        // 底部数据 / JSON 预览面板 —— 使用手动 Resize 手柄彻底解决弹回
+        // 底部数据 / JSON 预览面板（可拖拽高度）
         if self.graph_version != self.cached_json_version {
             self.cached_json = Self::serialize_graph(&self.graph, &self.canvas.viewport);
             self.cached_json_version = self.graph_version;
         }
-        let max_height = ctx.available_rect().height() * 0.6;
-        let id = egui::Id::new("bottom_data_height");
-        let mut stored = ctx
-            .data_mut(|d| d.get_temp::<f32>(id))
-            .unwrap_or(200.0);
-        stored = stored.clamp(120.0, max_height.max(120.0));
 
         egui::TopBottomPanel::bottom("bottom_data_panel")
             .resizable(true)
-            .default_height(stored)
+            .default_height(200.0)
             .min_height(120.0)
             .show(ctx, |ui| {
-                let current = ui.available_size().y;
-                self.bottom_panel_height = current;
+                let full_width = ui.available_width();
+                let full_height = ui.available_height();
 
-                egui::Frame::NONE
-                    .outer_margin(egui::Margin::symmetric(4, 0))
-                    .show(ui, |ui| {
-                        let panel_available = ui.available_size();
-                        let split = panel_available.x / 2.0;
-                        ui.horizontal(|ui| {
-                            // 左：JSON 预览
-                            let json_rect = egui::Rect::from_min_size(
-                                ui.next_widget_position(),
-                                egui::vec2(split - 4.0, panel_available.y),
-                            );
-                    let _json_response = ui.allocate_new_ui(
-                        egui::UiBuilder::new()
-                            .max_rect(json_rect),
-                        |ui| {
-                            JsonPreviewPanel::show(ui, &self.cached_json);
-                        },
-                    );
+                // 水平可拖拽分隔：JSON 左 | Data 右
+                let split_id = egui::Id::new("json_data_splitter");
+                let mut split = ui.ctx().data_mut(|d| d.get_temp::<f32>(split_id)).unwrap_or(0.5);
+                split = split.clamp(0.2, 0.8);
 
-                    // 右：数据面板
-                    let data_rect = egui::Rect::from_min_size(
-                        json_rect.right_top() + egui::vec2(4.0, 0.0),
-                        egui::vec2(split - 8.0, panel_available.y),
-                    );
-                    ui.allocate_new_ui(
-                        egui::UiBuilder::new()
-                            .max_rect(data_rect),
-                        |ui| {
-                            if let Some(node_id) =
-                                DataMenuPanel::show(ui, &self.graph, &self.selected_nodes)
-                            {
-                                self.selected_nodes.clear();
-                                self.selected_nodes.insert(node_id);
-                                self.selected_edges.clear();
-                            }
-                        },
-                    );
+                let left_w = (full_width * split).round().max(120.0);
+                let right_w = (full_width - left_w).max(120.0);
+
+                // 左：JSON 预览
+                let json_rect = egui::Rect::from_min_size(
+                    ui.next_widget_position(),
+                    egui::vec2(left_w - 1.0, full_height),
+                );
+                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(json_rect), |ui| {
+                    JsonPreviewPanel::show(ui, &self.cached_json);
+                });
+
+                // 拖拽分隔线
+                let sep_rect = egui::Rect::from_min_size(
+                    json_rect.right_top(),
+                    egui::vec2(6.0, full_height),
+                );
+                let _sep_id = egui::Id::new("json_data_sep");
+                let sep_resp = ui.allocate_rect(sep_rect, egui::Sense::drag());
+                if sep_resp.hovered() || sep_resp.dragged() {
+                    ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
+                }
+                if sep_resp.dragged() {
+                    if let Some(pos) = sep_resp.interact_pointer_pos() {
+                        split = (pos.x / full_width).clamp(0.2, 0.8);
+                        ui.ctx().data_mut(|d| d.insert_temp(split_id, split));
+                    }
+                }
+
+                // 右：数据面板
+                let data_rect = egui::Rect::from_min_size(
+                    sep_rect.right_top(),
+                    egui::vec2(right_w, full_height),
+                );
+                ui.allocate_new_ui(egui::UiBuilder::new().max_rect(data_rect), |ui| {
+                    if let Some(node_id) =
+                        DataMenuPanel::show(ui, &self.graph, &self.selected_nodes)
+                    {
+                        self.selected_nodes.clear();
+                        self.selected_nodes.insert(node_id);
+                        self.selected_edges.clear();
+                    }
                 });
             });
-            });
-
-        // 下线时持久化高度
-        ctx.data_mut(|d| d.insert_temp(id, self.bottom_panel_height));
 
         // 错误详情弹窗
         if self.show_error_detail {
