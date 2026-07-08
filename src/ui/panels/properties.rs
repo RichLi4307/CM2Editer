@@ -117,6 +117,13 @@ impl PropertiesPanel {
             }
         }
 
+        // GetPosition 节点：coord_id 字段也提供坐标选择器。
+        if node.node_type == NodeType::GetPosition && key == "coord_id" {
+            if ui.button("📍 选坐标").on_hover_text("从坐标预设库选取").clicked() {
+                *coord_picker = Some(CoordinatePickerState::new("__getposition__"));
+            }
+        }
+
         // 如果参数有固定枚举选项，直接显示枚举下拉框。
         if let Some(param_def) = get_definition(node.node_type)
             .and_then(|def| def.params.iter().find(|p| p.name == key))

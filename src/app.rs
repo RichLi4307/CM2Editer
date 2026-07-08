@@ -913,7 +913,6 @@ impl eframe::App for App {
                     }
                     LeftPanelTab::Namespace => {
                         ui.heading("命名空间");
-                        ui.label("cosplay.adult_toy 等");
                         ui.separator();
                         if self.namespace_registry.namespace_names().is_empty() {
                             ui.label("未加载到命名空间文件");
@@ -923,7 +922,13 @@ impl eframe::App for App {
                                 let ns = self.namespace_registry.get(name);
                                 if let Some(ns) = ns {
                                     let count = ns.entries.len();
-                                    ui.label(format!("{}  ({} 项)", name, count));
+                                    if ui.button(format!("{name}  ({count} 项)")).clicked() {
+                                        self.namespace_picker = Some(NamespacePickerState::new(
+                                            name.clone(),
+                                            "namespace_browse",
+                                            false,
+                                        ));
+                                    }
                                 }
                             }
                         }
@@ -936,16 +941,26 @@ impl eframe::App for App {
                             ui.label("请编辑 assets/coordinates/default.json");
                         } else {
                             for stage in self.coordinate_registry.stage_names() {
-                                let count = self
+                                let entries: Vec<_> = self
                                     .coordinate_registry
                                     .entries
                                     .iter()
                                     .filter(|e| e.stage == stage)
-                                    .count();
-                                ui.horizontal(|ui| {
-                                    ui.label(stage);
-                                    ui.label(format!("({} 点)", count));
-                                });
+                                    .collect();
+                                egui::CollapsingHeader::new(format!("{stage}  ({})", entries.len()))
+                                    .id_salt(format!("left_coord_{stage}"))
+                                    .show(ui, |ui| {
+                                        for e in entries {
+                                            ui.horizontal(|ui| {
+                                                ui.label(format!("📍 {}", e.name));
+                                                ui.label(format!("({:.1}, {:.1}, {:.1})", e.x, e.y, e.z));
+                                            });
+                                        }
+                                    });
+                            }
+                            ui.separator();
+                            if ui.button("✏ 编辑坐标文件").clicked() {
+                                self.status_message = "请用文本编辑器编辑 assets/coordinates/default.json".to_string();
                             }
                         }
                     }
@@ -1028,17 +1043,39 @@ impl eframe::App for App {
             if picker.open {
                 if let Some(coord_id) = CoordinatePicker::show(ctx, &self.coordinate_registry, picker) {
                     if let Some(entry) = self.coordinate_registry.get(coord_id.as_str()) {
-                        let value = ParamValue::Literal(serde_json::json!([entry.x, entry.y, entry.z]));
-                        let key = picker.param_key.clone();
                         if let Some(node_id) = edited_node_id.as_ref() {
-                            if let Some(n) = self.graph.nodes.get(node_id) {
-                                let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
-                                self.push_command(Command::SetParam {
-                                    node_id: node_id.clone(),
-                                    key,
-                                    from,
-                                    to: value,
-                                });
+                            if picker.param_key == "__getposition__" {
+                                // 批量填充 GetPosition 节点的所有参数字段
+                                let updates = vec![
+                                    ("coord_id".to_string(), ParamValue::Literal(serde_json::json!(entry.id))),
+                                    ("stage".to_string(), ParamValue::Literal(serde_json::json!(entry.stage))),
+                                    ("x".to_string(), ParamValue::Literal(serde_json::json!(entry.x))),
+                                    ("y".to_string(), ParamValue::Literal(serde_json::json!(entry.y))),
+                                    ("z".to_string(), ParamValue::Literal(serde_json::json!(entry.z))),
+                                ];
+                                for (key, to) in updates {
+                                    if let Some(n) = self.graph.nodes.get(node_id) {
+                                        let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
+                                        self.push_command(Command::SetParam {
+                                            node_id: node_id.clone(),
+                                            key,
+                                            from,
+                                            to,
+                                        });
+                                    }
+                                }
+                            } else {
+                                let value = ParamValue::Literal(serde_json::json!([entry.x, entry.y, entry.z]));
+                                let key = picker.param_key.clone();
+                                if let Some(n) = self.graph.nodes.get(node_id) {
+                                    let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
+                                    self.push_command(Command::SetParam {
+                                        node_id: node_id.clone(),
+                                        key,
+                                        from,
+                                        to: value,
+                                    });
+                                }
                             }
                         }
                     }
