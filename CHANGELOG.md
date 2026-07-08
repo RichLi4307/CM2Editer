@@ -4,6 +4,48 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [0.1.1] — 2026-07-09
+
+### 新增（Phase 6：Monitor→Condition 管道）
+- 7 个纯数据 Boolean/Condition 节点：`Boolean`、`GetStateBool`、`GetStateNumber`、`CompareNumbers`、`LogicAnd`、`LogicOr`、`LogicNot`。无 Flow 端口，通过 DataFlow 连线组合后喂给 If/While。
+- `evaluate_data_output()` 递归解析 Data 边链，生成完整 `.code` 表达式（`(_state.Ecstasy >= 50) && (_state.NearNPC)`）。
+- If/While 属性面板新增 30+ 条条件模板 ComboBox，Data 连线时自动隐藏。
+
+### 新增（坐标系统）
+- 3 个坐标节点：`GetPosition`、`MakeVector`、`BreakVector`。
+- 坐标预设注册表（`src/api/coordinate.rs`）+ 16 个默认坐标（`assets/coordinates/default.json`）。
+- 坐标选择器浮动窗口：按场景分组卡片 + 搜索。
+- Vector 参数属性面板显示 📍 按钮，GetPosition 节点一键填充。
+
+### 新增（命名空间管理）
+- 命名空间面板改为交互式卡片布局：CollapsingHeader 一级分类 + 二级子分类，点击卡片复制 key。
+- cosplay 命名空间 188 条目全部带中文翻译（来源：EMBEDDED_COSPLAY_LIB）。
+- 命名空间选择器窗口支持二级分类展示。
+- Import/Export/Add 按钮（内联表单直接写 JSON）。
+
+### 新增（UI）
+- 启动欢迎页：标题 + 打开工程/新建工程按钮 + Space 快捷键提示。
+- 左栏重构为三标签：工程（合并节点库）、命名空间、坐标。
+- 代码生成语法对齐 CM2 DSL：`If(true) [`→`if true`、`While→while`、`For→for in`、`Break→break`。
+- egui ID 冲突修复：7 个 ScrollArea + 1 个 CollapsingHeader 加 `id_salt`。
+- 参数类型标签（`[str]`/`[num]`/`[xyz]`）+ Vector 多字段编辑器。
+- 窗口自适应屏幕大小（3000×2000 → OS clamp）。
+
+### 修复
+- 底栏弹回/自缩：三合一面板统一控制。
+- Bodypaint 类型从 Boolean 修正为 Number。
+- Data-only 节点不再误报"不可达"警告。
+- emoji 按钮白框：全部替换为纯文本标签。
+- JSON 加载时补填缺失必填参数默认值。
+- 文本输入框限宽，防止撑开左边栏。
+- 命名空间反序列化修复：`category` 字段正确读取。
+
+### 测试
+- NodeType 变体：143 → 153。
+- `cargo test`：109 项全部通过。
+- `cargo clippy`：仅 4 个 pre-existing 警告。
+- Release 构建产物：`target/release/CM2Editer.exe`（~6.7 MB）。
+
 > **维护说明**：每次新增变更时，在所有已有条目的**末尾追加**新条目，严禁删除或覆盖旧条目。所有旧版本均保存在 git 历史中（`git show <commit>:CHANGELOG.md`）。
 
 ---
