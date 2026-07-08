@@ -1,180 +1,254 @@
 # If 条件 / 布尔值输出节点设计方案
 
-> **语法权威参考**：`docs/code_api_reference.md` — 基于 `docs/examples/` 中 80+ 个前辈手搓 .code 反推的 DSL 全集。
-
-## 问题
-
-If 节点需要布尔值输入，但**没有节点输出 Boolean**。条件表达式只能手写字符串，无法用 DataFlow 连线复用。
-
-根据真实 `.code` 实例验证：DSL 使用 `if ()` 语法（小写），操作符为 `&&`/`||`/`!`（非 `and`/`or`/`not`），空检查为 `!= null`（非 `== nil`）。当前 CM2Editer 生成 `If(true) [` 格式，两者可能共存，**模板值同时兼容两种语法**。
-
-.code 本质是一种脚本语言，条件判断必须"包装"成表达式。这决定了实现路线：
-
-| 路线 | 适用场景 | 工作量 |
-|------|---------|--------|
-| A. 条件模板下拉框 | 常用判断，快速填入 | 小（改 `properties.rs`） |
-| B. Boolean 常量节点 | DataFlow 连 true/false | 中（加 `NodeType` + `definitions` + `code_gen`） |
-| C. 预制菜节点族 | 复杂条件组合复用 | 大（需新节点类型 + code_gen 分支） |
-| D. 内置到 If 节点 | 一站式免连线 | 大（重构 If 面板） |
-
-> **建议**：优先 A+B（最小改动获取最大收益），C/D 作为 v0.2 扩展。
+> **语法权威参考**：`docs/code_api_reference.md` — 基于 80+ 个前辈手搓 `.code` 反推的 DSL 全集。
 
 ---
 
-## 路线 A：条件模板下拉框（Phase 1）
-
-在 If 属性面板中为 `condition` 参数添加模板下拉，用户选中即填入表达式。
-
-### 交互规则
-
-1. 若 condition 的 Data 端口已被连线 → 显示 `🔗` 只读，模板不出现
-2. 否则：`ComboBox` 选模板 → 填入条件字段 → 用户可继续手动编辑
-3. 不影响 If 节点现有的手写表达式能力
-
-### 模板分类（语法已对照 `docs/code_api_reference.md` 验证）
-
-#### 1. 字面量
-
-**标签** / **值**
-
-`✅ true` → `true`
-`❌ false` → `false`
-
-#### 2. 角色状态 boolean
-
-**标签** | **值**
----|---
-Futanari（扶她） | `_state.Futanari`
-Sitting（坐姿）| `_state.Sitting`
-Orgasm（高潮）| `_state.Orgasm`
-Moving（移动中）| `_state.Moving`
-Crouching（蹲伏）| `_state.Crouching`
-Peeing（排泄中）| `_state.Peeing`
-Dashing（奔跑）| `_state.Dashing`
-InLight（光照区）| `_state.InLight`
-NearNPC（附近有人）| `_state.NearNPC`
-Watched（被注视）| `_state.Watched`
-ShowingOff（露出）| `_state.ShowingOff`
-Bukkake（射精）| `_state.Bukkake`
-Blindfolded（蒙眼）| `_state.Blindfolded`
-Invisible（隐身）| `_state.Invisible`
-InOpenToilet（开放厕所）| `_state.InOpenToilet`
-Bodypaint（身体涂鸦）| `_state.Bodypaint`
-FPCamera（第一人称）| `_state.FPCamera`
-IsDayTime（白天）| `_state.IsDayTime`
-GameOver（结束）| `_state.GameOver`
-
-#### 3. 装备 / 拘束
-
-**标签** | **值**
----|---
-无手铐 | `_state.AdultToys.Handcuff == null`
-有手铐 | `_state.AdultToys.Handcuff != null`
-跳蛋 · 持有 | `_state.AdultToys.Vibrator != null`
-跳蛋 · 关闭 | `_state.AdultToys.Vibrator == null`
-眼罩 | `_state.Blindfolded`
-隐身 | `_state.Invisible`
-
-> CreateCondition 用紧凑语法 `CreateCondition("[关键词列表]")` 更简洁，详见 `docs/code_api_reference.md` 第 3 节。条件模板适用于 `if ()` / `If()` 表达式。
-
-#### 4. 数值比较（末尾可补数字）
-
-**标签** | **值**
----|---
-快感 ≥ | `_state.Ecstasy >= `
-侦测 ≥ | `_state.Detection >= `
-体力 ≥ | `_state.Stamina >= `
-最大体力 ≥ | `_state.StaminaMax >= `
-湿润度 ≥ | `_state.Moisture >= `
-心率 ≥ | `_state.HeartRate >= `
-等级 ≥ | `_state.Rank >= `
-
-> 数值比较模板末尾留空格，用户续写数字（如 `_state.Ecstasy >= 50`）
-
-### 文件变动
-
-`src/ui/panels/properties.rs`：
-- 定义 `IF_CONDITION_TEMPLATES` 常量（按类别 struct）
-- 在 `param_editor` 中拦截 `NodeType::If` / `key == "condition"`，渲染 `ComboBox`
-
-不涉及其他文件。
-
----
-
-## 路线 B：Boolean 常量节点（Phase 2）
-
-### 新节点
-
-**名称**：布尔值
-**分类**：Math
-**颜色**：`MATH_COLOR`（与 Random、Sin 同类）
-**端口**：
-- 无 Flow 端口（纯数据输出）
-- 输出：`out_value`（`PortType::Boolean`）
-**参数**：`value`（`Enum`，`["true", "false"]`，默认 `"true"`）
-
-### 代码生成
-
-Boolean 节点本身不产生代码（无 Flow 路径不执行）。当 If 的 condition Data 端口连到 Boolean 的 `out_value` 时，`require_param("condition")` 沿 Data 边回溯到 Boolean 节点，取其 `value` 参数值 → `"true"` / `"false"` → 写入 `If(true)` / `If(false)`。
-
-### 文件变动
-
-| 文件 | 改动 |
-|------|------|
-| `src/graph/types.rs` | `NodeType` 加 `Boolean` 变体 |
-| `src/api/definitions.rs` | 新 `NodeDefinition`，加 `all_definitions` |
-| `src/code_gen/generator.rs` | 无需改动——Data 引用已支持 |
-| 测试 | `test_all_variants_have_definition` 计数 143 → 144 |
-
----
-
-## 路线 C：预制菜节点族（Phase 3 / v0.2）
-
-在 Boolean 常量之后，逐步增加**逻辑判断节点**，均输出 `PortType::Boolean`：
-
-| 节点 | 参数 | 输出值 | code_gen |
-|------|------|--------|----------|
-| **CompareNumbers** | a: Number, b: Number, op: Enum(=,≠,<,>,≤,≥) | 比较结果 | `{a} {op} {b}` |
-| **GetStateBool** | key: Enum（见模板表） | 状态名表达式 | `_state.{key}` |
-| **CheckHandcuffs** | type: Enum | 手铐比较表达式 | `Handcuffs.Type == "{type}"` |
-| **CheckVibrator** | level: Enum | 跳蛋比较表达式 | `Vibrator == "{level}"` |
-| **HasItem** | item: Enum（ITEMS） | 物品数量表达式 | `Items["{item}"] > 0` |
-| **SkillEnabled** | skill: Enum（SKILLS） | 技能启用表达式 | `Skills["{skill}"]` |
-| **LogicNot** | input: Boolean (Data) | 逻辑非 | `not ({input})` |
-| **LogicAnd** | a: Boolean (Data), b: Boolean (Data) | 逻辑与 | `({a}) and ({b})` |
-| **LogicOr** | a: Boolean (Data), b: Boolean (Data) | 逻辑或 | `({a}) or ({b})` |
-
-> 这些节点都**无 Flow 端口**，仅通过 Data 连线传递表达式字符串给 If/While。
-
----
-
-## 实施顺序
+## 架构总览
 
 ```
-Phase 1（当前）  → 路线 A：条件模板下拉框
-                  → 路线 B：Boolean 常量节点
-                  → 测试 + 提交
+┌─────────────┐      Data(Number/String)     ┌──────────────┐      Data(Boolean)     ┌──────┐
+│  监测节点     │ ──────────────────────────→ │  Condition 节点 │ ────────────────────→ │ If   │
+│  (Monitor)   │                              │  (Judge)      │                        │      │
+│  读游戏状态   │                              │  评估条件      │                        │ 分支  │
+└─────────────┘                              └──────────────┘                        └──────┘
+     ↑                                                                                   │
+     │  有些监测节点直接输出 Boolean，可跳过 Condition                                     │
+     └───────────────────────────────────────────────────────────────────────────────────┘
+```
 
-Phase 2（后续）  → 从路线 C 中选择 2-3 个最常用的预制菜节点
-                  → CompareNumbers + GetStateBool + CheckHandcuffs
+**三条 DataFlow 通路**：
 
-Phase 3（v0.2+）  → 补齐路线 C 其余节点
-                  → 逻辑组合（Not/And/Or）
-                  → 条件表达式高亮/语法检查
+1. `Boolean 常量` → If.condition（最简单的真/假分支）
+2. `监测节点` → `Condition 节点` → If.condition（结构化条件评估）
+3. `监测节点` → If.condition（监测节点输出类型 = Boolean 时直连）
+
+---
+
+## 节点定义
+
+### 一类：监测节点（Monitor）—— 读游戏状态
+
+这些节点**没有 Flow 端口**，纯数据输出。从 `_state.*` 中读取游戏状态并以**强类型端口**暴露。
+
+#### M1. Boolean 常量
+
+| 字段 | 值 |
+|------|----|
+| NodeType | `Boolean` |
+| 分类 | Math |
+| Inputs | 无 |
+| Outputs | `out_value: Boolean` — `"true"` / `"false"` |
+| Params | `value: Enum(["true", "false"])`，默认 `"true"` |
+| code_gen 值 | `"true"` / `"false"` |
+
+#### M2. GetStateBool —— 读取单个 boolean 状态
+
+| 字段 | 值 |
+|------|----|
+| NodeType | `GetStateBool` |
+| 分类 | Game Functions: Player |
+| Inputs | 无 |
+| Outputs | `out_value: Boolean` |
+| Params | `stateKey: Enum` — 20+ 布尔状态名（从 `_state.*` 列出） |
+| code_gen 值 | `_state.{key}` 如 `_state.Futanari` |
+
+**关键设计**：Enum 选项按三级分类呈现（可用命名空间选择器式窗口）：
+
+```
+角色状态    │  装备/拘束        │  环境
+───────────┼──────────────────┼────────
+Futanari    │  Blindfolded      │  InLight
+Sitting     │  Invisible        │  NearNPC
+Orgasm      │  Bodypaint        │  Watched
+Moving      │  GameOver         │  IsDayTime
+Crouching   │                   │  InOpenToilet
+Peeing      │                   │  FPCamera
+Dashing     │                   │  ShowingOff
+            │                   │  Bukkake
+```
+
+#### M3. GetStateNumber —— 读取单个数值状态
+
+| 字段 | 值 |
+|------|----|
+| NodeType | `GetStateNumber` |
+| 分类 | Game Functions: Player |
+| Inputs | 无 |
+| Outputs | `out_value: Number` |
+| Params | `stateKey: Enum` — 7 个数值状态名 |
+| code_gen 值 | `_state.{key}` 如 `_state.Ecstasy` |
+
+选项：`Ecstasy`, `Detection`, `Rank`, `HeartRate`, `Stamina`, `StaminaMax`, `Moisture`
+
+#### M4. GetPosition —— 读取坐标
+
+| 字段 | 值 |
+|------|----|
+| NodeType | `GetPosition` |
+| 分类 | Game Functions: Player |
+| Inputs | 无 |
+| Outputs | `out_stage: String`, `out_x: Number`, `out_y: Number`, `out_z: Number` |
+| code_gen 值 | `_state.Position.stage`, `_state.Position.x`, `.y`, `.z` |
+
+#### M5. CheckEquipment —— 检查装备/玩具
+
+| 字段 | 值 |
+|------|----|
+| NodeType | `CheckEquipment` |
+| 分类 | Game Functions: Items |
+| Inputs | 无 |
+| Outputs | `out_value: Boolean` — `!= null` 判断 |
+| Params | `equipType: Enum` — `Handcuff`, `KeyHandcuff`, `TimerHandcuff`, `Vibrator`, `EyeMask`, `TitRotor`, `KuriRotor`, `PistonAnal`, `PistonPussy`, `AnalPlug` |
+| code_gen 值 | `_state.AdultToys.{type} != null` |
+
+#### M6. CheckCosplay —— 检查服装
+
+| 字段 | 值 |
+|------|----|
+| NodeType | `CheckCosplay` |
+| 分类 | Game Functions: Items |
+| Inputs | 无 |
+| Outputs | `out_value: Boolean` |
+| Params | `cosplayKey: Namespace(cosplay)` — 用命名空间选择器 |
+| code_gen 值 | `OwnsCosplay_{key}` 或 `Cosplay_{key}`（取决于 `checkMode` 参数） |
+
+---
+
+### 二类：Condition 条件节点（Judge）—— 评估
+
+#### C1. CompareNumbers —— 数值比较
+
+| 字段 | 值 |
+|------|----|
+| NodeType | `CompareNumbers` |
+| 分类 | Math |
+| Inputs | `a: Number` (Data), `b: Number` (Data) |
+| Outputs | `out_result: Boolean` |
+| Params | `operator: Enum` — `==`, `!=`, `>`, `>=`, `<`, `<=`，默认 `>=` |
+| code_gen 值 | 从 Data 边提取 a 源值和 b 源值，组表达式如 `_state.Ecstasy >= 50` |
+
+**DataFlow 示例**：
+```
+GetStateNumber(stateKey=Ecstasy) ──out_value(Number)──→ CompareNumbers.a
+Boolean(value=true) ──out_value(Boolean)──→  (或手输数字 50 → CompareNumbers.b)
+CompareNumbers ──out_result(Boolean)──→ If.condition
+→ 生成：If(_state.Ecstasy >= 50) [
+```
+
+#### C2. LogicAnd / LogicOr / LogicNot —— 逻辑组合
+
+| 字段 | LogicAnd / LogicOr | LogicNot |
+|------|-------------------|----------|
+| NodeType | `LogicAnd` / `LogicOr` | `LogicNot` |
+| 分类 | Math | Math |
+| Inputs | `a: Boolean`, `b: Boolean` (Data) | `a: Boolean` (Data) |
+| Outputs | `out_result: Boolean` | `out_result: Boolean` |
+| code_gen 值 | `({a} && {b})` / `({a} \|\| {b})` | `!({a})` |
+
+---
+
+### 三类：条件模板下拉框（If 节点内置）
+
+If 节点 `condition` 参数编辑区域放置一个 `ComboBox`，提供 **30+ 条预设表达式**。选中后填入字段，用户可继续手改。
+
+模板来源：`docs/code_api_reference.md` §3–§4。按分类排列：
+
+```
+── 字面量 ──
+  ✅ true     → "true"
+  ❌ false    → "false"
+
+── 角色状态 (boolean) ──
+  Futanari · 扶她       → _state.Futanari
+  Sitting · 坐姿         → _state.Sitting
+  Orgasm · 高潮          → _state.Orgasm
+  Moving · 移动中        → _state.Moving
+  ... (全部 19 项)
+
+── 装备/拘束 ──
+  有手铐                  → _state.AdultToys.Handcuff != null
+  无手铐                  → _state.AdultToys.Handcuff == null
+  蒙眼                    → _state.Blindfolded
+  隐身                    → _state.Invisible
+  身体涂鸦                → _state.Bodypaint > 0
+
+── 数值比较 ──
+  快感 ≥ _____           → _state.Ecstasy >= 
+  侦测 ≥ _____           → _state.Detection >= 
+  体力 ≥ _____           → _state.Stamina >= 
+  等级 ≥ _____           → _state.Rank >= 
+  湿润度 ≥ _____         → _state.Moisture >= 
+  心率 ≥ _____           → _state.HeartRate >= 
 ```
 
 ---
 
-## 附录：.code If 条件语法速查
+## DataFlow 拼接示例
 
-### 布尔状态
-`_state.{Futanari|Sitting|Orgasm|Moving|Crouching|Peeing|Dashing|InLight|NearNPC|Watched|ShowingOff|Bukkake|Blindfolded|Invisible|InOpenToilet|Bodypaint|FPCamera|IsDayTime|GameOver}`
+### 示例 1：最简单的条件分支
 
-### 数值状态
-`_state.{Ecstasy|Detection|Rank|HeartRate|Stamina|StaminaMax|Moisture}`
+```
+[Boolean(value=true)] ──out_value(Boolean)──→ [If.condition]
+                                                    ├── out_true → Log("是")
+                                                    └── out_false → Log("否")
+```
 
-### 装备/拘束
-`Handcuffs.Type`、`Handcuffs.State`、`Vibrator`、`Piston`
+### 示例 2：游戏状态驱动分支
 
-### 类别条件
-`Action_<name>`、`Cosplay_<id>`、`OwnsCosplay_<id>`、`AdultToy_<name>`、`OwnsAdultToy_<name>`、`Item_<name>`、`MissionCompleted_<id>`、`Skill_<name>`、`Exposed_<part>`
+```
+[GetStateBool(Futanari)] ──out_value(Boolean)──→ [If.condition]
+                                                      ├── out_true → Log("扶她")
+                                                      └── out_false → Log("不是")
+→ 生成：If(_state.Futanari) [
+```
+
+### 示例 3：数值比较 + 逻辑组合
+
+```
+[GetStateNumber(Ecstasy)] ──out_value──→ [CompareNumbers.a]
+                                                       │ CompareNumbers(op=">=")
+                                                       │ out_result → [If.condition]
+[手输数字 50] ───────────────→ [CompareNumbers.b] ────┘
+→ 生成：If(_state.Ecstasy >= 50) [
+```
+
+### 示例 4：复杂组合条件
+
+```
+[GetStateBool(InLight)] ──→ [LogicAnd.a]
+                                        │ LogicAnd.out_result
+[CheckEquipment(Handcuff)] ──→ [LogicAnd.b] ──→ [If.condition]
+→ 生成：If((_state.InLight) && (_state.AdultToys.Handcuff != null)) [
+```
+
+---
+
+## 实施计划
+
+### Phase 1（当前迭代）
+
+```
+文件                                    改动
+─────────────────────────────────────────────────────
+src/graph/types.rs                      加 Boolean, CompareNumbers, GetStateBool,
+                                          GetStateNumber, LogicAnd, LogicOr, LogicNot
+                                          变体到 NodeType 枚举
+src/api/definitions.rs                  加 7 个 NodeDefinition，test 计数 143→150
+src/ui/panels/properties.rs             加 IF_CONDITION_TEMPLATES 常量和 ComboBox 渲染
+src/code_gen/generator.rs               加 GenerateBoolean/GenerateCompareNumbers/
+                                          GenerateGetStateBool 等分支
+测试                                    更新 test_all_variants_have_definition 计数
+```
+
+### Phase 2（v0.2）
+
+- CheckEquipment、CheckCosplay、GetPosition 节点
+- 条件选择窗口（类似命名空间选择器）：左侧三级分类树 → 右侧详情 → 点击生成节点到画布
+- `CreateCondition` Data 节点：输出条件 Object，连入 Gallery/Area
+
+### Phase 3（v0.3+）
+
+- Foreach 节点
+- While 循环条件 DataFlow 化
+- 条件表达式语法高亮
