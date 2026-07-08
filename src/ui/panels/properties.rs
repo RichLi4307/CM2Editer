@@ -65,6 +65,54 @@ impl PropertiesPanel {
             return None;
         }
 
+        // 如果参数有固定枚举选项，直接显示枚举下拉框。
+        if let Some(param_def) = get_definition(node.node_type)
+            .and_then(|def| def.params.iter().find(|p| p.name == key))
+        {
+            if let Some(options) = param_def.options.as_ref() {
+                return Self::enum_editor(ui, key, value, options);
+            }
+        }
+
+        // 否则使用数据源选择器 + 字面量编辑器。
+        Self::source_editor(ui, node, graph, key, value)
+    }
+
+    /// 枚举参数下拉框编辑器。
+    fn enum_editor(
+        ui: &mut egui::Ui,
+        key: &str,
+        value: &ParamValue,
+        options: &[String],
+    ) -> Option<(String, ParamValue)> {
+        let selected = match value {
+            ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
+            _ => String::new(),
+        };
+
+        let mut changed = None;
+        egui::ComboBox::from_id_salt(format!("{}_enum", key))
+            .width(120.0)
+            .selected_text(selected.clone())
+            .show_ui(ui, |ui| {
+                for option in options {
+                    if ui.selectable_label(selected == *option, option).clicked() {
+                        changed = Some(option.clone());
+                    }
+                }
+            });
+
+        changed.map(|new_value| (key.to_string(), ParamValue::Literal(serde_json::json!(new_value))))
+    }
+
+    /// 数据源选择编辑器：下拉框选择字面量或数据端口引用。
+    fn source_editor(
+        ui: &mut egui::Ui,
+        node: &Node,
+        graph: &Graph,
+        key: &str,
+        value: &ParamValue,
+    ) -> Option<(String, ParamValue)> {
         // 收集可选数据源：所有兼容类型的非 Flow 输出端口。
         let options = available_data_sources(graph, node, key);
 

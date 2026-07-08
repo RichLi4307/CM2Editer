@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::api::enums::{
+    to_strings, ACTIONS, CONDITION_TYPES, DROP_ITEM_TYPES, GRAPHICS_OPTIONS,
+    HANDCUFFS_TYPES, ITEMS, PISTON_STRENGTHS, SEX_POSITIONS, SKILLS, SOUND_EFFECTS, STAGE_TYPES,
+    VIBRATOR_STRENGTHS,
+};
 use crate::graph::node::ParamValue;
 use crate::graph::types::{NodeType, PortType};
 
@@ -19,6 +24,8 @@ pub enum ParamType {
     Color,
     Vector,
     Quaternion,
+    /// 枚举/命名空间类型，显示为下拉选择框。
+    Enum,
 }
 
 impl ParamType {
@@ -27,7 +34,7 @@ impl ParamType {
     pub const fn port_type(&self) -> PortType {
         match self {
             ParamType::Number => PortType::Number,
-            ParamType::String => PortType::String,
+            ParamType::String | ParamType::Enum => PortType::String,
             ParamType::Boolean => PortType::Boolean,
             ParamType::List | ParamType::Color | ParamType::Vector | ParamType::Quaternion => {
                 PortType::List
@@ -261,6 +268,27 @@ fn p_opt(name: &str, display: &str, param_type: ParamType) -> ParamDefinition {
     p(name, display, param_type).required(false)
 }
 
+/// 创建一个可枚举参数，提供固定下拉选项。
+fn e(name: &str, display: &str, options: &[&str]) -> ParamDefinition {
+    ParamDefinition::new(name, display, ParamType::Enum)
+        .with_options(to_strings(options))
+        .with_default(ParamValue::Literal(serde_json::json!(
+            options.first().map_or("", |&s| s)
+        )))
+        .required(true)
+}
+
+/// 创建一个可枚举参数（可选）。
+#[allow(dead_code)]
+fn e_opt(name: &str, display: &str, options: &[&str]) -> ParamDefinition {
+    ParamDefinition::new(name, display, ParamType::Enum)
+        .with_options(to_strings(options))
+        .with_default(ParamValue::Literal(serde_json::json!(
+            options.first().map_or("", |&s| s)
+        )))
+        .required(false)
+}
+
 /// Returns a sensible default value for a parameter type.
 fn default_param_value(param_type: ParamType) -> ParamValue {
     ParamValue::Literal(match param_type {
@@ -271,6 +299,7 @@ fn default_param_value(param_type: ParamType) -> ParamValue {
             serde_json::json!([])
         }
         ParamType::Object => serde_json::json!({}),
+        ParamType::Enum => serde_json::json!(""),
     })
 }
 
@@ -574,8 +603,8 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_item", PortType::Object, "物品"),
         ])
         .with_params(vec![
-            p_req("itemtype", "物品类型", ParamType::String),
-            p_req("stage", "场景", ParamType::String),
+            e("itemtype", "物品类型", DROP_ITEM_TYPES),
+            e("stage", "场景", STAGE_TYPES),
             p_req("position", "位置", ParamType::Vector),
             p_opt("rotation", "旋转", ParamType::Quaternion),
             p_opt("compass", "指南针", ParamType::Boolean),
@@ -593,7 +622,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_collected", PortType::Boolean, "是否成功"),
         ])
         .with_params(vec![
-            p_req("itemtype", "物品类型", ParamType::String),
+            e("itemtype", "物品类型", DROP_ITEM_TYPES),
             p_req("position", "位置", ParamType::Vector),
         ]),
         NodeDefinition::new(
@@ -605,7 +634,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("strength", "强度", ParamType::String)]),
+        .with_params(vec![e("strength", "强度", VIBRATOR_STRENGTHS)]),
         NodeDefinition::new(
             NodeType::SetPiston,
             "Game Functions: Items",
@@ -615,7 +644,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("strength", "强度", ParamType::String)]),
+        .with_params(vec![e("strength", "强度", PISTON_STRENGTHS)]),
         NodeDefinition::new(
             NodeType::LockHandcuffs,
             "Game Functions: Items",
@@ -626,7 +655,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![
-            p_req("handcuffstype", "手铐类型", ParamType::String),
+            e("handcuffstype", "手铐类型", HANDCUFFS_TYPES),
             p_opt("attachtoobject", "绑定对象", ParamType::Boolean),
             p_opt("duration", "持续时间", ParamType::Number),
         ]),
@@ -727,7 +756,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![
-            p_req("stage", "场景", ParamType::String),
+            e("stage", "场景", STAGE_TYPES),
             p_opt("daytime", "白天", ParamType::Boolean),
         ]),
         NodeDefinition::new(
@@ -753,7 +782,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("action", "动作", ParamType::String)]),
+        .with_params(vec![e("action", "动作", ACTIONS)]),
         NodeDefinition::new(
             NodeType::SetFutanari,
             "Game Functions: Player",
@@ -774,7 +803,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![
-            p_req("skill", "技能", ParamType::String),
+            e("skill", "技能", SKILLS),
             p_req("enabled", "启用", ParamType::Boolean),
         ]),
         NodeDefinition::new(
@@ -1035,7 +1064,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_count", PortType::Number, "数量"),
         ])
         .with_params(vec![
-            p_req("item", "物品", ParamType::String),
+            e("item", "物品", ITEMS),
             p_req("count", "数量", ParamType::Number),
         ]),
         NodeDefinition::new(
@@ -1051,7 +1080,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_count", PortType::Number, "数量"),
         ])
         .with_params(vec![
-            p_req("item", "物品", ParamType::String),
+            e("item", "物品", ITEMS),
             p_req("count", "数量", ParamType::Number),
         ]),
         NodeDefinition::new(
@@ -1102,7 +1131,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![
-            p_req("name", "音效名", ParamType::String),
+            e("name", "音效名", SOUND_EFFECTS),
             p_opt("volume", "音量", ParamType::Number),
             p_opt("position", "位置", ParamType::Vector),
         ]),
@@ -1116,7 +1145,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![
-            p_req("stage", "场景", ParamType::String),
+            e("stage", "场景", STAGE_TYPES),
             p_req("rank", "等级", ParamType::Number),
         ]),
         NodeDefinition::new(
@@ -1142,7 +1171,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![
-            p_req("stage", "场景", ParamType::String),
+            e("stage", "场景", STAGE_TYPES),
             p_req("enabled", "启用", ParamType::Boolean),
         ]),
         NodeDefinition::new(
@@ -1166,7 +1195,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("position", "体位", ParamType::String)]),
+        .with_params(vec![e("position", "体位", SEX_POSITIONS)]),
         NodeDefinition::new(
             NodeType::DeactivateSex,
             "Game Functions: Control",
@@ -1273,7 +1302,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![
-            p_req("option", "选项", ParamType::String),
+            e("option", "选项", GRAPHICS_OPTIONS),
             p_req("value", "值", ParamType::List),
         ]),
         NodeDefinition::new(
@@ -1288,7 +1317,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_flow(),
             out_data("out_value", PortType::List, "值"),
         ])
-        .with_params(vec![p_req("option", "选项", ParamType::String)]),
+        .with_params(vec![e("option", "选项", GRAPHICS_OPTIONS)]),
         // -----------------------------------------------------------------
         // Math: Standard
         // -----------------------------------------------------------------
@@ -1918,7 +1947,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![
             p_req("type", "类型", ParamType::String),
-            p_req("stage", "场景", ParamType::String),
+            e("stage", "场景", STAGE_TYPES),
             p_req("position", "位置", ParamType::Vector),
             p_req("r", "半径", ParamType::Number),
             p_req("h", "高度", ParamType::Number),
@@ -1951,7 +1980,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_condition", PortType::Object, "条件"),
         ])
         .with_params(vec![
-            p_req("condition", "条件", ParamType::String),
+            e("condition", "条件", CONDITION_TYPES),
             p_req("id", "ID", ParamType::String),
         ]),
         NodeDefinition::new(
@@ -1967,7 +1996,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_condition", PortType::Object, "条件"),
         ])
         .with_params(vec![
-            p_req("itemtype", "物品类型", ParamType::String),
+            e("itemtype", "物品类型", DROP_ITEM_TYPES),
             p_opt("zone", "地带", ParamType::Object),
             p_opt("area", "区域", ParamType::Object),
             p_req("id", "ID", ParamType::String),
@@ -1985,7 +2014,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_area", PortType::Object, "区域"),
         ])
         .with_params(vec![
-            p_req("stage", "场景", ParamType::String),
+            e("stage", "场景", STAGE_TYPES),
             p_req("position", "位置", ParamType::Vector),
             p_req("r", "半径", ParamType::Number),
             p_req("text", "文本", ParamType::String),

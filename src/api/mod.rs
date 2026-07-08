@@ -1,4 +1,5 @@
 pub mod definitions;
+pub mod enums;
 pub mod registry;
 
 pub use definitions::{
