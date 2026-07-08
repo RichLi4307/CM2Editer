@@ -103,8 +103,13 @@ struct NamespaceFile {
 enum NamespaceEntryFile {
     /// Simple form: "key": "Display Name" (stored as English name).
     Simple(String),
-    /// Full form: "key": { "en": "...", "zh": "..." }.
-    Translated(HashMap<String, String>),
+    /// Full form with optional category.
+    Full {
+        #[serde(default)]
+        category: Option<String>,
+        #[serde(flatten)]
+        names: HashMap<String, String>,
+    },
 }
 
 /// Global registry holding all loaded namespaces.
@@ -195,7 +200,11 @@ fn load_namespace_file(path: &std::path::Path) -> Result<Namespace, Box<dyn std:
             NamespaceEntryFile::Simple(name) => {
                 NamespaceEntry::new(key.clone()).with_name("en", name)
             }
-            NamespaceEntryFile::Translated(names) => NamespaceEntry { key, category: None, names },
+            NamespaceEntryFile::Full { category, names } => NamespaceEntry {
+                key,
+                category,
+                names,
+            },
         };
         entries.push(entry);
     }
