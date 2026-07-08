@@ -3,7 +3,7 @@
 > 用途：单人项目管理 + Agent 任务追踪
 > 更新规则：每次 Agent 交付后，由用户（或 Agent）更新对应条目状态
 > 文件位置：`docs/TODO.md`
-> 更新时间：2026-07-08 04:40
+> 更新时间：2026-07-08 20:34
 
 ---
 
@@ -15,244 +15,128 @@
 | Phase 1：数据层 | ✅ 完成 | 2026-07-05 |
 | Phase 2：序列化与代码生成 | ✅ 完成 | 2026-07-06 |
 | Phase 3：UI 层 | ✅ 完成 | 2026-07-07 |
-| Phase 3 三轮修复 | ✅ 完成 | 2026-07-08，24 项问题已修复，76+7 tests 通过 |
-| Phase 4：集成测试与打磨 | ✅ 完成 | 2026-07-08，文档同步与端到端验证完成 |
-| Phase 4.5：工程/项目管理 | ✅ 完成 | 2026-07-08，实现工程文件夹、`meta.json`、多 `.code`、文件树、文本编辑器、导出，81+16 tests 通过 |
-| Phase 5：新功能与发布 | 🔄 5.1 已完成 | 基于作者建议的 backlog，按工程复杂度排序 |
-
----
-
-## Phase 4：集成测试与打磨（当前冲刺）
-
-> 目标：确保现有功能闭环，文档与代码一致，为 Phase 5 铺平道路。
-
-| 任务 | 状态 | 复杂度 | 依赖 | 备注 |
-|------|------|--------|------|------|
-| 4.1 端到端测试：创建图 → 保存 JSON → 加载 → 验证 → 生成 `.code` | ✅ | 中 | 无 | 已有 `tests/code_gen.rs` 和 `json_roundtrip.rs` 覆盖，待补充完整流程 |
-| 4.2 用 `docs/examples/` 全部 4 个示例完整验证序列化与代码生成 | ✅ | 中 | 4.1 | 为 Test/NPC_type/drop bra and panties/MessengerExample 各建代表性图档 fixture，新增 `tests/examples_verify.rs`（9 项测试：序列化往返 + 代码生成比对 + 文件回写），总计 92 tests 通过 |
-| 4.3 性能测试：100+ 节点画布不卡顿 | ✅ | 低 | 无 | 视口裁剪 + JSON 缓存已实现，测试通过 |
-| 4.4 边界测试：空图、单节点、全折叠、全展开 | ✅ | 低 | 无 | 空图导出警告、折叠高度自适应已覆盖 |
-| 4.5 错误处理：加载损坏 JSON 时友好提示（不 panic） | ✅ | 低 | 无 | `load_json` 已捕获错误，`testerror.json` 已提供 |
-| 4.6 键盘快捷键完整实现 | ✅ | 低 | 无 | Ctrl+Z/Y/C/V/S/Del/Space 已落地 |
-| 4.7 节点分类颜色与 `node_types.md` 色表一致 | ✅ | 低 | 无 | `theme.rs` 已同步 |
-| 4.8 文档同步：更新 `README.md`、`CHANGELOG.md`、`agent_prompt.md` | ✅ | 低 | 无 | 本次正在同步 |
-
-**Phase 4 验收标准：**
-
-- 所有示例任务能正确导入导出
-- 无已知崩溃路径
-- 文档与当前代码一致
-
----
-
-## Phase 4.5：工程/项目管理（发布前必做）
-
-> ⚠️ 经分析 `docs/examples/` 与 `docs/documentation_zh.html`，发现当前编辑器仅导出单个 `.code` 文件，而真实 Custom Missions 2 项目是一个**文件夹工程**，必须包含 `meta.json` 和可拆分的多个 `.code` 文件。因此编辑器必须从"单一文件编辑器"升级为"工程管理器"。
->
-> **依据：**
->
-> - `documentation_zh.html#File-Structure`：每个项目在游戏 `CustomMissions2` 文件夹中有自己的子文件夹。
-> - `documentation_zh.html#Code`：项目可以拆分成多个 `.code` 文件，加载时合并。
-> - `documentation_zh.html#Meta`：项目必须包含 `meta.json`，定义多语言标题、描述、设置菜单（`_settings` 全局变量）。
-> - `docs/examples/` 中所有示例（`Test`、`NPC_type`、`drop bra and panties`、`MessengerExample` 等）均符合：文件夹 + `meta.json` + 一个或多个 `.code` 文件。
->
-> **当前问题：**
->
-> 1. `export_code` 只生成一个 `.code` 文件，没有生成对应的项目文件夹和 `meta.json`。
-> 2. `save_json` 将编辑器内部状态保存为单个 `.json`，与真实项目结构脱节。
-> 3. 没有内置文本编辑器，无法查看/修改生成的 `.code` 文件。
-> 4. 左栏没有工程文件树，无法管理多个 `.code` 文件和 `meta.json`。
-> 5. 新建/保存工程时没有让用户选择项目文件夹并命名。
->
-> **解决方案：**
->
-> 1. 引入 `Project` 概念：一个工程文件夹 = `meta.json` + 一个或多个 `.code` 文件 + 编辑器内部 `.json` 文件（每张 `.code` 对应一个节点图）。
-> 2. 编辑器保存时生成/更新 `meta.json` 和所有 `.code` 文件；加载时读取整个文件夹。
-> 3. 左栏增加"工程"文件树面板，支持创建/重命名/删除 `.code` 文件和 `meta.json`。
-> 4. 内置 `.code` 文本编辑器，支持直接编辑代码并与节点图双向同步（或至少查看）。
-> 5. 新建工程时弹出文件夹选择对话框，让用户指定项目位置和命名。
-> 6. 项目设置中支持 `meta.json` 的 `title`/`description`/`settings` 编辑。
-
-### 4.5.1 工程模型设计
-
-| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
-|------|------|--------|--------|------|
-| 4.5.1.1 定义 `Project` 数据结构 | ✅ | P0 | 高 | `src/project.rs` 实现 `Project`/`MissionMeta`/`CodeFile`/`Setting`，含工程路径、meta、code 文件列表 |
-| 4.5.1.2 设计工程文件保存格式 | ✅ | P0 | 高 | 工程根目录保存 `meta.json` 与 `.code` 文件；编辑器内部节点图 JSON 放在 `.cm2editor/<name>.code.json` |
-| 4.5.1.3 工程加载与保存入口 | ✅ | P0 | 高 | `App` 以 `project: Option<Project>` 替换旧 `current_file`，保存时写回所有文件 |
-| 4.5.1.4 向后兼容旧单文件 JSON | 📋 | P1 | 中 | 旧 `.json` 可导入并迁移到工程模式（尚未实现） |
-
-### 4.5.2 meta.json 支持
-
-| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
-|------|------|--------|--------|------|
-| 4.5.2.1 `meta.json` 数据模型 | ✅ | P0 | 中 | `MissionMeta` 覆盖 title、description、defaultactive、settings（Label/Integer/Float/Boolean/String/Enum） |
-| 4.5.2.2 `meta.json` 编辑器 | ✅ | P0 | 中 | 右栏提供 `meta.json` 文本编辑器，实时解析并验证 |
-| 4.5.2.3 `_settings` 全局变量节点 | 📋 | P1 | 中 | 生成代码时允许读取 `_settings.xxx`（尚未实现） |
-
-### 4.5.3 多 `.code` 文件管理
-
-| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
-|------|------|--------|--------|------|
-| 4.5.3.1 每个 `.code` 文件对应一个 Graph | ✅ | P0 | 高 | 工程内可创建多个 `.code` 文件，每个文件独立节点图 |
-| 4.5.3.2 跨文件标签/跳转 | 📋 | P1 | 高 | 一个 `.code` 中的 `Goto` 可以跳转到另一个 `.code` 的 `Label`（尚未实现） |
-| 4.5.3.3 导出时合并所有 `.code` | ✅ | P0 | 中 | 导出工程时复制整个项目文件夹到 `CustomMissions2`；游戏加载时自行合并 |
-| 4.5.3.4 导出单个 `.code` 到工程文件夹 | ✅ | P0 | 低 | 保存工程时每个 `.code` 文件均从对应节点图生成 |
-
-### 4.5.4 左栏工程文件树
-
-| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
-|------|------|--------|--------|------|
-| 4.5.4.1 文件树 UI 面板 | ✅ | P0 | 中 | 左栏显示 `meta.json`、`.code` 文件列表，资源目录后续扩展 |
-| 4.5.4.2 文件操作：新建/重命名/删除 `.code` | ✅ | P0 | 中 | 文件树支持新建、重命名、删除 `.code` 文件 |
-| 4.5.4.3 文件切换：点击文件打开对应编辑器 | ✅ | P0 | 中 | `.code` 切换节点图，`meta.json` 切换 meta 编辑器 |
-| 4.5.4.4 与现有左栏节点库整合 | ✅ | P0 | 中 | 左栏通过 "工程"/"节点库" 标签页整合文件树与节点库 |
-
-### 4.5.5 内置文本编辑器
-
-| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
-|------|------|--------|--------|------|
-| 4.5.5.1 `.code` 文本编辑器面板 | ✅ | P0 | 中 | 底部面板显示并编辑当前 `.code` 代码，支持 UTF-8 |
-| 4.5.5.2 文本与节点图同步 | ⚠️ | P1 | 高 | 已支持手动编辑 `.code` 文本并保存；从文本解析回节点图尚未实现 |
-| 4.5.5.3 `meta.json` 文本编辑 | ✅ | P2 | 低 | 右栏可直接编辑 `meta.json` JSON 源 |
-
-### 4.5.6 新建/保存工程流程
-
-| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
-|------|------|--------|--------|------|
-| 4.5.6.1 "新建工程"对话框 | ✅ | P0 | 中 | 选择父文件夹 + 输入工程名称，创建文件夹并生成默认 `meta.json`/`main.code` |
-| 4.5.6.2 "打开工程"文件夹对话框 | ✅ | P0 | 低 | 工具栏与文件树均支持选择工程文件夹 |
-| 4.5.6.3 "保存工程" | ✅ | P0 | 低 | 保存所有 `.code` 和 `meta.json`（快捷键 Ctrl+S） |
-| 4.5.6.4 "导出工程到 CustomMissions2" | ✅ | P0 | 中 | 选择目标文件夹，复制项目文件夹（含 `meta.json`、`.code`、资源目录） |
-
-**Phase 4.5 验收标准：**
-
-- 新建工程可选择一个文件夹并命名，自动生成 `meta.json` 和 `main.code`。
-- 保存工程时同时更新 `meta.json` 和所有 `.code` 文件。
-- 左栏显示工程文件树，可管理多个 `.code` 文件。
-- 可打开 `.code` 文本编辑器查看/修改代码。
-- 导出工程到游戏目录时生成正确结构。
+| Phase 3 三轮修复 | ✅ 完成 | 2026-07-08 |
+| Phase 4：集成测试与打磨 | ✅ 完成 | 2026-07-08 |
+| Phase 4.5：工程/项目管理 | ✅ 完成 | 2026-07-08 |
+| Phase 5：新功能与发布 | 🔄 5.1~5.4 已大部分完成 | DataFlow / 枚举参数 / 命名空间 / 静态检查 / 错误面板 / 底栏重构 / ID 冲突修复 |
+| Phase 6：Monitor→Condition 管道 | ✅ Phase 1 完成 | 7 个新 Boolean/Condition 节点 + If 条件模板 + Data 递归解析 + code_gen 对齐 CM2 DSL |
 
 ---
 
 ## Phase 5：新功能与发布（Backlog）
 
-> 按**工程复杂度**和**作者优先级**排序。高复杂度任务需要先设计再动手；低复杂度任务可穿插进行。
+### 5.1 高复杂度
 
-### 5.1 高复杂度（需架构设计）
+| 任务 | 优先级 | 状态 | 说明 |
+|------|--------|------|------|
+| 5.1.1 **DataFlow 重构** | P0 | ✅ | 参数 Data 端口、虚线、属性面板数据源、Data 边选中渲染，108 tests |
+| 5.1.2 **参数类型重构** | P1 | ✅ | `ParamType::Enum`；20+ 参数下拉选择；参考文档已切换到 `docs/documentation.html`（英文原版） |
+| 5.1.3 **命名空间管理** | P1 | ✅ | 7 个 namespace JSON；悬浮搜索选择器 |
+| 5.1.4 **坐标"语言糖"** | P2 | 📋 | 预制坐标/视角变量；需评估与数学节点语义冲突 |
 
-| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
-|------|--------|--------|------|------|
-| 5.1.1 **DataFlow 重构** | P0 | 高 | 无 | 节点内参数下拉框选择数据源、边框 Data 端口、虚线连线、Data 菜单、单选节点时显示相关 Data 边。✅ 已完成 |
-| 5.1.2 **参数类型重构** | P1 | 高 | 5.1.1 | 审查 `docs/` 中 API 文档`documentation_zh.html`，修正 `General Function` 等节点参数类型；可枚举参数（如场景、物品类型、动作）提供下拉表。✅ 已完成 |
-| 5.1.3 **命名空间管理** | P1 | 高 | 5.1.2 | 引入 `documentation_zh.html` 附录>游戏常量。其中有命名空间信息，提供搜索、译名、命名空间选择窗口。涉及 cosplay、振动器、活塞等可枚举参数。✅ 已完成 |
-| 5.1.4 **坐标"语言糖"** | P2 | 高 | 5.1.1 + API 文档 | 预制坐标/视角方向变量，编辑器可视化 x/y/z，`.code` 导出时语言转译。需评估与数学/变量节点的语义冲突。 |
+### 5.2 中复杂度
 
-### 5.2 中复杂度（功能模块）
+| 任务 | 优先级 | 状态 | 说明 |
+|------|--------|------|------|
+| 5.2.1 **左栏二级菜单** | P2 | 📋 | 文件操作、命名空间管理、坐标菜单 |
+| 5.2.2 **静态检查** | P3 | ✅ | 多 Start 警告、不可达节点 |
+| 5.2.3 **Start 多路连接警告** | P3 | ✅ | 菱形依赖检测 |
+| 5.2.4 **错误详情面板** | P3 | ✅ | 点击状态栏错误数弹出详情窗口 |
+| 5.2.5 **画布状态机 Debug 显示** | P3 | 📋 | 开发者模式覆盖层 |
 
-| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
-|------|--------|--------|------|------|
-| 5.2.1 **左栏二级菜单** | P2 | 中 | 5.1.3 | 一级菜单：文件操作、命名空间管理、坐标菜单；节点库作为二级"节点菜单"。 |
-| 5.2.2 **静态检查** | P3 | 中 | 无 | 多 Start 警告、data-in-flow 缺失提示。✅ 已完成 |
-| 5.2.3 **Start 多路连接警告** | P3 | 中 | 5.2.2 | 同一 Start 分支出多个独立下游（如 S→B 与 S→A→B）时 ⚠️ 警告但不阻止。✅ 已完成 |
-| 5.2.4 **错误详情面板** | P3 | 中 | 无 | 底部状态栏错误可点击展开详情（当前仅显示错误数）。✅ 已完成 |
-| 5.2.5 **画布状态机 Debug 显示** | P3 | 中 | 无 | 作者提出"需要能 debug 显示当前画布状态机"，可做成开发者模式覆盖层。 |
+### 5.3 低复杂度
 
-### 5.3 低复杂度（UI 打磨）
+| 任务 | 优先级 | 状态 | 说明 |
+|------|--------|------|------|
+| 5.3.1 **底部面板可调高度** | P3 | ✅ | 三合一底栏（代码┃JSON┃DataFlow），双拖拽分隔线，ScrollArea 防溢出 |
+| 5.3.2 **端口吸附环** | P3 | 📋 | |
+| 5.3.3 **左栏拖出节点** | P3 | 📋 | |
+| 5.3.4 **节点大小可调整** | P3 | 📋 | |
+| 5.3.5 **电路连接线风格** | P3 | 📋 | |
 
-| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
-|------|--------|--------|------|------|
-| 5.3.1 **JSON 预览栏可调高度** | P3 | 低 | 无 | 底部 JSON 预览区域支持拖动调节高度。 |
-| 5.3.2 **端口吸附环** | P3 | 低 | 无 | 鼠标靠近输出端口时放大出一个环，提升拖线操作感。 |
-| 5.3.3 **左栏拖出节点** | P3 | 低 | 无 | 当前仅点击创建，支持从节点库拖拽到画布。 |
-| 5.3.4 **节点大小可调整** | P3 | 低 | 无 | 支持 resize handle 手动调整节点大小，保留最小尺寸限制。 |
-| 5.3.5 **电路连接线风格** | P3 | 低 | 无 | 作者建议：连线改为电路连接线风格，非贝塞尔曲线。 |
+### 5.4 快速修复
 
-### 5.4 快速修复（可立即做）
-
-| 任务 | 优先级 | 复杂度 | 依赖 | 说明 |
-|------|--------|--------|------|------|
-| 5.4.1 **Log 节点清空参数报 null 错误** | P2 | 低 | 无 | 必填 String 参数清空时应为 `Literal("")` 而非 `Null`，或调整验证器。 |
+| 任务 | 优先级 | 状态 | 说明 |
+|------|--------|------|------|
+| 5.4.1 **必填参数 null 错误** | P2 | ✅ | JSON 加载时补填缺失 required 参数默认值 |
+| 5.4.2 **egui ID 冲突** | P2 | ✅ | 7 个 ScrollArea + 1 个 CollapsingHeader 加 `id_salt` |
+| 5.4.3 **底栏弹回/自缩** | P2 | ✅ | 三合一面板 + `BottomMain` 统一控制 |
+| 5.4.4 **`.code` 生成语法对齐** | P2 | ✅ | `If(true) [`→`if true`；`While()->`while`；`For()->`for i in`；`Break->`break` |
 
 ---
 
-## Phase 6：发布与后续
+## Phase 6：Monitor→Condition 管道（Boolean 节点系统）
 
-| 任务 | 状态 | 优先级 | 复杂度 | 说明 |
-|------|------|--------|--------|------|
-| 6.1 整理 `docs/` 目录，确保所有 `.md` 与代码一致 | 🔄 | P2 | 低 | 正在进行 |
-| 6.2 编写用户手册（安装、第一个任务） | 📋 | P3 | 中 | 等 Phase 5 核心功能稳定后 |
-| 6.3 GitHub Release v0.1.0（Windows 可执行文件） | 📋 | P3 | 中 | 等 Phase 5 完成 DataFlow 和参数类型重构 |
-| 6.4 收集反馈，建立 Issue 模板 | 📋 | P3 | 低 | 发布后开始 |
-| 6.5 规划 v0.2.0（子图/Group、主题切换、多语言 UI） | 📋 | P3 | 高 | 长期规划 |
+> 架构文档：`docs/if_condition_design.md`；API 参考：`docs/code_api_reference.md`
+
+### 6.1 新节点（Phase 1 完成）
+
+| 节点 | 分类 | 输出 | 作用 |
+|------|------|------|------|
+| Boolean | Math | Boolean 常量 | true/false |
+| GetStateBool | Game Functions | Boolean | 读 `_state.*` 布尔（18 项） |
+| GetStateNumber | Game Functions | Number | 读 `_state.*` 数值（8 项含 Bodypaint） |
+| CompareNumbers | Math | Boolean | a op b（6 种比较符） |
+| LogicAnd | Math | Boolean | `(a) && (b)` |
+| LogicOr | Math | Boolean | `(a) \|\| (b)` |
+| LogicNot | Math | Boolean | `!(a)` |
+
+### 6.2 代码生成
+
+| 特性 | 状态 |
+|------|------|
+| `evaluate_data_output()` 递归解析 Data 边链 | ✅ |
+| Boolean→If 生成 `if true` / `if false` | ✅ |
+| GetStateBool→If 生成 `if _state.Futanari` | ✅ |
+| CompareNumbers→If 生成 `if _state.Ecstasy >= 50` | ✅ |
+| LogicAnd/Or/Not 组合解析 | ✅ |
+
+### 6.3 If 条件模板下拉
+
+| 特性 | 状态 |
+|------|------|
+| 30+ 预设表达式 ComboBox | ✅ |
+| 分类：字面量 / 角色状态 / 环境 / 装备拘束 / 数值比较 | ✅ |
+| Data 连线时模板自动隐藏 | ✅ |
+
+---
+
+## Phase 7：后续规划（v0.2+）
+
+| 任务 | 说明 |
+|------|------|
+| 7.1 `_save` 持久数据节点 | 读/写跨会话存档变量 |
+| 7.2 `GetPosition` 节点 | 输出 `_state.Position.*` 各字段 |
+| 7.3 `CheckEquipment` 节点 | `_state.AdultToys[key] != null` |
+| 7.4 `CheckCosplay` 节点 | 命名空间选择器 → `Cosplay_{key}` 条件 |
+| 7.5 条件选择窗口 | 类似命名空间选择器的分类浏览窗口 |
+| 7.6 `CreateCondition` Data 节点 | 输出 Condition Object → 连 Gallery/Area |
+| 7.7 代码预览语法高亮 | TextEdit 升级为 `.code` 语法着色 |
+| 7.8 Foreach 节点 | 生成 `Foreach(list, thread)` |
+| 7.9 跨文件 Goto 标签 | 多 `.code` 间标签引用 |
 
 ---
 
 ## Agent 工作日志
 
-> 每次 Agent 完成一个（或一批）任务后，在这里追加记录。
-> 格式：`[日期] 任务编号/名 — 简要说明 — 状态`
-
-| 日期 | 任务编号/名 | 简要说明 | 状态 |
-| - | - | - | - |
-| 2026-07-05 | 0.5 | 配置 `rustfmt.toml`、`.clippy.toml` 与 `Cargo.toml [lints]`，统一代码风格 | ✅ |
-| 2026-07-05 | 0.4 | 编写 `README.md`（项目简介、构建命令、MIT License） | ✅ |
-| 2026-07-05 | Phase 0.2,0.3,0.6 | 创建 Cargo.toml、目录结构，cargo build 通过 | ✅ |
-| 2026-07-05 | 1.1.1 | 实现 `error.rs` — FlowError + Result | ✅ |
-| 2026-07-05 | 1.1.2 | 实现 `graph/types.rs` — NodeType(143种) + PortType | ✅ |
-| 2026-07-05 | 1.2.4 | 实现 `graph/mod.rs` 模块导出 | ✅ |
-| 2026-07-05 | 当前冲刺 | 实现 `graph/node.rs`、`edge.rs`、`graph.rs`、`validation.rs` 及单元测试；`cargo check` / `cargo test` / `cargo clippy` 通过 | ✅ |
-| 2026-07-06 | 1.1.3,1.1.4 | 实现 `api/definitions.rs`、`api/registry.rs`、更新 `NodeType`/`ParamValue` 派生；`cargo test` 通过（34 项） | ✅ |
-| 2026-07-06 | 2.1.1~2.1.4 | 实现 `serializer/json.rs`、`serializer/migration.rs`、JSON 往返集成测试；`cargo test` 通过（49 项） | ✅ |
-| 2026-07-06 | 2.2.1~2.2.9 | 实现 `code_gen/formatter.rs`、`code_gen/generator.rs`、标签/If/While/For/Goto/Thread/Listener/Return/参数引用处理；`cargo test` 通过（62 项） | ✅ |
-| 2026-07-06 | 2.2.5 补充 | 显式处理 `CreateThread`/`CreateListener`/`CreateListenerLocal`，新增 3 项并发语义测试；总计 65 项测试通过 | ✅ |
-| 2026-07-07 | Phase 3.1 | 确定 GUI 框架为 egui/eframe，初始化 `src/ui/` 结构与 `src/ui/theme.rs` | ✅ |
-| 2026-07-07 | Phase 3.2 | 实现 `src/ui/canvas.rs`：无限网格、中键平移、滚轮缩放、屏幕/世界坐标转换 | ✅ |
-| 2026-07-07 | Phase 3.3 + 3.4 | 实现 `src/ui/node_renderer.rs` 与 `src/ui/edge_renderer.rs` | ✅ |
-| 2026-07-07 | Phase 3.5 + 3.6 | 实现 `src/ui/interaction.rs`、`src/ui/panels/*`，`src/app.rs` 应用状态与布局 | ✅ |
-| 2026-07-07 | Phase 3.7 | 补全顶部工具栏：保存、撤销、重做、导出 JSON、导出 `.code`、运行预览 | ✅ |
-| 2026-07-07 | 第一轮修复 | 节点单击选中、快捷键 `consume_key`、文件对话框、Crossing 虚线、z 序与视口裁剪、拖线目标端口填充、空白处右键粘贴、搜索窗口关闭、连线高亮；72+7 tests 通过 | ✅ |
-| 2026-07-07 | 第二轮修复 | 修复框选、多选拖拽、连线选中/删除、右键菜单、环检测可视化、损坏 JSON 加载；新增 73+7 tests 通过 | ✅ |
-| 2026-07-08 | 第三轮修复 | Log 输出类型改为 String、空图导出警告、多 Start 独立标签、Space 快捷键屏蔽文本输入、折叠节点高度自适应、导出 JSON 更新 `current_file`；76+7 tests 通过 | ✅ |
-| 2026-07-08 | 文档归档 | 合并所有问题清单归档，生成最终 `docs/问题清单.md`，附录标注已解决/未解决标签 | ✅ |
-| 2026-07-08 | 当前任务 | 归档旧 TODO，按工程复杂度重构新 TODO，同步 README/CHANGELOG/agent_prompt 等文档 | ✅ |
-| 2026-07-08 | 4.2 | 为 4 个示例（Test/NPC_type/drop bra and panties/MessengerExample）建立代表性图档 fixture 与期望 `.code`，新增 `tests/examples_verify.rs` 覆盖序列化往返 + 代码生成比对 + 文件回写；92 tests 通过 | ✅ |
-| 2026-07-08 | Phase 5.1.1 | 完成 DataFlow 重构：参数 Data 端口自动生成、属性面板数据源下拉框、Data 边虚线渲染、单选节点时显示相关 Data 边、JSON 预览栏改为 Data 菜单、代码生成优先使用 Data 端口连接；新增 4 项单元测试；83+16 tests 通过 | ✅ |
-| 2026-07-08 | Phase 5.1.2 | 新增 `ParamType::Enum`，从 `documentation_zh.html` 提取常量并建立 `src/api/enums.rs`；为场景/动作/技能/音效/物品/图形选项等参数提供固定下拉选项；90+16 tests 通过 | ✅ |
-| 2026-07-08 | Phase 5.1.3 | 实现命名空间注册表（`src/api/namespace.rs`），加载 `assets/namespaces/` 下 JSON 文件；新增 cosplay/adult_toy/avatar_type/fixed_type/hair_type/body_paint_type/player_data 命名空间；实现悬浮命名空间选择器窗口（搜索、多选/单选）；为 cosplay/toy/avatarType/dataName 参数提供命名空间选择按钮；90+16 tests 通过 | ✅ |
-
----
-
-## 快速参考：给 Agent 发任务时的模板
-
-```markdown
-请实现以下功能：
-
-**阶段**：Phase X / 5.X
-**任务**：任务编号 + 名称
-**模块**：`src/xxx/xxx.rs`
-**依赖**：`graph::types`, `graph::node`
-**输入/输出**：...
-**约束**：
-- 使用 Result 错误处理，禁止 unwrap
-- 写文档注释（///）
-- 包含单元测试
-- 不引入 unsafe
-
-**验收标准**：
-1. [ ] `cargo check` 通过
-2. [ ] `cargo test` 通过
-3. [ ] `cargo clippy` 无警告
-4. [ ] `cargo fmt` 已格式化
-```
-
----
-
-## 备注区（用户随手记）
-
-- GUI 框架倾向：**egui**（开发快，即时模式，适合工具型编辑器）
-- 项目路径：`D:\Workshop\CODE\CM2Editer`（Windows 开发机）
-- 树莓派不跑 GUI，只做后端测试
-- 记得给 GitHub 仓库加 topic：`rust`, `egui`, `node-editor`, `custom-missions-2`, `visual-scripting`
-- 作者重点需求：工程/项目管理（发布前必做）、DataFlow 重构、参数类型重构、命名空间管理（`selected_cosplay.json`）、坐标"语言糖"、二级菜单
-- 开发原则：先完成工程管理（Phase 4.5）和 DataFlow 等高复杂度架构设计（5.1.x），再落地中低复杂度功能，避免反复返工
+| 日期 | 任务 | 说明 | 状态 |
+|------|------|------|------|
+| 2026-07-05 | Phase 0-2 | 项目骨架、数据层、序列化、代码生成 | ✅ |
+| 2026-07-06 | Phase 2 补充 | CreateThread/Listener、并发语义测试；65 tests | ✅ |
+| 2026-07-07 | Phase 3 | egui 界面、canvas、node/edge renderer、interaction、panels | ✅ |
+| 2026-07-07 | 三轮修复 | 快捷键、框选、环检测、多 Start 标签等 24 项；76+7 tests | ✅ |
+| 2026-07-08 | Phase 4-4.5 | 工程管理、多 .code、文件树、meta 编辑器、导出；81+16 tests | ✅ |
+| 2026-07-08 | Phase 5.1.1 | DataFlow 重构；83+16 tests | ✅ |
+| 2026-07-08 | Phase 5.1.2 | ParamType::Enum；90+16 tests | ✅ |
+| 2026-07-08 | Phase 5.1.3 | 命名空间注册表 + 选择器窗口；90+16 tests | ✅ |
+| 2026-07-08 | Phase 5.2.2-5.2.4 | 静态检查、菱形警告、错误详情面板；108 tests | ✅ |
+| 2026-07-08 | Phase 5.4.1 | JSON 加载补填必填参数默认值；108 tests | ✅ |
+| 2026-07-08 | 底栏+Data 面板 | 三合一底栏、巧克力板方块、分隔线拖拽；108 tests | ✅ |
+| 2026-07-08 | egui ID 冲突 | 7 ScrollArea + 1 CollapsingHeader id_salt | ✅ |
+| 2026-07-08 | .code DSL 对齐 | `If()`→`if`、`While()`→`while`、`For()`→`for in` | ✅ |
+| 2026-07-08 | API 文档 | `docs/code_api_reference.md`（基于官方英文 doc + 80+ 例反推） | ✅ |
+| 2026-07-08 | Phase 6 | 7 个 Boolean/Condition 节点 + If 模板 + `evaluate_data_output`；108 tests | ✅ |
+| 2026-07-08 | Bodypaint 修复 | 从 GetStateBool（Boolean）→ GetStateNumber（Number） | ✅ |
+| 2026-07-08 | Break 修复 | 已存在 Break 节点，code_gen `Break`→`break` | ✅ |
+| 2026-07-08 | Release | `cargo build --release` 产物 6.5 MB；字体瘦身 110→32 MB | ✅ |
+| 2026-07-08 | 文档更新 | README v0.1.0、CHANGELOG v0.1.0、TODO 重构 | ✅ |
