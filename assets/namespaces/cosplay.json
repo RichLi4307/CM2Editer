@@ -3,755 +3,943 @@
   "entries": {
     "m_cosplay_general_head_mask": {
       "en": "Mask",
-      "zh": "面罩"
+      "zh": "面罩",
+      "category": "头部"
     },
     "m_cosplay_general_head_glasses": {
       "en": "Glasses",
-      "zh": "眼镜"
+      "zh": "眼镜",
+      "category": "头部"
     },
     "m_cosplay_general_head_sun_glasses": {
       "en": "Sun Glasses",
-      "zh": "墨镜"
+      "zh": "墨镜",
+      "category": "头部"
     },
     "m_cosplay_general_head_osyaburi": {
       "en": "Osyaburi",
-      "zh": "奶嘴"
+      "zh": "奶嘴",
+      "category": "头部"
     },
     "m_cosplay_general_head_kuchikase": {
       "en": "Kuchikase",
-      "zh": "口枷"
+      "zh": "口枷",
+      "category": "头部"
     },
     "m_cosplay_general_head_eye_censor": {
       "en": "Eye Censor",
-      "zh": "黑条遮挡"
+      "zh": "黑条遮挡",
+      "category": "头部"
     },
     "m_cosplay_general_head_police_hat": {
       "en": "Police Hat",
-      "zh": "警帽"
+      "zh": "警帽",
+      "category": "头部"
     },
     "m_cosplay_general_head_mekakushi": {
       "en": "Mekakushi",
-      "zh": "眼罩"
+      "zh": "眼罩",
+      "category": "头部"
     },
     "m_cosplay_general_head_houtai": {
       "en": "Houtai",
-      "zh": "绷带眼罩"
+      "zh": "绷带眼罩",
+      "category": "头部"
     },
     "m_cosplay_general_upper_kubiwa": {
       "en": "Kubiwa",
-      "zh": "项圈"
+      "zh": "项圈",
+      "category": "上装"
     },
     "m_cosplay_general_upper_mufflar": {
       "en": "Mufflar",
-      "zh": "围巾"
+      "zh": "围巾",
+      "category": "上装"
     },
     "m_cosplay_general_upper_kubiwa_seisyori": {
       "en": "Kubiwa Seisyori",
-      "zh": "项圈（性处理用）"
+      "zh": "项圈（性处理用）",
+      "category": "上装"
     },
     "m_cosplay_general_upper_race_pants": {
       "en": "Race Pants",
-      "zh": "蕾丝内裤"
+      "zh": "蕾丝内裤",
+      "category": "上装"
     },
     "m_cosplay_general_upper_bra": {
       "en": "Bra",
-      "zh": "胸罩"
+      "zh": "胸罩",
+      "category": "上装"
     },
     "m_cosplay_general_upper_condom": {
       "en": "Condom",
-      "zh": "安全套"
+      "zh": "安全套",
+      "category": "上装"
     },
     "m_cosplay_general_upper_necktie": {
       "en": "Necktie",
-      "zh": "领带"
+      "zh": "领带",
+      "category": "上装"
     },
     "m_cosplay_general_upper_rain_coat": {
       "en": "Rain Coat",
-      "zh": "雨衣"
+      "zh": "雨衣",
+      "category": "上装"
     },
     "m_cosplay_general_upper_far": {
       "en": "Far",
-      "zh": "毛皮"
+      "zh": "毛皮",
+      "category": "上装"
     },
     "m_cosplay_general_upper_kanban": {
       "en": "Kanban",
-      "zh": "变态牌子"
+      "zh": "变态牌子",
+      "category": "上装"
     },
     "m_cosplay_general_upper_body_net": {
       "en": "Body Net",
-      "zh": "网眼上衣"
+      "zh": "网眼上衣",
+      "category": "上装"
     },
     "m_cosplay_general_upper_nip_piasu": {
       "en": "Nip Piasu",
-      "zh": "乳首环"
+      "zh": "乳首环",
+      "category": "上装"
     },
     "m_cosplay_general_upper_cross_piasu": {
       "en": "Cross Piasu",
-      "zh": "十字架乳首环"
+      "zh": "十字架乳首环",
+      "category": "上装"
     },
     "m_cosplay_general_upper_gentle_hand": {
       "en": "Gentle Hand",
-      "zh": "绅士之手（胸）"
+      "zh": "绅士之手（胸）",
+      "category": "上装"
     },
     "m_cosplay_general_upper_ofuda": {
       "en": "Ofuda",
-      "zh": "符纸（乳首）"
+      "zh": "符纸（乳首）",
+      "category": "上装"
     },
     "m_cosplay_general_upper_bansoukou": {
       "en": "Bansoukou",
-      "zh": "创可贴（乳头）"
+      "zh": "创可贴（乳头）",
+      "category": "上装"
     },
     "m_cosplay_general_upper_glove": {
       "en": "Glove",
-      "zh": "手套"
+      "zh": "手套",
+      "category": "上装"
     },
     "m_cosplay_general_upper_ultimate_pants": {
       "en": "Ultimate Pants",
-      "zh": "内裤"
+      "zh": "内裤",
+      "category": "上装"
     },
     "m_cosplay_general_upper_nippless": {
       "en": "Nippless",
-      "zh": "乳贴"
+      "zh": "乳贴",
+      "category": "上装"
     },
     "m_cosplay_general_upper_randoseru": {
       "en": "Randoseru",
-      "zh": "小学生书包"
+      "zh": "小学生书包",
+      "category": "上装"
     },
     "m_cosplay_general_upper_glove_net": {
       "en": "Glove Net",
-      "zh": "网眼手套"
+      "zh": "网眼手套",
+      "category": "上装"
     },
     "m_cosplay_general_upper_chack_bikini_pants": {
       "en": "Chack Bikini Pants",
-      "zh": "开洞比基尼裤"
+      "zh": "开洞比基尼裤",
+      "category": "上装"
     },
     "m_cosplay_general_upper_long_leather_glove": {
       "en": "Long Leather Glove",
-      "zh": "长皮手套"
+      "zh": "长皮手套",
+      "category": "上装"
     },
     "m_cosplay_general_upper_micro_bikini_bra": {
       "en": "Micro Bikini Bra",
-      "zh": "超小比基尼胸罩"
+      "zh": "超小比基尼胸罩",
+      "category": "上装"
     },
     "m_cosplay_general_upper_full_glove": {
       "en": "Full Glove",
-      "zh": "长手套"
+      "zh": "长手套",
+      "category": "上装"
     },
     "m_cosplay_general_upper_micro_bikini_pants": {
       "en": "Micro Bikini Pants",
-      "zh": "超小比基尼裤"
+      "zh": "超小比基尼裤",
+      "category": "上装"
     },
     "m_cosplay_general_upper_sling_shot": {
       "en": "Sling Shot",
-      "zh": "吊带比基尼"
+      "zh": "吊带比基尼",
+      "category": "上装"
     },
     "m_cosplay_general_upper_kikkou": {
       "en": "Kikkou",
-      "zh": "龟甲缚"
+      "zh": "龟甲缚",
+      "category": "上装"
     },
     "m_cosplay_general_upper_harness": {
       "en": "Harness",
-      "zh": "束缚"
+      "zh": "束缚",
+      "category": "上装"
     },
     "m_cosplay_general_upper_swimsuit": {
       "en": "Swimsuit",
-      "zh": "竞技泳衣"
+      "zh": "竞技泳衣",
+      "category": "上装"
     },
     "m_cosplay_general_upper_sukumizu": {
       "en": "Sukumizu",
-      "zh": "学生泳衣"
+      "zh": "学生泳衣",
+      "category": "上装"
     },
     "m_cosplay_general_upper_rubber_suit": {
       "en": "Rubber Suit",
-      "zh": "橡胶紧身衣"
+      "zh": "橡胶紧身衣",
+      "category": "上装"
     },
     "m_cosplay_general_upper_chack_bikini_bra": {
       "en": "Chack Bikini Bra",
-      "zh": "开洞比基尼胸罩"
+      "zh": "开洞比基尼胸罩",
+      "category": "上装"
     },
     "m_cosplay_general_leg_stocking_net_dark_thin": {
       "en": "Stocking Net Dark Thin",
-      "zh": "细网眼丝袜(暗）"
+      "zh": "细网眼丝袜(暗）",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_net_dark": {
       "en": "Stocking Net Dark",
-      "zh": "网眼丝袜（暗）"
+      "zh": "网眼丝袜（暗）",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_net_thin": {
       "en": "Stocking Net Thin",
-      "zh": "细网眼丝袜"
+      "zh": "细网眼丝袜",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_net": {
       "en": "Stocking Net",
-      "zh": "网眼丝袜"
+      "zh": "网眼丝袜",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_race_dark": {
       "en": "Stocking Race Dark",
-      "zh": "蕾丝丝袜（暗）"
+      "zh": "蕾丝丝袜（暗）",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_race": {
       "en": "Stocking Race",
-      "zh": "蕾丝丝袜"
+      "zh": "蕾丝丝袜",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_nieso": {
       "en": "Stocking Nieso",
-      "zh": "过膝袜"
+      "zh": "过膝袜",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_rain_boots": {
       "en": "Stocking Rain Boots",
-      "zh": "雨靴"
+      "zh": "雨靴",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking": {
       "en": "Stocking",
-      "zh": "丝袜"
+      "zh": "丝袜",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_stripe": {
       "en": "Stocking Stripe",
-      "zh": "条纹丝袜"
+      "zh": "条纹丝袜",
+      "category": "下装"
     },
     "m_cosplay_general_leg_heel": {
       "en": "Heel",
-      "zh": "高跟鞋"
+      "zh": "高跟鞋",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_sneaker": {
       "en": "Stocking Sneaker",
-      "zh": "运动鞋"
+      "zh": "运动鞋",
+      "category": "下装"
     },
     "m_cosplay_general_leg_stocking_pin_heel": {
       "en": "Stocking Pin Heel",
-      "zh": "细高跟鞋"
+      "zh": "细高跟鞋",
+      "category": "下装"
     },
     "m_cosplay_general_leg_garter": {
       "en": "Garter",
-      "zh": "吊袜带"
+      "zh": "吊袜带",
+      "category": "下装"
     },
     "m_cosplay_general_leg_long_boots": {
       "en": "Long Boots",
-      "zh": "长筒靴"
+      "zh": "长筒靴",
+      "category": "下装"
     },
     "m_cosplay_general_leg_high_heel_boots": {
       "en": "High Heel Boots",
-      "zh": "高跟靴"
+      "zh": "高跟靴",
+      "category": "下装"
     },
     "m_cosplay_general_leg_boots": {
       "en": "Boots",
-      "zh": "靴子"
+      "zh": "靴子",
+      "category": "下装"
     },
     "m_cosplay_general_genital_tail_plug": {
       "en": "Tail Plug",
-      "zh": "尾塞"
+      "zh": "尾塞",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_ninjin": {
       "en": "Ninjin",
-      "zh": "胡萝ト"
+      "zh": "胡萝ト",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_rubbit_tail": {
       "en": "Rubbit Tail",
-      "zh": "兔尾塞"
+      "zh": "兔尾塞",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_beads": {
       "en": "Beads",
-      "zh": "肛珠"
+      "zh": "肛珠",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_gentle_hand": {
       "en": "Gentle Hand",
-      "zh": "绅士之手（阴部）"
+      "zh": "绅士之手（阴部）",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_ofuda": {
       "en": "Ofuda",
-      "zh": "符纸（阴部)"
+      "zh": "符纸（阴部)",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_bansoukou": {
       "en": "Bansoukou",
-      "zh": "创可贴（阴部）"
+      "zh": "创可贴（阴部）",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_anal_plug": {
       "en": "Anal Plug",
-      "zh": "肛塞"
+      "zh": "肛塞",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_maebari": {
       "en": "Maebari",
-      "zh": "前贴"
+      "zh": "前贴",
+      "category": "生殖"
     },
     "m_cosplay_general_genital_plug_light": {
       "en": "Plug Light",
-      "zh": "发光肛塞"
+      "zh": "发光肛塞",
+      "category": "生殖"
     },
     "m_cosplay_succubus_cosplay_horn": {
       "en": "M Cosplay Succubus Cosplay Horn",
-      "zh": "角"
+      "zh": "角",
+      "category": "魅魔Cosplay"
     },
     "m_cosplay_succubus_cosplay_tops": {
       "en": "M Cosplay Succubus Cosplay Tops",
-      "zh": "上装"
+      "zh": "上装",
+      "category": "魅魔Cosplay"
     },
     "m_cosplay_succubus_cosplay_wing": {
       "en": "M Cosplay Succubus Cosplay Wing",
-      "zh": "翅膀"
+      "zh": "翅膀",
+      "category": "魅魔Cosplay"
     },
     "m_cosplay_succubus_cosplay_skirt": {
       "en": "M Cosplay Succubus Cosplay Skirt",
-      "zh": "裙子"
+      "zh": "裙子",
+      "category": "魅魔Cosplay"
     },
     "m_cosplay_succubus_cosplay_pants": {
       "en": "M Cosplay Succubus Cosplay Pants",
-      "zh": "内裤"
+      "zh": "内裤",
+      "category": "魅魔Cosplay"
     },
     "m_cosplay_succubus_cosplay_tail": {
       "en": "M Cosplay Succubus Cosplay Tail",
-      "zh": "尾巴"
+      "zh": "尾巴",
+      "category": "魅魔Cosplay"
     },
     "m_cosplay_maid_choker": {
       "en": "M Cosplay Maid Choker",
-      "zh": "颈圈"
+      "zh": "颈圈",
+      "category": "战术女仆"
     },
     "m_cosplay_ninja_omen": {
       "en": "M Cosplay Ninja Omen",
-      "zh": "面具"
+      "zh": "面具",
+      "category": "忍者"
     },
     "m_cosplay_ninja_mask": {
       "en": "M Cosplay Ninja Mask",
-      "zh": "面罩"
+      "zh": "面罩",
+      "category": "忍者"
     },
     "m_cosplay_ninja_sleeve": {
       "en": "M Cosplay Ninja Sleeve",
-      "zh": "袖子"
+      "zh": "袖子",
+      "category": "忍者"
     },
     "m_cosplay_ninja_tops": {
       "en": "M Cosplay Ninja Tops",
-      "zh": "上装"
+      "zh": "上装",
+      "category": "忍者"
     },
     "m_cosplay_ninja_boots": {
       "en": "M Cosplay Ninja Boots",
-      "zh": "靴子"
+      "zh": "靴子",
+      "category": "忍者"
     },
     "m_cosplay_maid_onepiece": {
       "en": "M Cosplay Maid Onepiece",
-      "zh": "连衣裙"
+      "zh": "连衣裙",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_sleeve": {
       "en": "M Cosplay Maid Sleeve",
-      "zh": "袖子"
+      "zh": "袖子",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_harness_belt": {
       "en": "M Cosplay Maid Harness Belt",
-      "zh": "束缚腰带"
+      "zh": "束缚腰带",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_apron": {
       "en": "M Cosplay Maid Apron",
-      "zh": "围裙"
+      "zh": "围裙",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_bag": {
       "en": "M Cosplay Maid Bag",
-      "zh": "腿包"
+      "zh": "腿包",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_ankle_belt": {
       "en": "M Cosplay Maid Ankle Belt",
-      "zh": "脚踝皮带"
+      "zh": "脚踝皮带",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_shoes": {
       "en": "M Cosplay Maid Shoes",
-      "zh": "乐福鞋"
+      "zh": "乐福鞋",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_stocking": {
       "en": "M Cosplay Maid Stocking",
-      "zh": "丝袜"
+      "zh": "丝袜",
+      "category": "战术女仆"
     },
     "m_cosplay_maid_ribbon": {
       "en": "M Cosplay Maid Ribbon",
-      "zh": "丝带"
+      "zh": "丝带",
+      "category": "战术女仆"
     },
     "m_cosplay_sister_head": {
       "en": "M Cosplay Sister Head",
-      "zh": "头纱"
+      "zh": "头纱",
+      "category": "修女"
     },
     "m_cosplay_kemono_ear_cat": {
       "en": "M Cosplay Kemono Ear Cat",
-      "zh": "猫耳"
+      "zh": "猫耳",
+      "category": "兽人Cosplay"
     },
     "m_cosplay_sister_face": {
       "en": "M Cosplay Sister Face",
-      "zh": "面纱"
+      "zh": "面纱",
+      "category": "修女"
     },
     "m_cosplay_sister_cloth": {
       "en": "M Cosplay Sister Cloth",
-      "zh": "上装"
+      "zh": "上装",
+      "category": "修女"
     },
     "m_cosplay_sister_leotard": {
       "en": "M Cosplay Sister Leotard",
-      "zh": "连体衣"
+      "zh": "连体衣",
+      "category": "修女"
     },
     "m_cosplay_sister_curtain": {
       "en": "M Cosplay Sister Curtain",
-      "zh": "胸帘"
+      "zh": "胸帘",
+      "category": "修女"
     },
     "m_cosplay_sister_shoulder": {
       "en": "M Cosplay Sister Shoulder",
-      "zh": "肩部花边"
+      "zh": "肩部花边",
+      "category": "修女"
     },
     "m_cosplay_sister_collar": {
       "en": "M Cosplay Sister Collar",
-      "zh": "颈巾"
+      "zh": "颈巾",
+      "category": "修女"
     },
     "m_cosplay_sister_arm": {
       "en": "M Cosplay Sister Arm",
-      "zh": "臂端花边"
+      "zh": "臂端花边",
+      "category": "修女"
     },
     "m_cosplay_sister_socks": {
       "en": "M Cosplay Sister Socks",
-      "zh": "袜子"
+      "zh": "袜子",
+      "category": "修女"
     },
     "m_cosplay_sister_shoes": {
       "en": "M Cosplay Sister Shoes",
-      "zh": "鞋子"
+      "zh": "鞋子",
+      "category": "修女"
     },
     "m_cosplay_sister_pants": {
       "en": "M Cosplay Sister Pants",
-      "zh": "内裤"
+      "zh": "内裤",
+      "category": "修女"
     },
     "m_cosplay_kemono_ear_fox": {
       "en": "M Cosplay Kemono Ear Fox",
-      "zh": "狐耳"
+      "zh": "狐耳",
+      "category": "兽人Cosplay"
     },
     "m_cosplay_kemono_hand": {
       "en": "M Cosplay Kemono Hand",
-      "zh": "手套"
+      "zh": "手套",
+      "category": "兽人Cosplay"
     },
     "m_cosplay_kemono_tail": {
       "en": "M Cosplay Kemono Tail",
-      "zh": "尾巴"
+      "zh": "尾巴",
+      "category": "兽人Cosplay"
     },
     "m_cosplay_kemono_foot": {
       "en": "M Cosplay Kemono Foot",
-      "zh": "鞋子"
+      "zh": "鞋子",
+      "category": "兽人Cosplay"
     },
     "m_cosplay_bunny_ear": {
       "en": "M Cosplay Bunny Ear",
-      "zh": "兔头"
+      "zh": "兔头",
+      "category": "兔女郎"
     },
     "m_cosplay_bunny_tops": {
       "en": "M Cosplay Bunny Tops",
-      "zh": "上装"
+      "zh": "上装",
+      "category": "兔女郎"
     },
     "m_cosplay_bunny_harness_top": {
       "en": "M Cosplay Bunny Harness Top",
-      "zh": "上半身束缚"
+      "zh": "上半身束缚",
+      "category": "兔女郎"
     },
     "m_cosplay_bunny_harness_under": {
       "en": "M Cosplay Bunny Harness Under",
-      "zh": "下半身束缚"
+      "zh": "下半身束缚",
+      "category": "兔女郎"
     },
     "m_cosplay_bunny_nippless": {
       "en": "M Cosplay Bunny Nippless",
-      "zh": "乳贴"
+      "zh": "乳贴",
+      "category": "兔女郎"
     },
     "m_cosplay_bunny_jacket": {
       "en": "M Cosplay Bunny Jacket",
-      "zh": "夹克"
+      "zh": "夹克",
+      "category": "兔女郎"
     },
     "m_cosplay_bunny_sockes": {
       "en": "M Cosplay Bunny Sockes",
-      "zh": "袜子"
+      "zh": "袜子",
+      "category": "兔女郎"
     },
     "m_cosplay_bunny_shoes": {
       "en": "M Cosplay Bunny Shoes",
-      "zh": "鞋子"
+      "zh": "鞋子",
+      "category": "兔女郎"
     },
     "m_cosplay_latex_pony_ear": {
       "en": "M Cosplay Latex Pony Ear",
-      "zh": "耳朵"
+      "zh": "耳朵",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_full_face": {
       "en": "M Cosplay Latex Pony Full Face",
-      "zh": "全罩面具"
+      "zh": "全罩面具",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_head": {
       "en": "M Cosplay Latex Pony Head",
-      "zh": "头部饰品"
+      "zh": "头部饰品",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_colllar": {
       "en": "M Cosplay Latex Pony Colllar",
-      "zh": "颈圈"
+      "zh": "颈圈",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_tops": {
       "en": "M Cosplay Latex Pony Tops",
-      "zh": "上装"
+      "zh": "上装",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_nippless": {
       "en": "M Cosplay Latex Pony Nippless",
-      "zh": "乳贴"
+      "zh": "乳贴",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_glove": {
       "en": "M Cosplay Latex Pony Glove",
-      "zh": "手套"
+      "zh": "手套",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_hip_belt": {
       "en": "M Cosplay Latex Pony Hip Belt",
-      "zh": "臀带"
+      "zh": "臀带",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_tail": {
       "en": "M Cosplay Latex Pony Tail",
-      "zh": "尾巴"
+      "zh": "尾巴",
+      "category": "乳胶马"
     },
     "m_cosplay_latex_pony_boots": {
       "en": "M Cosplay Latex Pony Boots",
-      "zh": "靴子"
+      "zh": "靴子",
+      "category": "乳胶马"
     },
     "m_cosplay_jump_suit_suit": {
       "en": "Suit",
-      "zh": "西装"
+      "zh": "西装",
+      "category": "连体衣"
     },
     "m_cosplay_jump_suit_boots": {
       "en": "Boots",
-      "zh": "靴子"
+      "zh": "靴子",
+      "category": "连体衣"
     },
     "m_cosplay_jailer_cap": {
       "en": "M Cosplay Jailer Cap",
-      "zh": "鸭舌帽"
+      "zh": "鸭舌帽",
+      "category": "看守"
     },
     "m_cosplay_jailer_jacket": {
       "en": "M Cosplay Jailer Jacket",
-      "zh": "夹克"
+      "zh": "夹克",
+      "category": "看守"
     },
     "m_cosplay_jailer_reotard": {
       "en": "M Cosplay Jailer Reotard",
-      "zh": "连体衣"
+      "zh": "连体衣",
+      "category": "看守"
     },
     "m_cosplay_jailer_pants": {
       "en": "M Cosplay Jailer Pants",
-      "zh": "短裤"
+      "zh": "短裤",
+      "category": "看守"
     },
     "m_cosplay_jailer_bag": {
       "en": "M Cosplay Jailer Bag",
-      "zh": "腿包"
+      "zh": "腿包",
+      "category": "看守"
     },
     "m_cosplay_jailer_boots": {
       "en": "M Cosplay Jailer Boots",
-      "zh": "靴子"
+      "zh": "靴子",
+      "category": "看守"
     },
     "m_cosplay_cow_hair_band": {
       "en": "M Cosplay Cow Hair Band",
-      "zh": "牛发带"
+      "zh": "牛发带",
+      "category": "牛娘"
     },
     "m_cosplay_cow_choker": {
       "en": "M Cosplay Cow Choker",
-      "zh": "铃颈圈"
+      "zh": "铃颈圈",
+      "category": "牛娘"
     },
     "m_cosplay_cow_glove": {
       "en": "M Cosplay Cow Glove",
-      "zh": "牛手套"
+      "zh": "牛手套",
+      "category": "牛娘"
     },
     "m_cosplay_cow_bra": {
       "en": "M Cosplay Cow Bra",
-      "zh": "牛胸罩"
+      "zh": "牛胸罩",
+      "category": "牛娘"
     },
     "m_cosplay_cow_pants": {
       "en": "M Cosplay Cow Pants",
-      "zh": "牛内裤"
+      "zh": "牛内裤",
+      "category": "牛娘"
     },
     "m_cosplay_cow_tail": {
       "en": "M Cosplay Cow Tail",
-      "zh": "牛尾塞"
+      "zh": "牛尾塞",
+      "category": "牛娘"
     },
     "m_cosplay_cow_boots": {
       "en": "M Cosplay Cow Boots",
-      "zh": "牛靴"
+      "zh": "牛靴",
+      "category": "牛娘"
     },
     "m_cosplay_wild_neck_mohu": {
       "en": "M Cosplay Wild Neck Mohu",
-      "zh": "颈部毛绒"
+      "zh": "颈部毛绒",
+      "category": "狂野野兽"
     },
     "m_cosplay_wild_belt": {
       "en": "M Cosplay Wild Belt",
-      "zh": "腰带"
+      "zh": "腰带",
+      "category": "狂野野兽"
     },
     "m_cosplay_wild_nippless_mohu": {
       "en": "M Cosplay Wild Nippless Mohu",
-      "zh": "乳头毛绒贴"
+      "zh": "乳头毛绒贴",
+      "category": "狂野野兽"
     },
     "m_cosplay_wild_hand_mohu": {
       "en": "M Cosplay Wild Hand Mohu",
-      "zh": "手腕毛绒"
+      "zh": "手腕毛绒",
+      "category": "狂野野兽"
     },
     "m_cosplay_wild_pants": {
       "en": "M Cosplay Wild Pants",
-      "zh": "热裤"
+      "zh": "热裤",
+      "category": "狂野野兽"
     },
     "m_cosplay_wild_upper_leg_mohu": {
       "en": "Leg Mohu",
-      "zh": "大腿毛绒"
+      "zh": "大腿毛绒",
+      "category": "狂野野兽"
     },
     "m_cosplay_wild_foot_mohu": {
       "en": "M Cosplay Wild Foot Mohu",
-      "zh": "脚踝毛绒"
+      "zh": "脚踝毛绒",
+      "category": "狂野野兽"
     },
     "m_cosplay_suit_chic_shirt": {
       "en": "M Cosplay Suit Chic Shirt",
-      "zh": "衬衫"
+      "zh": "衬衫",
+      "category": "西装A"
     },
     "m_cosplay_suit_luxe_chorker": {
       "en": "M Cosplay Suit Luxe Chorker",
-      "zh": "颈圈"
+      "zh": "颈圈",
+      "category": "西装B"
     },
     "m_cosplay_suit_luxe_jacket": {
       "en": "M Cosplay Suit Luxe Jacket",
-      "zh": "夹克"
+      "zh": "夹克",
+      "category": "西装B"
     },
     "m_cosplay_suit_chic_jacket": {
       "en": "M Cosplay Suit Chic Jacket",
-      "zh": "夹克"
+      "zh": "夹克",
+      "category": "西装A"
     },
     "m_cosplay_suit_chic_card": {
       "en": "M Cosplay Suit Chic Card",
-      "zh": "卡片"
+      "zh": "卡片",
+      "category": "西装A"
     },
     "m_cosplay_suit_chic_skirt": {
       "en": "M Cosplay Suit Chic Skirt",
-      "zh": "裙子"
+      "zh": "裙子",
+      "category": "西装A"
     },
     "m_cosplay_suit_chic_pants": {
       "en": "M Cosplay Suit Chic Pants",
-      "zh": "西装裤"
+      "zh": "西装裤",
+      "category": "西装A"
     },
     "m_cosplay_suit_chic_panty": {
       "en": "M Cosplay Suit Chic Panty",
-      "zh": "内裤"
+      "zh": "内裤",
+      "category": "西装A"
     },
     "m_cosplay_suit_chic_stocking": {
       "en": "M Cosplay Suit Chic Stocking",
-      "zh": "丝袜"
+      "zh": "丝袜",
+      "category": "西装A"
     },
     "m_cosplay_suit_chic_shoes": {
       "en": "M Cosplay Suit Chic Shoes",
-      "zh": "鞋子"
+      "zh": "鞋子",
+      "category": "西装A"
     },
     "m_cosplay_suit_luxe_tops": {
       "en": "M Cosplay Suit Luxe Tops",
-      "zh": "上装"
+      "zh": "上装",
+      "category": "西装B"
     },
     "m_cosplay_suit_luxe_pants": {
       "en": "M Cosplay Suit Luxe Pants",
-      "zh": "西装裤"
+      "zh": "西装裤",
+      "category": "西装B"
     },
     "m_cosplay_suit_luxe_shoes": {
       "en": "M Cosplay Suit Luxe Shoes",
-      "zh": "鞋子"
+      "zh": "鞋子",
+      "category": "西装B"
     },
     "m_cosplay_sweater_tops": {
       "en": "M Cosplay Sweater Tops",
-      "zh": "上装"
+      "zh": "上装",
+      "category": "成人毛衣"
     },
     "m_cosplay_sweater_pants": {
       "en": "M Cosplay Sweater Pants",
-      "zh": "内裤"
+      "zh": "内裤",
+      "category": "成人毛衣"
     },
     "m_cosplay_sweater_arm": {
       "en": "M Cosplay Sweater Arm",
-      "zh": "护臂套"
+      "zh": "护臂套",
+      "category": "成人毛衣"
     },
     "m_cosplay_sweater_leg": {
       "en": "M Cosplay Sweater Leg",
-      "zh": "护腿套"
+      "zh": "护腿套",
+      "category": "成人毛衣"
     },
     "m_cosplay_glossy_jacket": {
       "en": "M Cosplay Glossy Jacket",
-      "zh": "羽绒夹克"
+      "zh": "羽绒夹克",
+      "category": "羽绒夹克套装"
     },
     "m_cosplay_glossy_knit": {
       "en": "M Cosplay Glossy Knit",
-      "zh": "针织衫"
+      "zh": "针织衫",
+      "category": "羽绒夹克套装"
     },
     "m_cosplay_glossy_boots": {
       "en": "M Cosplay Glossy Boots",
-      "zh": "长筒靴"
+      "zh": "长筒靴",
+      "category": "羽绒夹克套装"
     },
     "m_cosplay_school_hoodie_ribbon": {
       "en": "M Cosplay School Hoodie Ribbon",
-      "zh": "丝带"
+      "zh": "丝带",
+      "category": "学生制服A"
     },
     "m_cosplay_school_hoodie_necktie": {
       "en": "M Cosplay School Hoodie Necktie",
-      "zh": "领带"
+      "zh": "领带",
+      "category": "学生制服A"
     },
     "m_cosplay_school_hoodie_hoodie": {
       "en": "M Cosplay School Hoodie Hoodie",
-      "zh": "连帽衫"
+      "zh": "连帽衫",
+      "category": "学生制服A"
     },
     "m_cosplay_school_hoodie_bag": {
       "en": "M Cosplay School Hoodie Bag",
-      "zh": "背包"
+      "zh": "背包",
+      "category": "学生制服A"
     },
     "m_cosplay_school_hoodie_shirt": {
       "en": "M Cosplay School Hoodie Shirt",
-      "zh": "衬衫"
+      "zh": "衬衫",
+      "category": "学生制服A"
     },
     "m_cosplay_school_hoodie_socks": {
       "en": "M Cosplay School Hoodie Socks",
-      "zh": "袜子"
+      "zh": "袜子",
+      "category": "学生制服A"
     },
     "m_cosplay_school_hoodie_shoes": {
       "en": "M Cosplay School Hoodie Shoes",
-      "zh": "鞋子"
+      "zh": "鞋子",
+      "category": "学生制服A"
     },
     "m_cosplay_school_hoodie_skirt": {
       "en": "M Cosplay School Hoodie Skirt",
-      "zh": "裙子"
+      "zh": "裙子",
+      "category": "学生制服A"
     },
     "m_cosplay_school_gal_blazer": {
       "en": "M Cosplay School Gal Blazer",
-      "zh": "西服外套"
+      "zh": "西服外套",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_ribbon": {
       "en": "M Cosplay School Gal Ribbon",
-      "zh": "丝带"
+      "zh": "丝带",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_cardigan_summer": {
       "en": "M Cosplay School Gal Cardigan Summer",
-      "zh": "夏季开衫"
+      "zh": "夏季开衫",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_shirt_winter": {
       "en": "M Cosplay School Gal Shirt Winter",
-      "zh": "冬季衬衫"
+      "zh": "冬季衬衫",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_necktie": {
       "en": "M Cosplay School Gal Necktie",
-      "zh": "领带"
+      "zh": "领带",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_cardigan_winter": {
       "en": "M Cosplay School Gal Cardigan Winter",
-      "zh": "冬季开衫"
+      "zh": "冬季开衫",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_skirt": {
       "en": "M Cosplay School Gal Skirt",
-      "zh": "裙子"
+      "zh": "裙子",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_bag": {
       "en": "M Cosplay School Gal Bag",
-      "zh": "包"
+      "zh": "包",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_sockes": {
       "en": "M Cosplay School Gal Sockes",
-      "zh": "袜子"
+      "zh": "袜子",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_shoes": {
       "en": "M Cosplay School Gal Shoes",
-      "zh": "鞋子"
+      "zh": "鞋子",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_earing": {
       "en": "M Cosplay School Gal Earing",
-      "zh": "耳环"
+      "zh": "耳环",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_necklace": {
       "en": "M Cosplay School Gal Necklace",
-      "zh": "项链"
+      "zh": "项链",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_bracelet": {
       "en": "M Cosplay School Gal Bracelet",
-      "zh": "手链"
+      "zh": "手链",
+      "category": "学生制服B"
     },
     "m_cosplay_school_gal_shirt_summer": {
       "en": "M Cosplay School Gal Shirt Summer",
-      "zh": "夏季衬衫"
+      "zh": "夏季衬衫",
+      "category": "学生制服B"
     }
   }
 }

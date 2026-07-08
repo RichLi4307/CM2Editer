@@ -13,6 +13,9 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct NamespaceEntry {
     pub key: String,
+    /// Optional secondary category (e.g. "头部", "上装" for cosplay).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
     /// Optional translated display names keyed by language code (`en`, `zh`, ...).
     /// When a requested language is missing, the entry key is shown instead.
     pub names: HashMap<String, String>,
@@ -24,8 +27,15 @@ impl NamespaceEntry {
         let key = key.into();
         Self {
             key,
+            category: None,
             names: HashMap::new(),
         }
+    }
+
+    /// Set the category for this entry.
+    pub fn with_category(mut self, category: impl Into<String>) -> Self {
+        self.category = Some(category.into());
+        self
     }
 
     /// Display name for the requested language.
@@ -185,7 +195,7 @@ fn load_namespace_file(path: &std::path::Path) -> Result<Namespace, Box<dyn std:
             NamespaceEntryFile::Simple(name) => {
                 NamespaceEntry::new(key.clone()).with_name("en", name)
             }
-            NamespaceEntryFile::Translated(names) => NamespaceEntry { key, names },
+            NamespaceEntryFile::Translated(names) => NamespaceEntry { key, category: None, names },
         };
         entries.push(entry);
     }

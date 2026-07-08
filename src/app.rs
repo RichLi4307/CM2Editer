@@ -971,26 +971,68 @@ impl eframe::App for App {
                                 .id_salt(format!("left_ns_{name}"))
                                 .default_open(false)
                                 .show(ui, |ui| {
-                                    egui::ScrollArea::vertical()
-                                        .id_salt(format!("ns_scroll_{name}"))
-                                        .max_height(320.0)
-                                        .show(ui, |ui| {
-                                            ui.horizontal_wrapped(|ui| {
-                                                for e in &ns.entries {
-                                                    if ui.add(ns_card(e, name)).clicked() {
-                                                        ui.ctx().output_mut(|o| {
-                                                            o.commands.push(
-                                                                egui::OutputCommand::CopyText(
-                                                                    e.key.clone(),
-                                                                ),
-                                                            )
-                                                        });
-                                                        self.status_message =
-                                                            format!("已复制: {}", e.key);
+                                    let has_cats = ns.entries.iter().any(|e| e.category.is_some());
+                                    if has_cats {
+                                        let mut by_cat: std::collections::BTreeMap<
+                                            &str,
+                                            Vec<&crate::api::namespace::NamespaceEntry>,
+                                        > = std::collections::BTreeMap::new();
+                                        for e in &ns.entries {
+                                            by_cat
+                                                .entry(e.category.as_deref().unwrap_or("其他"))
+                                                .or_default()
+                                                .push(e);
+                                        }
+                                        for (cat, entries) in &by_cat {
+                                            ui.label(
+                                                egui::RichText::new(*cat)
+                                                    .color(egui::Color32::from_gray(170))
+                                                    .size(11.0),
+                                            );
+                                            egui::ScrollArea::vertical()
+                                                .id_salt(format!("ns_scroll_{name}_{cat}"))
+                                                .max_height(240.0)
+                                                .show(ui, |ui| {
+                                                    ui.horizontal_wrapped(|ui| {
+                                                        for e in entries {
+                                                            if ui.add(ns_card(e, name)).clicked() {
+                                                                ui.ctx().output_mut(|o| {
+                                                                    o.commands.push(
+                                                                        egui::OutputCommand::CopyText(
+                                                                            e.key.clone(),
+                                                                        ),
+                                                                    )
+                                                                });
+                                                                self.status_message =
+                                                                    format!("已复制: {}", e.key);
+                                                            }
+                                                        }
+                                                    });
+                                                });
+                                            ui.add_space(4.0);
+                                        }
+                                    } else {
+                                        egui::ScrollArea::vertical()
+                                            .id_salt(format!("ns_scroll_{name}"))
+                                            .max_height(320.0)
+                                            .show(ui, |ui| {
+                                                ui.horizontal_wrapped(|ui| {
+                                                    for e in &ns.entries {
+                                                        if ui.add(ns_card(e, name)).clicked() {
+                                                            ui.ctx().output_mut(|o| {
+                                                                o.commands.push(
+                                                                    egui::OutputCommand::CopyText(
+                                                                        e.key.clone(),
+                                                                    ),
+                                                                )
+                                                            });
+                                                            self.status_message =
+                                                                format!("已复制: {}", e.key);
+                                                        }
                                                     }
-                                                }
+                                                });
                                             });
-                                        });
+                                    }
                                 });
                             }
                         }
