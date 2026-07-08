@@ -1,10 +1,11 @@
+use crate::graph::graph::Graph;
 use crate::project::Project;
 
 /// 底部 `.code` 文本编辑器面板。内容放入 ScrollArea 防止撑高父容器。
 pub struct CodeEditorPanel;
 
 impl CodeEditorPanel {
-    pub fn show(ui: &mut egui::Ui, project: &mut Project) -> bool {
+    pub fn show(ui: &mut egui::Ui, project: &mut Project, graph: &Graph) -> bool {
         ui.horizontal(|ui| {
             ui.heading("代码预览");
             if project
@@ -39,14 +40,18 @@ impl CodeEditorPanel {
 
                     ui.horizontal(|ui| {
                         if ui.button("🔄 从节点图生成").clicked() {
+                            code_file.graph_doc.graph = graph.clone();
                             let _ = code_file.regenerate_code();
+                            changed = true;
                         }
                         if ui
                             .small_button("重置")
                             .on_hover_text("丢弃手动修改并从节点图重新生成")
                             .clicked()
                         {
+                            code_file.graph_doc.graph = graph.clone();
                             let _ = code_file.regenerate_code();
+                            changed = true;
                         }
                     });
                 } else {

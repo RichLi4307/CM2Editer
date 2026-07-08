@@ -1017,7 +1017,7 @@ impl eframe::App for App {
                 );
                 ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc1), |ui| {
                     if let Some(project) = self.project.as_mut() {
-                        let _changed = CodeEditorPanel::show(ui, project);
+                        let _changed = CodeEditorPanel::show(ui, project, &self.graph);
                     } else {
                         ui.label("打开工程后查看 .code 代码");
                     }
