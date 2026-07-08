@@ -1057,27 +1057,32 @@ impl eframe::App for App {
                                             .max_height(ui.available_height().max(160.0))
                                             .show(ui, |ui| {
                                                 for (cat, entries) in &by_cat {
-                                                    ui.label(
-                                                        egui::RichText::new(*cat)
-                                                            .color(egui::Color32::from_gray(170))
-                                                            .size(11.0),
+                                                    let cat_header = format!(
+                                                        "{cat}  ({} 项)",
+                                                        entries.len()
                                                     );
-                                                    ui.horizontal_wrapped(|ui| {
-                                                        for e in entries {
-                                                            if ui.add(ns_card(e, name)).clicked() {
-                                                                ui.ctx().output_mut(|o| {
-                                                                    o.commands.push(
-                                                                        egui::OutputCommand::CopyText(
-                                                                            e.key.clone(),
-                                                                        ),
-                                                                    )
-                                                                });
-                                                                self.status_message =
-                                                                    format!("已复制: {}", e.key);
-                                                            }
-                                                        }
-                                                    });
-                                                    ui.add_space(6.0);
+                                                    egui::CollapsingHeader::new(cat_header)
+                                                        .id_salt(format!(
+                                                            "left_ns_{name}_{cat}"
+                                                        ))
+                                                        .default_open(true)
+                                                        .show(ui, |ui| {
+                                                            ui.horizontal_wrapped(|ui| {
+                                                                for e in entries {
+                                                                    if ui.add(ns_card(e, name)).clicked() {
+                                                                        ui.ctx().output_mut(|o| {
+                                                                            o.commands.push(
+                                                                                egui::OutputCommand::CopyText(
+                                                                                    e.key.clone(),
+                                                                                ),
+                                                                            )
+                                                                        });
+                                                                        self.status_message =
+                                                                            format!("已复制: {}", e.key);
+                                                                    }
+                                                                }
+                                                            });
+                                                        });
                                                 }
                                             });
                                     } else {
@@ -1916,7 +1921,7 @@ impl App {
 fn ns_card<'a>(entry: &'a crate::api::namespace::NamespaceEntry, cat: &'a str) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         let (rect, response) =
-            ui.allocate_exact_size(egui::vec2(150.0, 56.0), egui::Sense::click());
+            ui.allocate_exact_size(egui::vec2(130.0, 50.0), egui::Sense::click());
 
         let hash = cat.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32));
         let palette: [egui::Color32; 8] = [
@@ -1946,23 +1951,23 @@ fn ns_card<'a>(entry: &'a crate::api::namespace::NamespaceEntry, cat: &'a str) -
 
         let zh = entry.display_name("zh");
         ui.painter().text(
-            rect.center() - egui::vec2(0.0, 6.0),
+            rect.center() - egui::vec2(0.0, 5.0),
             egui::Align2::CENTER_CENTER,
             zh,
-            egui::FontId::new(14.0, egui::FontFamily::Proportional),
+            egui::FontId::new(13.0, egui::FontFamily::Proportional),
             egui::Color32::WHITE,
         );
 
-        let key_text = if entry.key.len() > 20 {
-            format!("{}..", &entry.key[..20])
+        let key_text = if entry.key.len() > 18 {
+            format!("{}..", &entry.key[..18])
         } else {
             entry.key.clone()
         };
         ui.painter().text(
-            rect.center() + egui::vec2(0.0, 12.0),
+            rect.center() + egui::vec2(0.0, 11.0),
             egui::Align2::CENTER_CENTER,
             key_text,
-            egui::FontId::new(10.0, egui::FontFamily::Proportional),
+            egui::FontId::new(9.0, egui::FontFamily::Proportional),
             egui::Color32::from_gray(130),
         );
 

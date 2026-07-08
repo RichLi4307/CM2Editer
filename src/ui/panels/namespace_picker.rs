@@ -102,28 +102,28 @@ impl NamespacePicker {
                         .max_height(280.0)
                         .show(ui, |ui| {
                             for (cat, cat_entries) in &by_cat {
-                                ui.label(
-                                    egui::RichText::new(*cat)
-                                        .color(egui::Color32::from_gray(160))
-                                        .size(11.0),
-                                );
-                                ui.horizontal_wrapped(|ui| {
-                                    for entry in cat_entries {
-                                        if ui.add(ns_picker_card(entry, state)).clicked() {
-                                            if state.multi {
-                                                if state.selected.contains(&entry.key) {
-                                                    state.selected.remove(&entry.key);
-                                                } else {
-                                                    state.selected.insert(entry.key.clone());
+                                let cat_header = format!("{cat}  ({} 项)", cat_entries.len());
+                                egui::CollapsingHeader::new(cat_header)
+                                    .id_salt(format!("nspick_{}_{}", state.namespace, cat))
+                                    .default_open(true)
+                                    .show(ui, |ui| {
+                                        ui.horizontal_wrapped(|ui| {
+                                            for entry in cat_entries {
+                                                if ui.add(ns_picker_card(entry, state)).clicked() {
+                                                    if state.multi {
+                                                        if state.selected.contains(&entry.key) {
+                                                            state.selected.remove(&entry.key);
+                                                        } else {
+                                                            state.selected.insert(entry.key.clone());
+                                                        }
+                                                    } else {
+                                                        state.selected.clear();
+                                                        state.selected.insert(entry.key.clone());
+                                                    }
                                                 }
-                                            } else {
-                                                state.selected.clear();
-                                                state.selected.insert(entry.key.clone());
                                             }
-                                        }
-                                    }
-                                });
-                                ui.add_space(6.0);
+                                        });
+                                    });
                             }
                         });
                 } else {
