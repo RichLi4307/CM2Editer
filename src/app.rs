@@ -246,7 +246,7 @@ impl App {
             search_window_open: false,
             search_query: String::new(),
             status_message: String::new(),
-            show_welcome_hint: false,
+            show_welcome_hint: true,
             cached_json: String::new(),
             cached_json_version: 0,
             graph_version: 0,
@@ -1520,13 +1520,71 @@ impl App {
         }
 
         // 空画布欢迎提示
-        if self.show_welcome_hint && self.graph.nodes.is_empty() {
+        if self.show_welcome_hint && self.graph.nodes.is_empty() && self.project.is_none() {
             let center = canvas_rect.center();
+            let card_w = 320.0;
+            let card_h = 220.0;
+            let card = egui::Rect::from_center_size(center, egui::vec2(card_w, card_h));
+
+            ui.painter()
+                .rect_filled(card, 12.0, egui::Color32::from_rgba_premultiplied(20, 20, 20, 220));
+            ui.painter().rect_stroke(
+                card,
+                12.0,
+                egui::Stroke::new(2.0, egui::Color32::from_gray(60)),
+                egui::StrokeKind::Middle,
+            );
+
+            let title_pos = center - egui::vec2(0.0, card_h / 2.0 - 28.0);
             ui.painter().text(
-                center,
-                Align2::CENTER_CENTER,
-                "按 Space 添加第一个节点\n或从左侧节点库选择",
-                FontId::proportional(18.0),
+                title_pos,
+                Align2::CENTER_TOP,
+                "CM2Editer v0.1.0",
+                FontId::proportional(22.0),
+                Theme::TEXT,
+            );
+            ui.painter().text(
+                title_pos + egui::vec2(0.0, 28.0),
+                Align2::CENTER_TOP,
+                "Custom Missions 2 可视化任务编辑器",
+                FontId::proportional(13.0),
+                Theme::TEXT_DIM,
+            );
+
+            let btn_open = egui::Rect::from_center_size(
+                egui::pos2(center.x - 80.0, center.y + 20.0),
+                egui::vec2(140.0, 32.0),
+            );
+            let btn_new = egui::Rect::from_center_size(
+                egui::pos2(center.x + 80.0, center.y + 20.0),
+                egui::vec2(140.0, 32.0),
+            );
+
+            let open_clicked = ui
+                .put(btn_open, egui::Button::new("📂 打开工程..."))
+                .clicked();
+            let new_clicked = ui
+                .put(btn_new, egui::Button::new("🆕 新建工程..."))
+                .clicked();
+
+            if open_clicked {
+                if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                    if let Err(e) = self.load_project(path) {
+                        self.status_message = format!("打开工程失败: {}", e);
+                    }
+                }
+                self.show_welcome_hint = false;
+            }
+            if new_clicked {
+                self.new_project_dialog_open = true;
+                self.show_welcome_hint = false;
+            }
+
+            ui.painter().text(
+                egui::pos2(center.x, center.y + 60.0),
+                Align2::CENTER_TOP,
+                "或按 Space 快速添加节点",
+                FontId::proportional(12.0),
                 Theme::TEXT_DIM,
             );
         }
