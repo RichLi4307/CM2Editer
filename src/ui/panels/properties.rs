@@ -33,7 +33,8 @@ impl PropertiesPanel {
         let mut changed = None;
         for (key, value) in &node.params {
             ui.horizontal(|ui| {
-                ui.label(key);
+                let type_hint = param_type_label(node, key);
+                ui.label(format!("{} {}", key, type_hint));
                 if let Some((new_key, new_value)) =
                     Self::param_editor(ui, node, graph, registry, picker, key, value)
                 {
@@ -196,14 +197,13 @@ impl PropertiesPanel {
         }
     }
 
-    /// 字面量编辑器，与原属性面板行为一致。
+    /// 字面量编辑器。
     fn literal_editor(
         ui: &mut egui::Ui,
         key: &str,
         value: &ParamValue,
     ) -> Option<(String, ParamValue)> {
         match value {
-            // 布尔值：使用复选框
             ParamValue::Literal(v) if v.is_boolean() => {
                 let mut b = v.as_bool().unwrap_or(false);
                 if ui.checkbox(&mut b, "").changed() {
@@ -211,7 +211,6 @@ impl PropertiesPanel {
                 }
                 None
             }
-            // 数值：使用 DragValue
             ParamValue::Literal(v) if v.is_number() => {
                 let mut num = v.as_f64().unwrap_or(0.0);
                 if ui.add(egui::DragValue::new(&mut num)).changed() {
@@ -219,16 +218,70 @@ impl PropertiesPanel {
                 }
                 None
             }
-            // 字符串 / Null / 其他 JSON：使用文本编辑
+            // Vector/Color：专用多字段编辑器
+            ParamValue::Literal(v) if v.is_array() && !v.as_array().map_or(true, |a| a.is_empty()) => {
+                let arr = v.as_array().unwrap();
+                if let Some(v2) = Self::vector_editor(ui, key, arr) {
+                    return Some((key.to_string(), v2));
+                }
+                None
+            }
+            // 字符串 / Null / 空数组：文本编辑
             _ => {
                 let mut text = param_value_to_string(value);
+                let hint = if matches!(value, ParamValue::Literal(v) if v.is_array()) {
+                    "输入 JSON 数组如 [1,2,3]"
+                } else if matches!(value, ParamValue::Literal(v) if v.is_object()) {
+                    "输入 JSON 对象如 {\"key\":1}"
+                } else {
+                    ""
+                };
                 if ui.text_edit_singleline(&mut text).changed() {
                     if let Some(new_value) = parse_param_value(&text, value) {
                         return Some((key.to_string(), new_value));
                     }
                 }
+                if !hint.is_empty() {
+                    ui.label(egui::RichText::new(hint).color(egui::Color32::GRAY).size(10.0));
+                }
                 None
             }
+        }
+    }
+
+    /// 多字段向量编辑器（Vector / Position / Quaternion / Color）。
+    fn vector_editor(
+        ui: &mut egui::Ui,
+        _key: &str,
+        arr: &[serde_json::Value],
+    ) -> Option<ParamValue> {
+        let mut changed = false;
+        let mut new_arr: Vec<serde_json::Value> =
+            arr.iter().map(|v| v.clone()).collect();
+        let labels = if arr.len() == 4 {
+            &["rx", "ry", "rz", "rw"][..]
+        } else if arr.len() == 3 {
+            &["x", "y", "z"][..]
+        } else {
+            &[]
+        };
+        ui.horizontal(|ui| {
+            for (i, v) in new_arr.iter_mut().enumerate() {
+                if let Some(n) = v.as_f64() {
+                    let mut num = n;
+                    let label = labels.get(i).map_or("", |s| s);
+                    ui.label(label);
+                    if ui.add(egui::DragValue::new(&mut num)).changed() {
+                        *v = serde_json::json!(num);
+                        changed = true;
+                    }
+                }
+            }
+        });
+        if changed {
+            Some(ParamValue::Literal(serde_json::json!(new_arr)))
+        } else {
+            None
         }
     }
 }
@@ -464,6 +517,27 @@ static IF_CONDITION_TEMPLATES: &[(&str, &str)] = &[
     ("湿润度 ≥", "_state.Moisture >= "),
     ("心率 ≥", "_state.HeartRate >= "),
 ];
+
+/// 返回参数类型简短标签，显示在参数名旁边帮助用户理解预期格式。
+fn param_type_label(node: &Node, param_name: &str) -> String {
+    use crate::api::registry::get_definition;
+    use crate::api::definitions::ParamType;
+    let pt = get_definition(node.node_type)
+        .and_then(|d| d.params.iter().find(|p| p.name == param_name))
+        .map(|p| p.param_type);
+    match pt {
+        Some(ParamType::Boolean) => "[bool]".into(),
+        Some(ParamType::String) => "[str]".into(),
+        Some(ParamType::Enum) => "[enum]".into(),
+        Some(ParamType::Number) => "[num]".into(),
+        Some(ParamType::List) => "[list]".into(),
+        Some(ParamType::Object) => "[obj]".into(),
+        Some(ParamType::Vector) => "[xyz]".into(),
+        Some(ParamType::Quaternion) => "[xyzw]".into(),
+        Some(ParamType::Color) => "[rgb]".into(),
+        None => "".into(),
+    }
+}
 
 #[cfg(test)]
 mod tests {
