@@ -29,7 +29,7 @@ fn generate_code_to_file_creates_file() -> Result<()> {
     let content = fs::read_to_string(output_path)
         .map_err(|e| CM2Editer::error::FlowError::Io(e.to_string()))?;
     assert!(content.contains("main:"));
-    assert!(content.contains("If(true) ["));
+    assert!(content.contains("if true"));
     assert!(content.contains("_result = null"));
 
     fs::remove_file(output_path).ok();
@@ -45,7 +45,7 @@ fn generated_code_preserves_semantic_elements() -> Result<()> {
 
     assert!(code.contains("main:"));
     assert!(code.contains("Log(output=\"init\")"));
-    assert!(code.contains("If(true) ["));
+    assert!(code.contains("if true"));
     assert!(code.contains("Log(output=\"true branch\")"));
     assert!(code.contains("Log(output=\"false branch\")"));
     assert!(code.contains("Log(output=\"end\")"));

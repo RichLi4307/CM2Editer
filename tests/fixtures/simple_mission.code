@@ -1,9 +1,8 @@
 main:
 	Log(output="init")
-	If(true) [
+	if true
 		Log(output="true branch")
-	] [
+	else
 		Log(output="false branch")
-	]
 	Log(output="end")
 	_result = null

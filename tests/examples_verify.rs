@@ -115,7 +115,7 @@ fn example_drop_bra_serialization_roundtrip() -> Result<()> {
 fn example_drop_bra_code_generation_matches_expected() -> Result<()> {
     let code = assert_code_matches("example_drop_bra.json", "example_drop_bra.code")?;
     assert!(code.contains("CreateCondition(condition=\"[Exposed_All]\", id=\"exposed\")"));
-    assert!(code.contains("If(true) ["));
+    assert!(code.contains("if true"));
     assert!(code.contains("Log(output=\"bra off\")"));
     assert!(code.contains("Log(output=\"bra on\")"));
     assert!(code.contains("Log(output=\"done\")"));

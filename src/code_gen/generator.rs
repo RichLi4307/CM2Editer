@@ -122,7 +122,7 @@ impl<'a> CodeGenerator<'a> {
         Ok(())
     }
 
-    /// 生成 `If` 条件分支
+    /// 生成 `if` 条件分支
     fn generate_if(&mut self, node_id: &str, stop_at: Option<&str>) -> Result<()> {
         let node = self
             .graph
@@ -139,19 +139,18 @@ impl<'a> CodeGenerator<'a> {
             _ => None,
         };
 
-        self.formatter.write_line(&format!("If({condition}) ["));
+        self.formatter.write_line(&format!("if {condition}"));
         self.formatter.indent();
         if let Some(ref target) = true_target {
             self.generate_sequence(target, join.as_deref())?;
         }
         self.formatter.dedent();
-        self.formatter.write_line("] [");
-        self.formatter.indent();
         if let Some(ref target) = false_target {
+            self.formatter.write_line("else");
+            self.formatter.indent();
             self.generate_sequence(target, join.as_deref())?;
+            self.formatter.dedent();
         }
-        self.formatter.dedent();
-        self.formatter.write_line("]");
 
         if let Some(join_id) = join {
             self.generate_sequence(&join_id, stop_at)?;
@@ -159,7 +158,7 @@ impl<'a> CodeGenerator<'a> {
         Ok(())
     }
 
-    /// 生成 `While` 循环
+    /// 生成 `while` 循环
     fn generate_while(&mut self, node_id: &str, stop_at: Option<&str>) -> Result<()> {
         let node = self
             .graph
@@ -171,13 +170,12 @@ impl<'a> CodeGenerator<'a> {
         let body_target = self.flow_target(node_id, "out_flow")?;
         let break_target = self.flow_target(node_id, "out_break")?;
 
-        self.formatter.write_line(&format!("While({condition}) ["));
+        self.formatter.write_line(&format!("while {condition}"));
         self.formatter.indent();
         if let Some(ref target) = body_target {
             self.generate_sequence(target, Some(node_id))?;
         }
         self.formatter.dedent();
-        self.formatter.write_line("]");
 
         if let Some(ref target) = break_target {
             self.generate_sequence(target, stop_at)?;
@@ -185,7 +183,7 @@ impl<'a> CodeGenerator<'a> {
         Ok(())
     }
 
-    /// 生成 `For` 循环
+    /// 生成 `for` 循环
     fn generate_for(&mut self, node_id: &str, stop_at: Option<&str>) -> Result<()> {
         let node = self
             .graph
@@ -198,13 +196,12 @@ impl<'a> CodeGenerator<'a> {
         let break_target = self.flow_target(node_id, "out_break")?;
 
         self.formatter
-            .write_line(&format!("For({iterable}) as i ["));
+            .write_line(&format!("for i in {iterable}"));
         self.formatter.indent();
         if let Some(ref target) = body_target {
             self.generate_sequence(target, Some(node_id))?;
         }
         self.formatter.dedent();
-        self.formatter.write_line("]");
 
         if let Some(ref target) = break_target {
             self.generate_sequence(target, stop_at)?;
@@ -529,7 +526,7 @@ mod tests {
         add_flow_edge(&mut graph, "log_false", "out_flow", "end", "in_flow");
 
         let code = generate_code(&graph)?;
-        assert!(code.contains("If(true) ["));
+        assert!(code.contains("if true"));
         assert!(code.contains("Log(output=\"yes\")"));
         assert!(code.contains("Log(output=\"no\")"));
         assert!(code.contains("Log(output=\"done\")"));
@@ -565,7 +562,7 @@ mod tests {
         add_flow_edge(&mut graph, "while", "out_break", "end", "in_flow");
 
         let code = generate_code(&graph)?;
-        assert!(code.contains("While(false) ["));
+        assert!(code.contains("while false"));
         assert!(code.contains("Log(output=\"loop\")"));
         assert!(code.contains("Log(output=\"end\")"));
         Ok(())

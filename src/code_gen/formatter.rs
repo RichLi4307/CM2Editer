@@ -93,12 +93,11 @@ mod tests {
     #[test]
     fn test_indent_and_dedent() {
         let mut f = CodeFormatter::new();
-        f.write_line("If(true) [");
+        f.write_line("if true");
         f.indent();
         f.write_line("Log(\"yes\")");
         f.dedent();
-        f.write_line("]");
-        assert_eq!(f.content(), "If(true) [\n\tLog(\"yes\")\n]\n");
+        assert_eq!(f.content(), "if true\n\tLog(\"yes\")\n");
     }
 
     #[test]
