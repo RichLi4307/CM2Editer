@@ -200,9 +200,18 @@ pub struct App {
     pub coordinate_registry: CoordinateRegistry,
     /// 坐标选择器窗口状态。
     pub coordinate_picker: Option<CoordinatePickerState>,
-    /// 是否显示错误详情弹窗。
     pub show_error_detail: bool,
-    /// 左栏当前标签页
+    /// 命名空间添加表单
+    pub ns_add_key: String,
+    pub ns_add_name: String,
+    pub ns_add_target: String,
+    /// 坐标添加表单
+    pub coord_add_id: String,
+    pub coord_add_name: String,
+    pub coord_add_stage: String,
+    pub coord_add_x: String,
+    pub coord_add_y: String,
+    pub coord_add_z: String,
     left_panel_tab: LeftPanelTab,
     /// 新建工程对话框状态
     new_project_dialog_open: bool,
@@ -241,6 +250,15 @@ impl App {
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
             show_error_detail: false,
+            ns_add_key: String::new(),
+            ns_add_name: String::new(),
+            ns_add_target: String::new(),
+            coord_add_id: String::new(),
+            coord_add_name: String::new(),
+            coord_add_stage: String::new(),
+            coord_add_x: String::new(),
+            coord_add_y: String::new(),
+            coord_add_z: String::new(),
             show_meta_editor: false,
             validation_errors: Vec::new(),
             search_window_open: false,
@@ -952,8 +970,59 @@ impl eframe::App for App {
                                 }
                             }
                             if ui.button("Add 新增").clicked() {
-                                self.status_message =
-                                    "请在 assets/namespaces/ 中编辑 JSON 新增条目".to_string();
+                                let _ = ui.ctx();
+                            }
+                        });
+                        // 内联添加表单
+                        ui.horizontal(|ui| {
+                            ui.label("空间:");
+                            ui.text_edit_singleline(&mut self.ns_add_target);
+                            ui.label("Key:");
+                            ui.text_edit_singleline(&mut self.ns_add_key);
+                        });
+                        ui.horizontal(|ui| {
+                            ui.label("名称:");
+                            ui.text_edit_singleline(&mut self.ns_add_name);
+                            if ui.button("确定添加").clicked()
+                                && !self.ns_add_target.is_empty()
+                                && !self.ns_add_key.is_empty()
+                            {
+                                let dir = std::path::PathBuf::from("assets/namespaces");
+                                let _ = std::fs::create_dir_all(&dir);
+                                let file_path = dir.join(format!("{}.json", self.ns_add_target));
+                                let entry = serde_json::json!({
+                                    "key": self.ns_add_key,
+                                    "en": self.ns_add_name,
+                                    "zh": self.ns_add_name,
+                                });
+                                let content = if file_path.exists() {
+                                    let old = std::fs::read_to_string(&file_path).unwrap_or_default();
+                                    let mut data: serde_json::Value =
+                                        serde_json::from_str(&old).unwrap_or_default();
+                                    if let Some(obj) = data.as_object_mut() {
+                                        if let Some(entries) = obj.get_mut("entries") {
+                                            if let Some(map) = entries.as_object_mut() {
+                                                map.insert(self.ns_add_key.clone(), entry);
+                                            }
+                                        }
+                                    }
+                                    serde_json::to_string_pretty(&data).unwrap_or_default()
+                                } else {
+                                    let wrapper = serde_json::json!({
+                                        "name": self.ns_add_target,
+                                        "entries": { self.ns_add_key.clone(): entry }
+                                    });
+                                    serde_json::to_string_pretty(&wrapper).unwrap_or_default()
+                                };
+                                let _ = std::fs::write(&file_path, content);
+                                self.namespace_registry = NamespaceRegistry::load_bundled();
+                                self.status_message = format!(
+                                    "已添加 {} → {}",
+                                    self.ns_add_target, self.ns_add_key
+                                );
+                                self.ns_add_key.clear();
+                                self.ns_add_name.clear();
+                                self.ns_add_target.clear();
                             }
                         });
                         ui.separator();
@@ -1102,8 +1171,59 @@ impl eframe::App for App {
                                     }
                                 }
                                 if ui.button("Add 新增").clicked() {
-                                    self.status_message =
-                                        "请在 assets/coordinates/ 中编辑 JSON 新增坐标".to_string();
+                                    let _ = ui.ctx();
+                                }
+                            });
+                            // 内联坐标添加表单
+                            ui.horizontal(|ui| {
+                                ui.label("ID:");
+                                ui.text_edit_singleline(&mut self.coord_add_id);
+                                ui.label("名:");
+                                ui.text_edit_singleline(&mut self.coord_add_name);
+                                ui.label("场景:");
+                                ui.text_edit_singleline(&mut self.coord_add_stage);
+                            });
+                            ui.horizontal(|ui| {
+                                ui.label("x:");
+                                ui.text_edit_singleline(&mut self.coord_add_x);
+                                ui.label("y:");
+                                ui.text_edit_singleline(&mut self.coord_add_y);
+                                ui.label("z:");
+                                ui.text_edit_singleline(&mut self.coord_add_z);
+                                if ui.button("确定添加").clicked()
+                                    && !self.coord_add_id.is_empty()
+                                    && !self.coord_add_stage.is_empty()
+                                {
+                                    let x = self.coord_add_x.parse::<f64>().unwrap_or(0.0);
+                                    let y = self.coord_add_y.parse::<f64>().unwrap_or(0.0);
+                                    let z = self.coord_add_z.parse::<f64>().unwrap_or(0.0);
+                                    let dir = std::path::PathBuf::from("assets/coordinates");
+                                    let _ = std::fs::create_dir_all(&dir);
+                                    let file_path = dir.join("default.json");
+                                    let old = std::fs::read_to_string(&file_path).unwrap_or_default();
+                                    let mut data: Vec<serde_json::Value> =
+                                        serde_json::from_str(&old).unwrap_or_default();
+                                    data.push(serde_json::json!({
+                                        "id": self.coord_add_id,
+                                        "name": self.coord_add_name,
+                                        "stage": self.coord_add_stage,
+                                        "x": x, "y": y, "z": z,
+                                    }));
+                                    let _ = std::fs::write(
+                                        &file_path,
+                                        serde_json::to_string_pretty(&data).unwrap_or_default(),
+                                    );
+                                    self.coordinate_registry = CoordinateRegistry::load_bundled();
+                                    self.status_message = format!(
+                                        "已添加坐标 {} @ {}",
+                                        self.coord_add_id, self.coord_add_stage
+                                    );
+                                    self.coord_add_id.clear();
+                                    self.coord_add_name.clear();
+                                    self.coord_add_stage.clear();
+                                    self.coord_add_x.clear();
+                                    self.coord_add_y.clear();
+                                    self.coord_add_z.clear();
                                 }
                             });
                         }
