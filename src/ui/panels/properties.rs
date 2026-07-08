@@ -1,11 +1,14 @@
+use crate::api::registry::get_definition;
+use crate::graph::graph::Graph;
 use crate::graph::node::{Node, ParamValue};
+use crate::graph::types::PortType;
 
 /// 属性面板。
 pub struct PropertiesPanel;
 
 impl PropertiesPanel {
     /// 显示选中节点的可编辑参数，返回发生变更的参数键值（如果有）。
-    pub fn show(ui: &mut egui::Ui, node: &Node) -> Option<(String, ParamValue)> {
+    pub fn show(ui: &mut egui::Ui, node: &Node, graph: &Graph) -> Option<(String, ParamValue)> {
         ui.heading("属性");
         ui.separator();
         ui.label(format!("节点 ID: {}", node.id));
@@ -23,7 +26,8 @@ impl PropertiesPanel {
         for (key, value) in &node.params {
             ui.horizontal(|ui| {
                 ui.label(key);
-                if let Some((new_key, new_value)) = Self::param_editor(ui, key, value) {
+                if let Some((new_key, new_value)) = Self::param_editor(ui, node, graph, key, value)
+                {
                     changed = Some((new_key, new_value));
                 }
             });
@@ -44,7 +48,75 @@ impl PropertiesPanel {
     }
 
     /// 为单个参数绘制合适的编辑控件。
+    ///
+    /// 参数现在支持两种数据源：
+    /// - 字面量：直接在节点属性中编辑。
+    /// - 数据端口：通过节点边框的 Data 端口连接或下拉框选择其他节点的输出。
     fn param_editor(
+        ui: &mut egui::Ui,
+        node: &Node,
+        graph: &Graph,
+        key: &str,
+        value: &ParamValue,
+    ) -> Option<(String, ParamValue)> {
+        // 如果该参数对应的 Data 输入端口已被连接，则只读显示来源。
+        if let Some((src_node, src_port)) = connected_data_source(graph, &node.id, key) {
+            ui.label(format!("🔗 {}.{}", src_node, src_port));
+            return None;
+        }
+
+        // 收集可选数据源：所有兼容类型的非 Flow 输出端口。
+        let options = available_data_sources(graph, node, key);
+
+        let selected_label = match value {
+            ParamValue::Ref { node, port } => format!("{}.{} (ref)", node, port),
+            _ => String::from("字面量"),
+        };
+
+        let mut picked_source = None;
+        egui::ComboBox::from_id_salt(format!("{}_source", key))
+            .width(100.0)
+            .selected_text(&selected_label)
+            .show_ui(ui, |ui| {
+                if ui
+                    .selectable_label(selected_label == "字面量", "字面量")
+                    .clicked()
+                {
+                    picked_source = Some(ParamValue::Null);
+                }
+                for (label, source_value) in &options {
+                    if ui
+                        .selectable_label(label == &selected_label, label)
+                        .clicked()
+                    {
+                        picked_source = Some(source_value.clone());
+                    }
+                }
+            });
+
+        if let Some(picked) = picked_source {
+            return match picked {
+                // 选择“字面量”时，如果原值已经是字面量则保留，否则回退到默认空字面量。
+                ParamValue::Null => {
+                    if matches!(value, ParamValue::Ref { .. }) {
+                        Some((key.to_string(), infer_default_literal(node, key)))
+                    } else {
+                        None
+                    }
+                }
+                source => Some((key.to_string(), source)),
+            };
+        }
+
+        // 当选择“字面量”时，显示对应的原生编辑器。
+        match value {
+            ParamValue::Ref { .. } => None,
+            _ => Self::literal_editor(ui, key, value),
+        }
+    }
+
+    /// 字面量编辑器，与原属性面板行为一致。
+    fn literal_editor(
         ui: &mut egui::Ui,
         key: &str,
         value: &ParamValue,
@@ -58,7 +130,7 @@ impl PropertiesPanel {
                 }
                 None
             }
-            // 数值：使用只允许数字的输入框
+            // 数值：使用 DragValue
             ParamValue::Literal(v) if v.is_number() => {
                 let mut num = v.as_f64().unwrap_or(0.0);
                 if ui.add(egui::DragValue::new(&mut num)).changed() {
@@ -66,18 +138,7 @@ impl PropertiesPanel {
                 }
                 None
             }
-            // 引用：使用文本，但带 ref: 前缀
-            ParamValue::Ref { node, port } => {
-                let mut text = format!("ref:{}/{}", node, port);
-                let response = ui.text_edit_singleline(&mut text);
-                if response.changed() {
-                    if let Some(new_value) = parse_param_value(&text, value) {
-                        return Some((key.to_string(), new_value));
-                    }
-                }
-                None
-            }
-            // 字符串 / Null / 其他 JSON：使用文本编辑，解析失败时静默忽略
+            // 字符串 / Null / 其他 JSON：使用文本编辑
             _ => {
                 let mut text = param_value_to_string(value);
                 if ui.text_edit_singleline(&mut text).changed() {
@@ -89,6 +150,62 @@ impl PropertiesPanel {
             }
         }
     }
+}
+
+/// 查找参数对应的 Data 输入端口是否已被连接。
+///
+/// 参数名与 Data 输入端口 ID 相同。当存在入边时返回源节点和端口。
+fn connected_data_source(
+    graph: &Graph,
+    node_id: &str,
+    param_name: &str,
+) -> Option<(String, String)> {
+    graph
+        .incoming_edges(node_id)
+        .iter()
+        .find(|e| e.to.port_id == param_name && e.edge_type != PortType::Flow)
+        .map(|e| (e.from.node_id.clone(), e.from.port_id.clone()))
+}
+
+/// 收集当前图中可供参数引用的所有兼容数据输出。
+fn available_data_sources(
+    graph: &Graph,
+    node: &Node,
+    param_name: &str,
+) -> Vec<(String, ParamValue)> {
+    let expected_type = get_definition(node.node_type)
+        .and_then(|def| def.params.iter().find(|p| p.name == param_name))
+        .map(|p| p.param_type.port_type());
+
+    let mut sources = Vec::new();
+    for (other_id, other) in &graph.nodes {
+        if other_id == &node.id {
+            continue;
+        }
+        for output in &other.outputs {
+            if output.port_type == PortType::Flow {
+                continue;
+            }
+            if let Some(expected) = expected_type.as_ref() {
+                if !expected.is_compatible_with(&output.port_type) {
+                    continue;
+                }
+            }
+            sources.push((
+                format!("{}.{} ({})", other_id, output.id, output.label),
+                ParamValue::from_ref(other_id, &output.id),
+            ));
+        }
+    }
+    sources
+}
+
+/// 根据参数定义推断一个合理的默认字面量。
+fn infer_default_literal(node: &Node, param_name: &str) -> ParamValue {
+    get_definition(node.node_type)
+        .and_then(|def| def.params.iter().find(|p| p.name == param_name))
+        .map(|p| p.default_value())
+        .unwrap_or(ParamValue::Null)
 }
 
 /// 将参数值转换为可编辑字符串。
@@ -155,5 +272,72 @@ fn parse_json_literal(text: &str, original: &serde_json::Value) -> Option<serde_
         serde_json::Value::Number(_) => text.parse::<f64>().ok().map(|v| serde_json::json!(v)),
         serde_json::Value::String(_) => Some(serde_json::json!(text)),
         _ => serde_json::from_str(text).ok(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::graph::edge::{Edge, EdgeEndpoint};
+    use crate::graph::graph::Graph;
+    use crate::graph::node::{Node, ParamValue, Port, Vec2};
+    use crate::graph::types::{NodeType, PortType};
+
+    fn make_node_with_data_output(id: &str, node_type: NodeType) -> Node {
+        let mut node = Node::new(node_type, Vec2::ZERO);
+        node.id = id.to_string();
+        node.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        node.outputs = vec![
+            Port::new("out_flow", PortType::Flow, "下一步"),
+            Port::new("out_value", PortType::Number, "值"),
+        ];
+        node
+    }
+
+    #[test]
+    fn test_connected_data_source_finds_data_edge() {
+        let mut graph = Graph::default();
+        let n1 = make_node_with_data_output("n1", NodeType::Random);
+        let mut n2 = Node::new(NodeType::Log, Vec2::ZERO);
+        n2.id = "n2".to_string();
+        n2.inputs = vec![
+            Port::new("in_flow", PortType::Flow, "执行"),
+            Port::new("output", PortType::String, "输出"),
+        ];
+        n2.set_param("output", ParamValue::Literal(serde_json::json!("")));
+        graph.add_node(n1);
+        graph.add_node(n2);
+
+        let edge = Edge::new(
+            EdgeEndpoint::new("n1", "out_value"),
+            EdgeEndpoint::new("n2", "output"),
+            PortType::Number,
+        );
+        graph.add_edge(edge).unwrap();
+
+        assert_eq!(
+            super::connected_data_source(&graph, "n2", "output"),
+            Some(("n1".to_string(), "out_value".to_string()))
+        );
+        assert_eq!(super::connected_data_source(&graph, "n1", "output"), None);
+    }
+
+    #[test]
+    fn test_available_data_sources_filters_flow_and_compatible() {
+        let mut graph = Graph::default();
+        let n1 = make_node_with_data_output("n1", NodeType::Random);
+        let mut n2 = Node::new(NodeType::SetEcstasy, Vec2::ZERO);
+        n2.id = "n2".to_string();
+        n2.inputs = vec![
+            Port::new("in_flow", PortType::Flow, "执行"),
+            Port::new("value", PortType::Number, "数值"),
+        ];
+        n2.set_param("value", ParamValue::Literal(serde_json::json!(0.0)));
+        graph.add_node(n1);
+
+        let sources = super::available_data_sources(&graph, &n2, "value");
+        graph.add_node(n2);
+
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].1, ParamValue::from_ref("n1", "out_value"));
     }
 }

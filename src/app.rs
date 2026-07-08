@@ -22,6 +22,7 @@ use crate::ui::interaction::InteractionController;
 use crate::ui::node_renderer::{NodeRenderer, PortGeometry};
 use crate::ui::panels::{
     code_editor::CodeEditorPanel,
+    data_menu::DataMenuPanel,
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
     node_library::NodeLibraryPanel,
@@ -293,6 +294,13 @@ impl App {
         node.category = def.category.clone();
         for param in &def.params {
             node.set_param(&param.name, param.default_value());
+            let data_port = Port::new(
+                &param.name,
+                param.param_type.port_type(),
+                &param.display_name,
+            )
+            .required(param.required);
+            node.inputs.push(data_port);
         }
         self.selected_nodes.clear();
         self.selected_nodes.insert(node.id.clone());
@@ -471,6 +479,15 @@ impl App {
                         for param in &def.params {
                             if !node.params.contains_key(&param.name) {
                                 node.set_param(&param.name, param.default_value());
+                            }
+                            if !node.inputs.iter().any(|p| p.id == param.name) {
+                                let data_port = Port::new(
+                                    &param.name,
+                                    param.param_type.port_type(),
+                                    &param.display_name,
+                                )
+                                .required(param.required);
+                                node.inputs.push(data_port);
                             }
                         }
                     }
@@ -855,7 +872,7 @@ impl eframe::App for App {
                     }
                 } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
                     if let Some(node) = self.graph.nodes.get(&node_id).cloned() {
-                        if let Some((key, value)) = PropertiesPanel::show(ui, &node) {
+                        if let Some((key, value)) = PropertiesPanel::show(ui, &node, &self.graph) {
                             if let Some(n) = self.graph.nodes.get(&node_id) {
                                 let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
                                 self.push_command(Command::SetParam {
@@ -900,15 +917,35 @@ impl eframe::App for App {
                 }
             });
 
-        // 底部 JSON 预览
+        // 底部数据 / JSON 预览面板（可拖拽调整高度，保留最低高度限制）
         if self.graph_version != self.cached_json_version {
             self.cached_json = Self::serialize_graph(&self.graph, &self.canvas.viewport);
             self.cached_json_version = self.graph_version;
         }
-        egui::TopBottomPanel::bottom("json_preview")
+        egui::TopBottomPanel::bottom("bottom_panel")
+            .resizable(true)
             .default_height(120.0)
+            .min_height(80.0)
             .show(ctx, |ui| {
-                JsonPreviewPanel::show(ui, &self.cached_json);
+                ui.horizontal(|ui| {
+                    let available = ui.available_size_before_wrap();
+                    let half_width = available.x / 2.0;
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(half_width, available.y),
+                        egui::Layout::top_down(egui::Align::LEFT),
+                        |ui| {
+                            JsonPreviewPanel::show(ui, &self.cached_json);
+                        },
+                    );
+                    ui.separator();
+                    ui.allocate_ui_with_layout(
+                        egui::vec2(half_width - 12.0, available.y),
+                        egui::Layout::top_down(egui::Align::LEFT),
+                        |ui| {
+                            DataMenuPanel::show(ui, &self.graph, &self.selected_nodes);
+                        },
+                    );
+                });
             });
 
         // 中央画布
@@ -1140,7 +1177,17 @@ impl App {
 
         // 第二遍：渲染连线（在节点下方），并裁剪
         let mut edge_hits: Vec<(String, Rect)> = Vec::new();
+        // DataFlow 边仅在单选相关节点时显示，避免复杂图被虚线淹没
+        let selected_node = self.selected_nodes.iter().next().cloned();
         for edge in self.graph.edges.values() {
+            if edge.edge_type != PortType::Flow {
+                let related = selected_node.as_ref().is_some_and(|selected| {
+                    edge.from.node_id == *selected || edge.to.node_id == *selected
+                });
+                if !related {
+                    continue;
+                }
+            }
             let Some(&from_pos) =
                 port_positions.get(&(edge.from.node_id.clone(), edge.from.port_id.clone()))
             else {

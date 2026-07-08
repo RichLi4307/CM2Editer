@@ -303,6 +303,10 @@ impl<'a> CodeGenerator<'a> {
 
     /// 解析参数值为 `.code` 字符串，缺失时返回 `None`（用于可选参数）
     fn resolve_param_opt(&self, node: &Node, name: &str) -> Option<String> {
+        // DataFlow：优先使用参数对应 Data 输入端口的连接。
+        if let Some((src_node, src_port)) = self.connected_param_source(node, name) {
+            return Some(format!("var_{src_node}_{src_port}"));
+        }
         match node.params.get(name) {
             Some(ParamValue::Ref {
                 node: ref_node,
@@ -312,6 +316,15 @@ impl<'a> CodeGenerator<'a> {
             Some(ParamValue::Null) => Some("null".to_string()),
             None => None,
         }
+    }
+
+    /// 查找参数对应的 Data 输入端口是否连接了数据源。
+    fn connected_param_source(&self, node: &Node, param_name: &str) -> Option<(String, String)> {
+        self.graph
+            .incoming_edges(&node.id)
+            .iter()
+            .find(|e| e.to.port_id == param_name && e.edge_type != PortType::Flow)
+            .map(|e| (e.from.node_id.clone(), e.from.port_id.clone()))
     }
 
     /// 解析参数值为 `.code` 字符串，缺失时返回错误
@@ -695,10 +708,43 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_empty_graph_produces_empty_code() -> Result<()> {
-        let graph = build_graph();
+    fn test_generate_param_via_data_port() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+        let mut random = make_node("random", NodeType::Random);
+        random.set_param("min", ParamValue::Literal(json!(0)));
+        random.set_param("max", ParamValue::Literal(json!(10)));
+        random.outputs = vec![
+            Port::new("out_flow", PortType::Flow, "下一步"),
+            Port::new("out_value", PortType::Number, "值"),
+        ];
+        let mut set_ecstasy = make_node("set", NodeType::SetEcstasy);
+        set_ecstasy.set_param("value", ParamValue::Literal(json!(0.0)));
+        set_ecstasy
+            .inputs
+            .push(Port::new("value", PortType::Number, "数值"));
+
+        graph.add_node(start);
+        graph.add_node(random);
+        graph.add_node(set_ecstasy);
+        graph.add_label(
+            "main",
+            vec!["start".to_string(), "random".to_string(), "set".to_string()],
+        );
+
+        add_flow_edge(&mut graph, "start", "out_flow", "random", "in_flow");
+        add_flow_edge(&mut graph, "random", "out_flow", "set", "in_flow");
+
+        let data_edge = Edge::new(
+            EdgeEndpoint::new("random", "out_value"),
+            EdgeEndpoint::new("set", "value"),
+            PortType::Number,
+        );
+        graph.add_edge(data_edge)?;
+
         let code = generate_code(&graph)?;
-        assert!(code.is_empty());
+        assert!(code.contains("var_random_out_value = Random(min=0, max=10)"));
+        assert!(code.contains("SetEcstasy(value=var_random_out_value)"));
         Ok(())
     }
 }

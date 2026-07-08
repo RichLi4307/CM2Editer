@@ -24,10 +24,11 @@ impl Default for EdgeRenderer {
 }
 
 impl EdgeRenderer {
-    /// 渲染一条贝塞尔连线。
+    /// 渲染一条连线。
     ///
     /// `from` 和 `to` 为屏幕坐标；`waypoints` 为中间经过点的屏幕坐标。
     /// `edge_type` 决定连线颜色：Flow 为白色，Data 为对应端口类型颜色。
+    /// Flow 使用贝塞尔曲线实线；Data 使用沿路径的虚线，以区分数据流与执行流。
     /// `is_highlighted` 为 true 时加粗并绘制蓝色发光外框。
     pub fn render_edge(
         &self,
@@ -44,8 +45,9 @@ impl EdgeRenderer {
         } else {
             self.normal_width
         };
-        let stroke: egui::Stroke = Stroke::new(width, color);
         let points = collect_points(from, to, waypoints);
+
+        let is_flow = *edge_type == PortType::Flow;
 
         if is_highlighted {
             let glow_stroke: egui::Stroke =
@@ -53,26 +55,50 @@ impl EdgeRenderer {
             for window in points.windows(2) {
                 let segment_from = window[0];
                 let segment_to = window[1];
-                let (cp1, cp2) = control_points(segment_from, segment_to);
-                ui.painter().add(egui::epaint::CubicBezierShape {
-                    points: [segment_from, cp1, cp2, segment_to],
-                    closed: false,
-                    fill: Color32::TRANSPARENT,
-                    stroke: glow_stroke.into(),
-                });
+                if is_flow {
+                    let (cp1, cp2) = control_points(segment_from, segment_to);
+                    ui.painter().add(egui::epaint::CubicBezierShape {
+                        points: [segment_from, cp1, cp2, segment_to],
+                        closed: false,
+                        fill: Color32::TRANSPARENT,
+                        stroke: glow_stroke.into(),
+                    });
+                } else {
+                    draw_dashed_line(
+                        ui.painter(),
+                        segment_from,
+                        segment_to,
+                        Theme::SELECTED_GLOW.gamma_multiply(0.4),
+                        width + 6.0,
+                        5.0,
+                        3.0,
+                    );
+                }
             }
         }
 
         for window in points.windows(2) {
             let segment_from = window[0];
             let segment_to = window[1];
-            let (cp1, cp2) = control_points(segment_from, segment_to);
-            ui.painter().add(egui::epaint::CubicBezierShape {
-                points: [segment_from, cp1, cp2, segment_to],
-                closed: false,
-                fill: Color32::TRANSPARENT,
-                stroke: stroke.into(),
-            });
+            if is_flow {
+                let (cp1, cp2) = control_points(segment_from, segment_to);
+                ui.painter().add(egui::epaint::CubicBezierShape {
+                    points: [segment_from, cp1, cp2, segment_to],
+                    closed: false,
+                    fill: Color32::TRANSPARENT,
+                    stroke: Stroke::new(width, color).into(),
+                });
+            } else {
+                draw_dashed_line(
+                    ui.painter(),
+                    segment_from,
+                    segment_to,
+                    color,
+                    width,
+                    5.0,
+                    3.0,
+                );
+            }
         }
     }
 
@@ -166,6 +192,31 @@ fn edge_color(edge_type: &PortType, is_highlighted: bool) -> Color32 {
         Theme::SELECTED_GLOW
     } else {
         base
+    }
+}
+
+/// 绘制从 `from` 到 `to` 的虚线，用于 Data 流连线。
+fn draw_dashed_line(
+    painter: &egui::Painter,
+    from: Pos2,
+    to: Pos2,
+    color: Color32,
+    width: f32,
+    dash_len: f32,
+    gap_len: f32,
+) {
+    let dir = to - from;
+    let len = dir.length();
+    if len < 1e-5 {
+        return;
+    }
+    let unit = dir / len;
+    let mut distance = 0.0;
+    while distance < len {
+        let start = from + unit * distance;
+        let end = from + unit * (distance + dash_len).min(len);
+        painter.line_segment([start, end], Stroke::new(width, color));
+        distance += dash_len + gap_len;
     }
 }
 

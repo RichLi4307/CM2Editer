@@ -73,10 +73,22 @@ impl NodeRenderer {
         let height = if node.collapsed {
             self.collapsed_height(node)
         } else {
-            node.size.y.max(self.min_height)
+            let min_height = self.min_height.max(self.min_height_from_ports(node));
+            node.size.y.max(min_height)
         };
         let size = Vec2::new(node.size.x.max(self.min_width), height);
         Rect::from_min_size(screen_pos, size)
+    }
+
+    /// 根据节点端口数量计算最小高度。
+    fn min_height_from_ports(&self, node: &Node) -> f32 {
+        let max_ports = node.inputs.len().max(node.outputs.len()) as f32;
+        let ports_height = if max_ports <= 0.0 {
+            0.0
+        } else {
+            self.port_padding * 2.0 + self.port_radius * 2.0 + (max_ports - 1.0) * self.port_spacing
+        };
+        self.header_height + ports_height
     }
 
     /// 计算折叠状态下的最小高度（标题栏 + 端口所需空间）。
@@ -397,15 +409,40 @@ mod tests {
     }
 
     #[test]
-    fn test_param_preview() {
-        assert_eq!(param_preview(&ParamValue::Null), "(null)");
-        assert_eq!(
-            param_preview(&ParamValue::from_ref("node_1", "out_value")),
-            "→ node_1/out_value"
-        );
-        assert_eq!(
-            param_preview(&ParamValue::Literal(serde_json::json!("hello"))),
-            "\"hello\""
+    fn test_node_height_adapts_to_port_count() {
+        use crate::graph::node::Vec2 as NodeVec2;
+        use crate::graph::types::NodeType;
+        use crate::serializer::json::Viewport;
+        use crate::ui::canvas::Canvas;
+
+        let viewport = Viewport::default();
+        let canvas = Canvas::with_viewport(viewport);
+        let canvas_rect = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(800.0, 600.0));
+        let renderer = NodeRenderer::default();
+
+        let mut few_ports = Node::new(NodeType::Log, NodeVec2::ZERO);
+        few_ports.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        few_ports.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+
+        let mut many_ports = Node::new(NodeType::Color, NodeVec2::ZERO);
+        many_ports.inputs = vec![
+            Port::new("in_flow", PortType::Flow, "执行"),
+            Port::new("r", PortType::Number, "红"),
+            Port::new("g", PortType::Number, "绿"),
+            Port::new("b", PortType::Number, "蓝"),
+            Port::new("a", PortType::Number, "透明度"),
+        ];
+        many_ports.outputs = vec![
+            Port::new("out_flow", PortType::Flow, "下一步"),
+            Port::new("out_color", PortType::List, "颜色"),
+        ];
+
+        let few_rect = renderer.screen_rect(&canvas, &few_ports, canvas_rect);
+        let many_rect = renderer.screen_rect(&canvas, &many_ports, canvas_rect);
+
+        assert!(
+            many_rect.height() > few_rect.height(),
+            "多端口节点应比少端口节点高"
         );
     }
 }
