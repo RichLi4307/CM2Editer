@@ -1,0 +1,18 @@
+[
+  { "id": "Apart_spawn",     "name": "出生点",     "stage": "Apart",         "x": 0,   "y": 0,    "z": 0    },
+  { "id": "Apart_bed",       "name": "床边",       "stage": "Apart",         "x": 1.5, "y": 0,    "z": -1.5  },
+  { "id": "Apart_door",      "name": "门口",       "stage": "Apart",         "x": 2.0, "y": 0,    "z": 2.0   },
+  { "id": "Residence_spawn", "name": "住宅区入口", "stage": "Residence",     "x": 0,   "y": 0,    "z": 0    },
+  { "id": "Residence_light", "name": "路灯下",     "stage": "Residence",     "x": 5.0, "y": 0,    "z": 3.0   },
+  { "id": "Residence_alley", "name": "巷子",       "stage": "Residence",     "x": -4.0,"y": 0,    "z": -5.0  },
+  { "id": "Mall_spawn",      "name": "中庭",       "stage": "ShoppingMall",  "x": 0,   "y": 0,    "z": 0    },
+  { "id": "Mall_shop",       "name": "店铺门口",   "stage": "ShoppingMall",  "x": 3.0, "y": 0,    "z": -2.0  },
+  { "id": "Mall_elevator",   "name": "电梯口",     "stage": "ShoppingMall",  "x": -2.0,"y": 0,    "z": 4.0   },
+  { "id": "Park_spawn",      "name": "入口",       "stage": "Park",          "x": 0,   "y": 0,    "z": 0    },
+  { "id": "Park_fountain",   "name": "喷泉",       "stage": "Park",          "x": 3.0, "y": 0,    "z": 2.0   },
+  { "id": "Station_spawn",   "name": "站前广场",   "stage": "StationFront",  "x": 0,   "y": 0,    "z": 0    },
+  { "id": "Mansion_spawn",   "name": "入口",       "stage": "Mansion",       "x": 0,   "y": 0,    "z": 0    },
+  { "id": "Suburbs_spawn",   "name": "入口",       "stage": "Suburbs",       "x": 0,   "y": 0,    "z": 0    },
+  { "id": "Street_spawn",    "name": "街角",       "stage": "Street",        "x": 0,   "y": 0,    "z": 0    },
+  { "id": "City_spawn",      "name": "广场",       "stage": "City",          "x": 0,   "y": 0,    "z": 0    }
+]

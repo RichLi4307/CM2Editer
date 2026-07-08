@@ -352,7 +352,28 @@ impl<'a> CodeGenerator<'a> {
                 let a = self.resolve_param_opt(node, "a")?;
                 Some(format!("!({a})"))
             }
-            // 在 Data 链中间的非专用 Data 节点：回退到变量引用
+            NodeType::GetPosition => {
+                let x = self.resolve_param_opt(node, "x")?;
+                let y = self.resolve_param_opt(node, "y")?;
+                let z = self.resolve_param_opt(node, "z")?;
+                Some(format!("[{x}, {y}, {z}]"))
+            }
+            NodeType::MakeVector => {
+                let x = self.resolve_param_opt(node, "x")?;
+                let y = self.resolve_param_opt(node, "y")?;
+                let z = self.resolve_param_opt(node, "z")?;
+                Some(format!("[{x}, {y}, {z}]"))
+            }
+            NodeType::BreakVector => {
+                let v = self.resolve_param_opt(node, "in_vec")?;
+                match port_name {
+                    "x" => Some(format!("{v}[0]")),
+                    "y" => Some(format!("{v}[1]")),
+                    "z" => Some(format!("{v}[2]")),
+                    _ => Some(format!("{v}[0]")),
+                }
+            }
+            // 其他 Data 节点：回退到变量引用
             _ => Some(format!("var_{node_id}_{port_name}")),
         }
     }

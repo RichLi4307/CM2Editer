@@ -2295,6 +2295,17 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             PortType::Boolean,
             "结果",
         )]),
+        // ── Phase 7: 坐标系统 ──
+        NodeDefinition::new(NodeType::GetPosition, "Game Functions: Player", "坐标预设", "从预设坐标库选取位置", GAME_COLOR)
+            .with_outputs(vec![out_data("out_position", PortType::List, "坐标"), out_data("out_stage", PortType::String, "场景")])
+            .with_params(vec![p_req("coord_id", "坐标ID", ParamType::String), p_req("stage", "场景", ParamType::String), p_req("x", "X", ParamType::Number), p_req("y", "Y", ParamType::Number), p_req("z", "Z", ParamType::Number)]),
+        NodeDefinition::new(NodeType::MakeVector, "Math: Vector", "构造向量", "x,y,z → Vector", MATH_COLOR)
+            .with_inputs(vec![PortDefinition::new("x", PortType::Number, "X").required(true), PortDefinition::new("y", PortType::Number, "Y").required(true), PortDefinition::new("z", PortType::Number, "Z").required(true)])
+            .with_outputs(vec![out_data("out_vec", PortType::List, "向量")])
+            .with_params(vec![p_req("x", "X", ParamType::Number), p_req("y", "Y", ParamType::Number), p_req("z", "Z", ParamType::Number)]),
+        NodeDefinition::new(NodeType::BreakVector, "Math: Vector", "拆分向量", "Vector → x,y,z", MATH_COLOR)
+            .with_inputs(vec![PortDefinition::new("in_vec", PortType::List, "向量").required(true)])
+            .with_outputs(vec![out_data("x", PortType::Number, "X"), out_data("y", PortType::Number, "Y"), out_data("z", PortType::Number, "Z")]),
     ]
 }
 
@@ -2305,8 +2316,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 150);
-
+        assert_eq!(all.len(), 153);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2315,7 +2325,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 150);
+        assert_eq!(seen.len(), 153);
     }
 
     #[test]

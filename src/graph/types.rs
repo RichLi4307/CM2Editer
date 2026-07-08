@@ -337,6 +337,10 @@ pub enum NodeType {
     LogicOr,
     /// 逻辑非（!）
     LogicNot,
+    // Phase 7: 坐标系统
+    GetPosition,
+    MakeVector,
+    BreakVector,
 }
 
 /// 端口数据类型，用于节点上的 flow 端口和 data 端口
@@ -575,8 +579,12 @@ mod tests {
             NodeType::LogicAnd,
             NodeType::LogicOr,
             NodeType::LogicNot,
+            // Phase 7: 坐标系统
+            NodeType::GetPosition,
+            NodeType::MakeVector,
+            NodeType::BreakVector,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 150);
+        assert_eq!(variants.len(), 153);
     }
 }
