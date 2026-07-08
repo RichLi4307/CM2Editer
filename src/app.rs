@@ -968,24 +968,30 @@ impl eframe::App for App {
                                 };
                                 let header = format!("{name}  ({} 项)", ns.entries.len());
                                 egui::CollapsingHeader::new(header)
-                                    .id_salt(format!("left_ns_{name}"))
-                                    .show(ui, |ui| {
-                                        ui.horizontal_wrapped(|ui| {
-                                            for e in &ns.entries {
-                                                if ui.add(ns_card(e)).clicked() {
-                                                    ui.ctx().output_mut(|o| {
-                                                        o.commands.push(
-                                                            egui::OutputCommand::CopyText(
-                                                                e.key.clone(),
-                                                            ),
-                                                        )
-                                                    });
-                                                    self.status_message =
-                                                        format!("已复制: {}", e.key);
+                                .id_salt(format!("left_ns_{name}"))
+                                .default_open(false)
+                                .show(ui, |ui| {
+                                    egui::ScrollArea::vertical()
+                                        .id_salt(format!("ns_scroll_{name}"))
+                                        .max_height(320.0)
+                                        .show(ui, |ui| {
+                                            ui.horizontal_wrapped(|ui| {
+                                                for e in &ns.entries {
+                                                    if ui.add(ns_card(e, name)).clicked() {
+                                                        ui.ctx().output_mut(|o| {
+                                                            o.commands.push(
+                                                                egui::OutputCommand::CopyText(
+                                                                    e.key.clone(),
+                                                                ),
+                                                            )
+                                                        });
+                                                        self.status_message =
+                                                            format!("已复制: {}", e.key);
+                                                    }
                                                 }
-                                            }
+                                            });
                                         });
-                                    });
+                                });
                             }
                         }
                     }
@@ -1744,36 +1750,60 @@ impl App {
     }
 }
 
-/// 命名空间条目卡片 — 显示中文名 + key，点击复制 key。
-fn ns_card(entry: &crate::api::namespace::NamespaceEntry) -> impl egui::Widget + '_ {
+/// 命名空间条目卡片 — 居中粗体标题 + 彩色边框，点击复制 key。
+fn ns_card<'a>(entry: &'a crate::api::namespace::NamespaceEntry, cat: &'a str) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         let (rect, response) =
-            ui.allocate_exact_size(egui::vec2(140.0, 48.0), egui::Sense::click());
+            ui.allocate_exact_size(egui::vec2(150.0, 56.0), egui::Sense::click());
+
+        let hash = cat.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32));
+        let palette: [egui::Color32; 8] = [
+            egui::Color32::from_rgb(33, 150, 243),
+            egui::Color32::from_rgb(76, 175, 80),
+            egui::Color32::from_rgb(255, 152, 0),
+            egui::Color32::from_rgb(156, 39, 176),
+            egui::Color32::from_rgb(0, 188, 212),
+            egui::Color32::from_rgb(233, 30, 99),
+            egui::Color32::from_rgb(255, 235, 59),
+            egui::Color32::from_rgb(121, 85, 72),
+        ];
+        let accent = palette[(hash as usize) % palette.len()];
         let fill = if response.hovered() {
-            egui::Color32::from_gray(48)
+            accent.gamma_multiply(0.12)
         } else {
-            egui::Color32::from_gray(28)
+            egui::Color32::from_gray(30)
         };
-        ui.painter().rect_filled(rect, 4.0, fill);
+        let border = if response.hovered() {
+            accent
+        } else {
+            accent.gamma_multiply(0.5)
+        };
+
+        ui.painter().rect_filled(rect, 6.0, fill);
+        ui.painter().rect_stroke(rect, 6.0, egui::Stroke::new(1.5, border), egui::StrokeKind::Middle);
+
+        let zh = entry.display_name("zh");
         ui.painter().text(
-            rect.left_top() + egui::vec2(6.0, 6.0),
-            egui::Align2::LEFT_TOP,
-            entry.display_name("zh"),
-            egui::FontId::proportional(13.0),
+            rect.center() - egui::vec2(0.0, 6.0),
+            egui::Align2::CENTER_CENTER,
+            zh,
+            egui::FontId::new(14.0, egui::FontFamily::Proportional),
             egui::Color32::WHITE,
         );
-        let key_text = if entry.key.len() > 18 {
-            format!("{}..", &entry.key[..18])
+
+        let key_text = if entry.key.len() > 20 {
+            format!("{}..", &entry.key[..20])
         } else {
             entry.key.clone()
         };
         ui.painter().text(
-            rect.left_top() + egui::vec2(6.0, 26.0),
-            egui::Align2::LEFT_TOP,
+            rect.center() + egui::vec2(0.0, 12.0),
+            egui::Align2::CENTER_CENTER,
             key_text,
-            egui::FontId::proportional(10.0),
-            egui::Color32::from_gray(150),
+            egui::FontId::new(10.0, egui::FontFamily::Proportional),
+            egui::Color32::from_gray(130),
         );
+
         if response.hovered() {
             egui::show_tooltip_at_pointer(
                 ui.ctx(),
