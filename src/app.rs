@@ -1065,7 +1065,6 @@ impl eframe::App for App {
                                                         .id_salt(format!(
                                                             "left_ns_{name}_{cat}"
                                                         ))
-                                                        .default_open(true)
                                                         .show(ui, |ui| {
                                                             ui.horizontal_wrapped(|ui| {
                                                                 for e in entries {

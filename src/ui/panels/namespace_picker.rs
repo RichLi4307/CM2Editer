@@ -105,7 +105,6 @@ impl NamespacePicker {
                                 let cat_header = format!("{cat}  ({} 项)", cat_entries.len());
                                 egui::CollapsingHeader::new(cat_header)
                                     .id_salt(format!("nspick_{}_{}", state.namespace, cat))
-                                    .default_open(true)
                                     .show(ui, |ui| {
                                         ui.horizontal_wrapped(|ui| {
                                             for entry in cat_entries {
