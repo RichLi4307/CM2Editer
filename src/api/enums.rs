@@ -4,7 +4,6 @@ use crate::api::definitions::ParamType;
 ///
 /// 这些值来自 `docs/documentation_zh.html` 中的“游戏常量”和“Mod 常量”章节，
 /// 以及 `docs/selected_cosplay.json` 中的角色扮演服装键。
-
 /// 场景类型（StageType）
 pub const STAGE_TYPES: &[&str] = &[
     "None", "Apart", "Convenience", "FashionShop", "Residence", "ShoppingMall",

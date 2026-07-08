@@ -23,7 +23,7 @@ impl NamespaceEntry {
     pub fn new(key: impl Into<String>) -> Self {
         let key = key.into();
         Self {
-            key: key.clone(),
+            key,
             names: HashMap::new(),
         }
     }

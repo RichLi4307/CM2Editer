@@ -71,12 +71,13 @@ impl NamespacePicker {
                 });
                 ui.separator();
 
-                let namespace = registry.get(&state.namespace);
-                if namespace.is_none() {
-                    ui.label(format!("未找到命名空间: {}", state.namespace));
-                    return;
-                }
-                let namespace = namespace.unwrap();
+                let namespace = match registry.get(&state.namespace) {
+                    Some(ns) => ns,
+                    None => {
+                        ui.label(format!("未找到命名空间: {}", state.namespace));
+                        return;
+                    }
+                };
                 let query = state.search.clone();
                 let entries = namespace.search(&query, "zh");
 
