@@ -47,6 +47,7 @@ impl GraphValidator {
         // 非阻塞警告：不阻止代码生成，仅提示。
         errors.extend(Self::warn_multiple_starts(graph));
         errors.extend(Self::warn_unreachable_nodes(graph));
+        errors.extend(Self::warn_diamond_reachable(graph));
 
         errors
     }
@@ -283,6 +284,42 @@ impl GraphValidator {
                 unreachable.join(", ")
             ))]
         }
+    }
+
+    /// 警告：存在从 Start 出发通过多条路径可达的节点（菱形依赖），
+    /// 可能导致代码生成后的控制流路径被重复执行。
+    fn warn_diamond_reachable(graph: &Graph) -> Vec<FlowError> {
+        use crate::graph::types::NodeType;
+        for (start_id, _) in graph.nodes.iter().filter(|(_, n)| n.node_type == NodeType::Start) {
+            let mut branch_of: HashMap<String, String> = HashMap::new();
+            let mut queue: VecDeque<(String, String)> = VecDeque::new();
+
+            for edge in graph.edges.values() {
+                if edge.edge_type == PortType::Flow && edge.from.node_id == *start_id {
+                    branch_of.insert(edge.to.node_id.clone(), edge.to.node_id.clone());
+                    queue.push_back((edge.to.node_id.clone(), edge.to.node_id.clone()));
+                }
+            }
+
+            while let Some((current, branch_root)) = queue.pop_front() {
+                for edge in graph.edges.values() {
+                    if edge.edge_type == PortType::Flow && edge.from.node_id == current {
+                        if let Some(existing) = branch_of.get(&edge.to.node_id) {
+                            if *existing != branch_root {
+                                return vec![FlowError::Warning(format!(
+                                    "节点 {} 从 Start ({}) 被多条路径到达（分支 {} 和 {}），菱形可能重复执行",
+                                    edge.to.node_id, start_id, existing, branch_root
+                                ))];
+                            }
+                        } else {
+                            branch_of.insert(edge.to.node_id.clone(), branch_root.clone());
+                            queue.push_back((edge.to.node_id.clone(), branch_root.clone()));
+                        }
+                    }
+                }
+            }
+        }
+        Vec::new()
     }
 }
 
