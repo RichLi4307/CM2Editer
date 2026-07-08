@@ -86,10 +86,16 @@ impl PropertiesPanel {
                             .with_selected(&current),
                     );
                 }
-                // 显示当前值摘要
                 ui.label(format!("已选 {} 项", current.len()));
                 return None;
             }
+        }
+
+        // If/While 条件模板下拉框.
+        if (node.node_type == NodeType::If || node.node_type == NodeType::While)
+            && key == "condition"
+        {
+            return Self::condition_template_editor(ui, key, value);
         }
 
         // 如果参数有固定枚举选项，直接显示枚举下拉框。
@@ -382,6 +388,81 @@ fn selected_keys_from_value(value: &ParamValue) -> Vec<String> {
         _ => Vec::new(),
     }
 }
+
+/// If/While 条件模板编辑器：ComboBox 快速填充 + 文本框微调
+impl PropertiesPanel {
+    fn condition_template_editor(
+        ui: &mut egui::Ui,
+        key: &str,
+        value: &ParamValue,
+    ) -> Option<(String, ParamValue)> {
+        let current = match value {
+            ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
+            _ => String::new(),
+        };
+
+        let mut picked = None;
+        egui::ComboBox::from_id_salt("if_condition_template")
+            .width(160.0)
+            .selected_text(if current.is_empty() { "选择模板..." } else { &current })
+            .show_ui(ui, |ui| {
+                for &(label, expr) in IF_CONDITION_TEMPLATES {
+                    if expr.is_empty() {
+                        ui.separator();
+                        ui.label(label);
+                        continue;
+                    }
+                    if ui.selectable_label(false, label).clicked() {
+                        picked = Some(expr.to_string());
+                    }
+                }
+            });
+
+        if let Some(expr) = picked {
+            return Some((key.to_string(), ParamValue::Literal(serde_json::json!(expr))));
+        }
+
+        // 文本框允许手动微调
+        let mut text = current;
+        if ui.text_edit_singleline(&mut text).changed() {
+            return Some((key.to_string(), ParamValue::Literal(serde_json::json!(text))));
+        }
+        None
+    }
+}
+
+/// 条件模板列表
+static IF_CONDITION_TEMPLATES: &[(&str, &str)] = &[
+    ("✅ true", "true"),
+    ("❌ false", "false"),
+    ("── 角色状态 ──", ""),
+    ("Futanari · 扶她", "_state.Futanari"),
+    ("Sitting · 坐姿", "_state.Sitting"),
+    ("Orgasm · 高潮", "_state.Orgasm"),
+    ("Moving · 移动中", "_state.Moving"),
+    ("Crouching · 蹲伏", "_state.Crouching"),
+    ("Peeing · 排泄", "_state.Peeing"),
+    ("Dashing · 奔跑", "_state.Dashing"),
+    ("── 环境 ──", ""),
+    ("InLight · 光照区", "_state.InLight"),
+    ("NearNPC · 靠近NPC", "_state.NearNPC"),
+    ("Watched · 被注视", "_state.Watched"),
+    ("IsDayTime · 白天", "_state.IsDayTime"),
+    ("FPCamera · 第一人称", "_state.FPCamera"),
+    ("── 装备/拘束 ──", ""),
+    ("蒙眼", "_state.Blindfolded"),
+    ("隐身", "_state.Invisible"),
+    ("有手铐", "_state.AdultToys.Handcuff != null"),
+    ("无手铐", "_state.AdultToys.Handcuff == null"),
+    ("有跳蛋", "_state.AdultToys.Vibrator != null"),
+    ("── 数值比较 ──", ""),
+    ("快感 ≥", "_state.Ecstasy >= "),
+    ("侦测 ≥", "_state.Detection >= "),
+    ("体力 ≥", "_state.Stamina >= "),
+    ("等级 ≥", "_state.Rank >= "),
+    ("湿润度 ≥", "_state.Moisture >= "),
+    ("心率 ≥", "_state.HeartRate >= "),
+];
 
 #[cfg(test)]
 mod tests {

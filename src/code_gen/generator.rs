@@ -302,7 +302,7 @@ impl<'a> CodeGenerator<'a> {
     fn resolve_param_opt(&self, node: &Node, name: &str) -> Option<String> {
         // DataFlow：优先使用参数对应 Data 输入端口的连接。
         if let Some((src_node, src_port)) = self.connected_param_source(node, name) {
-            return Some(format!("var_{src_node}_{src_port}"));
+            return self.evaluate_data_output(&src_node, &src_port);
         }
         match node.params.get(name) {
             Some(ParamValue::Ref {
@@ -312,6 +312,48 @@ impl<'a> CodeGenerator<'a> {
             Some(ParamValue::Literal(value)) => Some(format_literal(value)),
             Some(ParamValue::Null) => Some("null".to_string()),
             None => None,
+        }
+    }
+
+    /// 递归解析 Data 节点的输出端口值，生成 `.code` 表达式。
+    fn evaluate_data_output(&self, node_id: &str, port_name: &str) -> Option<String> {
+        let node = self.graph.nodes.get(node_id)?;
+        match node.node_type {
+            NodeType::Boolean => {
+                let v = self.resolve_param_opt(node, "value")?;
+                Some(format_literal_string(&v))
+            }
+            NodeType::GetStateBool => {
+                let key = self.resolve_param_opt(node, "stateKey")?;
+                Some(format!("_state.{key}"))
+            }
+            NodeType::GetStateNumber => {
+                let key = self.resolve_param_opt(node, "stateKey")?;
+                Some(format!("_state.{key}"))
+            }
+            NodeType::CompareNumbers => {
+                let a = self.resolve_param_opt(node, "a")?;
+                let b = self.resolve_param_opt(node, "b")?;
+                let op = self.resolve_param_opt(node, "operator")
+                    .unwrap_or_else(|| ">=".to_string());
+                Some(format!("{a} {op} {b}"))
+            }
+            NodeType::LogicAnd => {
+                let a = self.resolve_param_opt(node, "a")?;
+                let b = self.resolve_param_opt(node, "b")?;
+                Some(format!("({a}) && ({b})"))
+            }
+            NodeType::LogicOr => {
+                let a = self.resolve_param_opt(node, "a")?;
+                let b = self.resolve_param_opt(node, "b")?;
+                Some(format!("({a}) || ({b})"))
+            }
+            NodeType::LogicNot => {
+                let a = self.resolve_param_opt(node, "a")?;
+                Some(format!("!({a})"))
+            }
+            // 在 Data 链中间的非专用 Data 节点：回退到变量引用
+            _ => Some(format!("var_{node_id}_{port_name}")),
         }
     }
 
@@ -384,6 +426,18 @@ impl<'a> CodeGenerator<'a> {
 /// 将 JSON 字面量格式化为 `.code` 可识别的字符串
 fn format_literal(value: &serde_json::Value) -> String {
     serde_json::to_string(value).unwrap_or_else(|_| "null".to_string())
+}
+
+/// 格式化字符串字面量，去掉 JSON 双引号包裹——
+/// 专门的 Data 节点（如 Boolean、GetStateBool）的 param 值是裸表达式，不能加引号。
+fn format_literal_string(value: &str) -> String {
+    let json = serde_json::to_string(value).unwrap_or_else(|_| "null".to_string());
+    // 剥去周围的双引号
+    if json.len() >= 2 && json.starts_with('"') && json.ends_with('"') {
+        json[1..json.len() - 1].to_string()
+    } else {
+        json
+    }
 }
 
 /// 查找两个分支汇合的第一个公共节点

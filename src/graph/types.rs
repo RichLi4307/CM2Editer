@@ -321,6 +321,22 @@ pub enum NodeType {
     Comment,
     /// 可视化分组框
     Group,
+
+    // ── Phase 6: Data-only 布尔/条件评估节点（Monitor → Condition 管道）──
+    /// 输出一个布尔常量（true/false）
+    Boolean,
+    /// 读取 _state 中任意布尔变量
+    GetStateBool,
+    /// 读取 _state 中任意数值变量
+    GetStateNumber,
+    /// 比较两个数值（>=, ==, !=, <, <=）
+    CompareNumbers,
+    /// 逻辑与（&&）
+    LogicAnd,
+    /// 逻辑或（||）
+    LogicOr,
+    /// 逻辑非（!）
+    LogicNot,
 }
 
 /// 端口数据类型，用于节点上的 flow 端口和 data 端口
@@ -551,8 +567,16 @@ mod tests {
             NodeType::Meta,
             NodeType::Comment,
             NodeType::Group,
+            // Phase 5: Data-only Boolean evaluation nodes (Monitor→Condition pipeline)
+            NodeType::Boolean,
+            NodeType::GetStateBool,
+            NodeType::GetStateNumber,
+            NodeType::CompareNumbers,
+            NodeType::LogicAnd,
+            NodeType::LogicOr,
+            NodeType::LogicNot,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 143);
+        assert_eq!(variants.len(), 150);
     }
 }

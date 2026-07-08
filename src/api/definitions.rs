@@ -2174,6 +2174,128 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("title", "标题", ParamType::String),
             p_opt("color", "颜色", ParamType::Color),
         ]),
+        // ── Phase 6: Data-only 布尔/条件节点 ──
+        // 纯数据输出，无 Flow 端口。通过 DataFlow 连入 If/While 的 condition。
+        NodeDefinition::new(
+            NodeType::Boolean,
+            "Math",
+            "布尔值",
+            "输出布尔常量 true 或 false",
+            MATH_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Boolean, "布尔值")])
+        .with_params(vec![e("value", "值", &["true", "false"])]),
+        NodeDefinition::new(
+            NodeType::GetStateBool,
+            "Game Functions: Player",
+            "读取布尔状态",
+            "读取 _state 中任意布尔变量",
+            GAME_COLOR,
+        )
+        .with_outputs(vec![out_data(
+            "out_value",
+            PortType::Boolean,
+            "状态值",
+        )])
+        .with_params(vec![e(
+            "stateKey",
+            "状态键",
+            &[
+                "Futanari", "Sitting", "Orgasm", "Moving", "Crouching",
+                "Peeing", "Dashing", "InLight", "NearNPC", "Watched",
+                "ShowingOff", "Bukkake", "Blindfolded", "Invisible",
+                "InOpenToilet", "Bodypaint", "FPCamera", "IsDayTime",
+                "GameOver",
+            ],
+        )]),
+        NodeDefinition::new(
+            NodeType::GetStateNumber,
+            "Game Functions: Player",
+            "读取数值状态",
+            "读取 _state 中任意数值变量",
+            GAME_COLOR,
+        )
+        .with_outputs(vec![out_data(
+            "out_value",
+            PortType::Number,
+            "状态值",
+        )])
+        .with_params(vec![e(
+            "stateKey",
+            "状态键",
+            &[
+                "Ecstasy", "Detection", "Rank", "HeartRate",
+                "Stamina", "StaminaMax", "Moisture",
+            ],
+        )]),
+        NodeDefinition::new(
+            NodeType::CompareNumbers,
+            "Math",
+            "数值比较",
+            "比较两个数值（>=、==、!=、>、<、<=）",
+            MATH_COLOR,
+        )
+        .with_inputs(vec![
+            PortDefinition::new("a", PortType::Number, "数值A").required(true),
+            PortDefinition::new("b", PortType::Number, "数值B").required(true),
+        ])
+        .with_outputs(vec![out_data(
+            "out_result",
+            PortType::Boolean,
+            "比较结果",
+        )])
+        .with_params(vec![e(
+            "operator",
+            "操作符",
+            &[">=", "==", "!=", ">", "<", "<="],
+        )]),
+        NodeDefinition::new(
+            NodeType::LogicAnd,
+            "Math",
+            "逻辑与",
+            "两个布尔值的逻辑与（&&）",
+            MATH_COLOR,
+        )
+        .with_inputs(vec![
+            PortDefinition::new("a", PortType::Boolean, "输入A").required(true),
+            PortDefinition::new("b", PortType::Boolean, "输入B").required(true),
+        ])
+        .with_outputs(vec![out_data(
+            "out_result",
+            PortType::Boolean,
+            "结果",
+        )]),
+        NodeDefinition::new(
+            NodeType::LogicOr,
+            "Math",
+            "逻辑或",
+            "两个布尔值的逻辑或（||）",
+            MATH_COLOR,
+        )
+        .with_inputs(vec![
+            PortDefinition::new("a", PortType::Boolean, "输入A").required(true),
+            PortDefinition::new("b", PortType::Boolean, "输入B").required(true),
+        ])
+        .with_outputs(vec![out_data(
+            "out_result",
+            PortType::Boolean,
+            "结果",
+        )]),
+        NodeDefinition::new(
+            NodeType::LogicNot,
+            "Math",
+            "逻辑非",
+            "布尔值的逻辑取反（!）",
+            MATH_COLOR,
+        )
+        .with_inputs(vec![
+            PortDefinition::new("a", PortType::Boolean, "输入").required(true),
+        ])
+        .with_outputs(vec![out_data(
+            "out_result",
+            PortType::Boolean,
+            "结果",
+        )]),
     ]
 }
 
@@ -2184,7 +2306,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 143);
+        assert_eq!(all.len(), 150);
 
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
@@ -2194,7 +2316,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 143);
+        assert_eq!(seen.len(), 150);
     }
 
     #[test]
