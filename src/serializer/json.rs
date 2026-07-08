@@ -298,13 +298,21 @@ impl From<Node> for NodeData {
 
 impl From<NodeData> for Node {
     fn from(data: NodeData) -> Self {
+        use crate::api::registry::get_definition;
+        let mut params = data.params;
+        // 填充 JSON 中缺失的必填参数默认值（兼容旧 JSON）
+        if let Some(def) = get_definition(data.node_type) {
+            for param in def.params.iter().filter(|p| p.required) {
+                params.entry(param.name.clone()).or_insert_with(|| param.default_value());
+            }
+        }
         Self {
             id: data.id,
             node_type: data.node_type,
             position: data.position,
             size: Vec2::new(data.size.width, data.size.height),
             collapsed: data.collapsed,
-            params: data.params,
+            params,
             inputs: data.ports.inputs,
             outputs: data.ports.outputs,
             category: data.category,
