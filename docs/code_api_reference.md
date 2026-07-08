@@ -10,7 +10,7 @@
 
 ### 入口标签
 
-```
+```code
 main:
     thread = _this
     ...
@@ -166,7 +166,7 @@ if list != null                        // 最推荐：无括号 + 嵌套 if
 
 ### `_state` 完整结构
 
-```
+```markdown
 _state
 ├── DateTime              Boolean
 ├── Blindfolded           Boolean
@@ -269,7 +269,7 @@ _state
 
 官方 `MakeCond` 微型 DSL：
 
-```
+```code
 CreateCondition("单个条件")                    // 无括号 = 单条件
 CreateCondition("[A, B, C]")                  // [...] = AND
 CreateCondition("(A, B, C)")                  // (...) = OR
@@ -303,7 +303,7 @@ gallery = CreateGallery(condition=cond, area=area)
 
 ### 表达式生成规则
 
-```
+```code
 if condition 中的 condition 值：
   Boolean 字面量 → "true" / "false"
   _state 变量   → "_state.Futanari"
