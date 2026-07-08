@@ -1,7 +1,8 @@
-# Custom Missions 2 `.code` DSL 速查参考
+# Custom Missions 2 `.code` DSL 权威参考
 
-> 基于 `docs/examples/` 中前辈手搓的 80+ 个 `.code` 文件反推的 DSL 语法全集。
-> 本文档是 CM2Editer 代码生成的**权威参考**。
+> **来源**：`docs/documentation.html`（官方英文 API 文档，Crisp2002）+
+> `docs/examples/` 中 80+ 个前辈手搓 `.code` 的实战验证。
+> 中文版 `documentation_zh.html` 为社区翻译，部分章节缺失，以英文原版为准。
 
 ---
 
@@ -14,47 +15,44 @@ main:
     thread = _this
     ...
 
-其他标签:
-    step1:
-    __generate:
-    listener_callback:
+step1:
+    ...
 ```
 
-- `main:` — 每个 `.code` 文件的入口
-- 标签名后必须有 `:`，内容用缩进表示作用域
-- 多 `.code` 文件按文件名排序合并执行
+- `main:` — 每个 `.code` 文件的入口标签
+- 标签名后必须有 `:`，缩进用 **Tab**
+- If/While/for 语句**不跟冒号**
+- 多 `.code` 文件按文件名排序合并
 
 ### 线程（Thread）
 
-```
-thread = _this                    -- 获取当前线程引用
-child = CreateThread("label")     -- 创建新线程，跳转到 label
-local = CreateThread("label", local=true)  -- 创建本地作用域线程
+```js
+thread = _this                                  // 当前线程引用
+child = CreateThread(labelName="childLabel")     // 创建并跳转
+child.WaitForFinish()                            // 等待子线程结束
 ```
 
 `_this` = 当前 `.code` 文件主线程的特殊引用。
 
 ### 监听器（Listener）
 
-```
+```js
 listener = CreateListener("label")
 listener = CreateListener("label", duration=3.0)
-listener = CreateListenerLocal("label")           -- 局部作用域
+listener = CreateListenerLocal("label")           // 局部作用域
+listener = null                                   // 销毁
 ```
 
-- `CreateListener("label")` — 启动监听器，每秒调用 `label` 一次
-- 设置 `duration` 后，`label` 内可访问 `time` 和 `duration` 变量
-- 设置 `listener = null` 可销毁监听器
+`CreateListener` 每秒调用一次 `label`。设 `duration` 后，标签内可访问 `time` + `duration`。
 
-### Gotcha / 跳转
+### 跳转
 
-```
-thread.Goto("label")
-thread.Goto("label", data=myObject, index=0, nextstep="nextLabel")
+```js
+thread.Goto("step1")
+thread.Goto("chatoutput", data=myObj, index=0, nextstep="end")
 ```
 
-- `Goto()` 可传递额外参数作为子标签的局部变量
-- `nextstep` = 执行完数据处理后跳转到哪个标签（常见于 `chatoutput` 模式）
+`Goto()` 可传递额外参数作为目标标签的局部变量。
 
 ---
 
@@ -62,400 +60,316 @@ thread.Goto("label", data=myObject, index=0, nextstep="nextLabel")
 
 ### if / elseif / else
 
-```lua
-if condition
-    ...
-
-if _state.Position.stage != "Apart"
-    if _state.Position.laststage == "Apart"
-        ...
-
-if (_save.Bra != null) | (_save.Pants != null)
-    ...
+```js
+if value == 0                     // 无括号 = 更快（官方推荐）
+    Log("zero")
+elseif value < 0
+    Log("negative")
 else
-    listener_bra = null
+    Log("positive")
 
-if (worn_condition != null) & (drop < 0)
-    ...
-elseif drop >= 0
-    ...
-elseif equip >= 0
-    ...
+// 有括号也可，但稍慢
+if (value == 0)
+    Log("zero")
 ```
 
-- `if` 后可直接跟表达式，复杂表达式用 `()` 括起
-- `elseif` 和 `else` 是标准关键字
-- **没有显式 `end`**——作用域通过缩进和标签跳转确定
-- 逻辑与/或用 `&` / `|`（单字符）。部分作者用 `&&` / `||`（双字符），CM2 加载器二者均接受
-- 取反用 `!`
+- **`if` 后不跟冒号**（不同于 Python）
+- 块通过 Tab 缩进区分
+- 关键字 `elseif`（无空格）
 
 ### while
 
-```lua
-while i < len
-    ...
-    i += 1
+```js
+while i >= 0
+    Log(i)
+    i = i - 1
+
+// 可用 break 提前退出
+while true
+    if done
+        break
 ```
 
-### Foreach（遍历）
+### for…in
 
-```lua
+```js
+for i in Range(5, 10)
+    Log(i)
+
+for item in myList
+    Log(item)
+```
+
+- `Range(start, end)` 生成整数序列
+- 可 `break`
+
+### Foreach（遍历 + 条件停止）
+
+```js
 i = Foreach(myList, thread)
-    -- thread 中的 'value' = 当前元素
-    -- 当 thread 返回 _result = false 时停止
+i = Foreach(items, roller)
 ```
 
-### 三元 / 内联条件
+`thread` 内可访问 `value`（当前元素）。当 `thread` 返回 `_result = false` 时停止遍历。
 
-```lua
-_result = condition && trueValue || falseValue
+---
+
+## 3. 操作符（完整表）
+
+| 操作 | 符号 | 说明 |
+|------|------|------|
+| 指数 | `**` | |
+| 逻辑非 | `!` | |
+| 一元 ± | `+`, `-` | |
+| 乘/除/整除/取模 | `*`, `/`, `//`, `%` | |
+| 加/减 | `+`, `-` | |
+| IN | `in` | |
+| 比较 | `<`, `<=`, `>`, `>=` | |
+| 等/不等 | `==`, `!=` | |
+| 位与（全求值） | `&` | 两端都求值，null 访问会崩溃 |
+| 异或 | `^` | |
+| 位或（全求值） | `\|` | 两端都求值 |
+| 逻辑与（短路） | `&&` | 左 false 时不求右 |
+| 逻辑或（短路） | `\|\|` | 左 true 时不求右 |
+| 字符串拼接 | `+` | `"prefix_" + key` |
+| 赋值 | `=`, `+=`, `-=`, `*=`, `/=` | |
+
+### `&` vs `&&` 的关键区别（来自官方文档 §Tips）
+
+```js
+if (list != null) & (list[0] == 1)     // 崩溃！& 求值两端，list==null 时 list[0] 报错
+if (list != null) && (list[0] == 1)    // 正确：&& 短路，list==null 时不求右
+if list != null                        // 最推荐：无括号 + 嵌套 if
+    if list[0] == 1
+        Log("works")
+```
+
+> **结论**：优先用 `&&` / `||`，仅在确定两边都安全时用 `&` / `|`。
+
+---
+
+## 4. 全局变量
+
+### 内置全局
+
+| 变量 | 类型 | 说明 |
+|------|------|------|
+| `_state` | Object | 玩家状态（只读，用函数修改） |
+| `_stagechanged` | Boolean | 当前帧场景是否切换 |
+| `_timediff` | Number | 上一帧到当前帧时间差（考虑慢速/暂停） |
+| `_time` | Number | 累计时间（扣除暂停） |
+| `_save` | Object | 跨会话持久存储（不能存 Object，仅基本类型+List） |
+| `_settings` | Object | meta.json 设置菜单中的值 |
+| `_mod` | List | 共享给其他 mod 的数据（仅 List） |
+| `_mods` | Object | 所有已激活 mod 的 `_mod` 数据 |
+| `_name` | String | 当前项目文件夹名 |
+
+### `_state` 完整结构
+
+```
+_state
+├── DateTime              Boolean
+├── Blindfolded           Boolean
+├── Peeing               Boolean
+├── Moving               Boolean
+├── Dashing              Boolean
+├── Crouching            Boolean
+├── Sitting              Boolean
+├── InLight              Boolean
+├── Orgasm               Boolean
+├── Bukkake              Boolean
+├── NearNPC              Boolean
+├── ShowingOff           Boolean
+├── Watched              Boolean
+├── Action               String
+├── Futanari             Boolean
+├── Invisible            Boolean
+├── InOpenToilet         Boolean
+├── Bodypaint            Number (0 = none)
+├── DayTime              Boolean
+├── NPCArea              String (or null)
+├── FirstPerson          Boolean
+├── Ecstasy              Number
+├── Detection            Number
+├── Rank                 Number
+├── Vibrator             String (Off/Low/High/Random)
+├── Piston               String (Off/Low/Medium/High/Random)
+├── RpBonus              Number
+├── HeartRate            Number
+├── Stamina              Number
+├── StaminaMax           Number
+├── Moisture             Number
+├── FoundNPC             Number (发现玩家的 NPC ID，-1 = 无)
+├── GameOver             Boolean
+├── Handcuffs
+│   ├── State            Boolean
+│   └── Type             String (nil/Handcuff/KeyHandcuff/TimerHandcuff)
+├── Exposed
+│   ├── None             Boolean
+│   ├── Front            Boolean
+│   ├── Upper            Boolean
+│   ├── HipCrouch        Boolean
+│   ├── Hip              Boolean
+│   └── All              Boolean
+├── Position
+│   ├── stage            String
+│   ├── laststage        String
+│   ├── x, y, z          Number
+│   └── rx, ry, rz, rw   Number (rotation quaternion)
+├── Camera
+│   ├── x, y, z          Number
+│   ├── rx, ry, rz, rw   Number
+│   ├── pitch            Number
+│   └── yaw              Number
+├── CameraTarget
+│   ├── Face  {x, y, z}
+│   ├── Body  {x, y, z}
+│   └── Crotch{x, y, z}
+├── Cosplay
+│   ├── [cosplayName]    Boolean (true=正穿着)
+│   └── [0], [1], ...    String (当前穿戴的 cosplay 名)
+├── Skills
+│   └── [skillName]      Boolean (true=已启用)
+├── DroppedItems [0..n]
+│   ├── Type             String
+│   └── Position {...}
+├── AdultToys
+│   └── [toyName]        Boolean (存在 = 已装备)
+├── Items
+│   └── [itemName]       Number (物品数量)
+├── Missions
+│   ├── Completed        Number
+│   ├── Count            Number
+│   ├── [MissionID]      Number (通关次数)
+│   └── [stage].Completed, .Count
+├── CurrMissions
+│   ├── Completed, Count
+│   └── [MissionID]      Number (0-1 进度)
+├── Coat
+│   ├── Dropped          Boolean
+│   ├── Front            String (Closed/Open1/Open2/None)
+│   └── Back             String (Closed/Open/None)
+└── NPCs [0..n]
+    ├── ID               Number
+    ├── Position {...}
+    ├── SeesPlayer       Boolean
+    ├── SeesFlashing     Boolean
+    ├── Headset          Boolean
+    ├── Glasses          Boolean
+    ├── Smartphone       Boolean
+    ├── AvatarType       String
+    ├── FixedType        String
+    ├── Sitting          Boolean
+    └── State            String
 ```
 
 ---
 
-## 3. 条件系统（CreateCondition）
+## 5. Condition 对象（`CreateCondition`）
 
-### MakeCond 语法
+官方 `MakeCond` 微型 DSL：
 
 ```
-CreateCondition("单个条件")                    -- 无括号 = 单个条件
-CreateCondition("[条件1, 条件2]")              -- 方括号 = AND
-CreateCondition("(条件1, 条件2)")              -- 圆括号 = OR
-CreateCondition("[条件1, 条件2, !取反条件]")    -- ! 前缀 = NOT
-CreateCondition("[条件1, (条件2, 条件3)]")      -- 嵌套
+CreateCondition("单个条件")                    // 无括号 = 单条件
+CreateCondition("[A, B, C]")                  // [...] = AND
+CreateCondition("(A, B, C)")                  // (...) = OR
+CreateCondition("[A, (B, C), !D]")            // 嵌套 + !NOT
 ```
 
-**动态构造条件**（字符串拼接）：
+条件关键词完整表 → 见 `docs/if_condition_design.md` 附录。
 
-```lua
-s = ""
-while i < items.Count()
-    if s != ""
-        s = s + ","
-    s = s + "Cosplay_" + items[i]
-    i = i + 1
-condition = CreateCondition("[" + s + "]")       -- AND 所有服装
-condition = CreateCondition("(" + s + ")")       -- OR 任一服装
-```
+### 条件对象用法
 
-### 条件关键词
+```js
+cond = CreateCondition("[Exposed_Front, !Crouching, IsDayTime]")
+cond.Check()          // → Boolean
 
-#### 玩家动作
-
-| 关键词 | 说明 |
-|--------|------|
-| `Moving` | 移动中 |
-| `Crouching` | 蹲伏中 |
-| `Peeing` | 排泄中 |
-| `Dashing` | 跑动中 |
-| `Sitting` | 坐着 |
-| `Action_xxx` | 指定动作（如 `Action_UseDildoWallPussy1`） |
-| `Orgasm` | 高潮中 |
-| `GameOver` | 游戏结束 |
-
-#### 暴露状态
-
-| 关键词 | 说明 |
-|--------|------|
-| `Exposed_None` | 无暴露 |
-| `Exposed_Front` | 正面暴露 |
-| `Exposed_Upper` | 上身暴露 |
-| `Exposed_HipCrouch` | 蹲伏时臀部暴露 |
-| `Exposed_Hip` | 臀部暴露 |
-| `Exposed_All` | 完全暴露 |
-
-#### 衣装
-
-| 关键词 | 说明 |
-|--------|------|
-| `CoatDropped` | 外套脱下 |
-| `CoatFrontClosed` | 前面系好 |
-| `CoatFrontOpen1` | 前面半开 |
-| `CoatFrontOpen2` | 前面打开 |
-| `CoatBackClosed` | 后面系好 |
-| `CoatBackOpen` | 后面打开 |
-
-#### 拘束 / 装备
-
-| 关键词 | 说明 |
-|--------|------|
-| `Blindfolded` | 蒙眼 |
-| `NoHandcuffs` | 无手铐 |
-| `HandcuffsBack` | 手铐反铐 |
-| `HandcuffsObject` | 手铐绑物体 |
-| `NormalHandcuffs` | 普通手铐 |
-| `KeyedHandcuffs` | 钥匙手铐 |
-| `TimedHandcuffs` | 计时手铐 |
-
-#### 振动器 / 活塞
-
-| 关键词 | 说明 |
-|--------|------|
-| `VibrationOff` | 跳蛋关闭 |
-| `VibrationLow` | 跳蛋低档 |
-| `VibrationHigh` | 跳蛋高档 |
-| `VibrationRandom` | 跳蛋随机 |
-| `PistonOff` | 活塞关闭 |
-| `PistonLow` | 活塞低档 |
-| `PistonMedium` | 活塞中档 |
-| `PistonHigh` | 活塞高档 |
-| `PistonRandom` | 活塞随机 |
-
-#### 玩具装备
-
-| 关键词 | 说明 |
-|--------|------|
-| `AdultToy_AnalPlug` | 肛塞 |
-| `AdultToy_Vibrator` | 跳蛋 |
-| `AdultToy_EyeMask` | 眼罩 |
-| `AdultToy_Handcuff` | 手铐 |
-| `AdultToy_KeyHandcuff` | 钥匙手铐 |
-| `AdultToy_TimerHandcuff` | 计时手铐 |
-| `AdultToy_TitRotor` | 乳头跳蛋 |
-| `AdultToy_KuriRotor` | 阴蒂跳蛋 |
-| `AdultToy_PistonFuta` | 扶她活塞 |
-| `AdultToy_PistonAnal` | 肛门活塞 |
-| `AdultToy_PistonPussy` | 阴道活塞 |
-
-#### 环境
-
-| 关键词 | 说明 |
-|--------|------|
-| `IsDayTime` | 白天 |
-| `InLight` | 在光照区 |
-| `InOpenToilet` | 在开放厕所 |
-| `NearNPC` | 靠近 NPC |
-| `FPCamera` | 第一人称视角 |
-
-#### 时装 / 技能
-
-| 关键词 | 说明 |
-|--------|------|
-| `Cosplay_xxx` | 穿着指定 Cosplay（如 `Cosplay_m_cosplay_succubus_cosplay_horn`） |
-| `OwnsCosplay_xxx` | 拥有指定 Cosplay |
-| `Skill_xxx` | 技能已启用 |
-| `Item_xxx` | 拥有物品数量 > 0 |
-
-#### 拍照数据
-
-可在 `gallery_callback` 中检查照片元数据，判断条件关键字与上述一致（如 `data.Futanari`、`data.Exposed.Hip`、`data.Vibrator`）。
-
-### 数值条件
-```
-某些条件可用 >, >=, <, <=, ==, != 与数字比较——CreateCondition 中不常用，主要在 if/while 表达式中直接使用 _state 值比较。
+area = CreateArea(type="sphere", stage="Residence", x=0, y=0, z=0, r=1000)
+gallery = CreateGallery(condition=cond, area=area)
 ```
 
 ---
 
-## 4. 游戏状态访问 (`_state`)
+## 6. 代码生成对照
 
-### 布尔状态
+### 生成对齐（必须修正）
 
-| 表达式 | 说明 |
-|--------|------|
-| `_state.Futanari` | 扶她状态 |
-| `_state.Sitting` | 坐姿 |
-| `_state.Orgasm` | 高潮中 |
-| `_state.Moving` | 移动中 |
-| `_state.Crouching` | 蹲伏中 |
-| `_state.Peeing` | 排泄中 |
-| `_state.Dashing` | 跑动中 |
-| `_state.InLight` | 在光照区 |
-| `_state.NearNPC` | 附近有人 |
-| `_state.Watched` | 被注视 |
-| `_state.ShowingOff` | 露 |
-| `_state.Bukkake` | 射精 |
-| `_state.Blindfolded` | 蒙眼 |
-| `_state.Invisible` | 隐身 |
-| `_state.InOpenToilet` | 在开放厕所 |
-| `_state.Bodypaint` | 身体涂鸦 |
-| `_state.FPCamera` | 第一人称视角 |
-| `_state.GameOver` | 游戏结束 |
-| `_state.FirstPerson` | 第一人称 |
+| 节点 | 当前 CM2Editer 生成 | 正确 DSL 语法 | 对齐状态 |
+|------|--------------------|--------------|---------|
+| If | `If(true) [` | `if condition` (无括号, 无大写, 无方括号) | ❌ 需修正 |
+| While | `While(true) [` | `while condition` | ❌ 需修正 |
+| For | 未实现 | `for i in Range(a, b)` | ❌ 未实现 |
+| Break | 未实现 | `break` | ❌ 未实现 |
 
-### 数值状态
+### 表达式生成规则
 
-| 表达式 | 说明 |
-|--------|------|
-| `_state.Ecstasy` | 快感值 |
-| `_state.Detection` | 侦测度 |
-| `_state.Rank` | 等级 |
-| `_state.HeartRate` | 心率 |
-| `_state.Stamina` | 体力 |
-| `_state.StaminaMax` | 最大体力 |
-| `_state.Moisture` | 湿润度 |
-
-### 复杂状态
-
-| 表达式 | 说明 |
-|--------|------|
-| `_state.Position.stage` | 当前场景名 |
-| `_state.Position.laststage` | 上一帧的场景名 |
-| `_state.Position.x/y/z` | 坐标 |
-| `_state.Position.rx/ry/rz/rw` | 旋转 |
-| `_state.Action` | 当前动作名 |
-| `_state.Skills[key]` | 技能是否启用（key = 技能名） |
-| `_state.Cosplay[key]` | 指定服装是否已装备（`== true` / `!= true`） |
-| `_state.AdultToys[key]` | 成人玩具状态（key = 玩具名，null = 未拥有） |
-| `_state.DayTime` | 晴天/白天布尔值（通过 gallery callback 的 data.DayTime 访问） |
-| `_stagechanged` | 场景切换标记 |
-| `_timediff` | 上一帧到当前帧的时间差（秒，用于计时器累加） |
-
-### 字符串
-
-```lua
-s = s + ","
-s = s + "Cosplay_" + items[i]
-condition = CreateCondition("[" + s + "]")
-condition = CreateCondition("(" + s + ")")
+```
+if condition 中的 condition 值：
+  Boolean 字面量 → "true" / "false"
+  _state 变量   → "_state.Futanari"
+  AdultToys     → "_state.AdultToys.Vibrator != null"
+  数值比较      → "_state.Ecstasy >= 50"
+  逻辑组合      → "(_state.InLight) && (_state.AdultToys.Handcuff != null)"
+  条件对象      → "cond.Check()"
 ```
 
-- 字符串拼接使用 `+` 操作符
-- 字符串常量用双引号 `"..."` 括起
-- 单行注释用 `#` 开头
+> **if 生成格式建议**：`if {condition}` 换行 → Tab → 分支体 → 空行 → `elseif` 或 `else`
 
 ---
 
-## 5. 代码生成规则（CM2Editer 兼容）
-
-### 已验证的生成语法
-
-```
-main:
-    Log(output="hello")
-    _result = null
-
-childThread:
-    var_thr_out = CreateThread(labelName="child")
-```
-
-- `If(true) [` — 当前 CM2Editer 生成的 `If` 语法（大写 I + 方括号），**与前辈手写的 `if ()` 是不同语法**，两者可能共存或为版本差异。为确保兼容，继续使用 `If(true) [` 格式生成，待测试验证后决定是否迁移到 `if () ` 风格。
-- 条件表达式的**值**可与手写 DSL 通用：`true`、`false`、`_state.Futanari`、`_state.Ecstasy >= 50`
-
-### 条件表达式值类型
-
-| If condition 参数字面量 | 生成结果 | 是否有效 |
-|-------------------------|----------|----------|
-| `true` / `false` | `If(true)` / `If(false)` | ✅ 已验证（测试夹具） |
-| `_state.Futanari` | `If(_state.Futanari)` | ❓ 待实际游戏测试 |
-| `_state.Ecstasy >= 50` | `If(_state.Ecstasy >= 50)` | ❓ 待测试 |
-| `_state.Bodypaint > 0 && !_state.Invisible` | `If(_state.Bodypaint > 0 && !_state.Invisible)` | ❓ 待测试 |
-
----
-
-## 6. 数据结构与 API
+## 7. 数据结构 API
 
 ### 创建
 
-```lua
-myList = CreateList()                           -- 空列表
-myList = CreateList("a", "b", "c")              -- 初始化
-myDict = CreateThread("StaticDict")             -- 静态字典
-mySet = CreateThread("RecordSet")               -- 集合（去重）
-myQueue = CreateThread("Queue")                 -- 队列
+```js
+myList = CreateList()                            // 空
+myList = CreateList("a", "b", "c")               // 初始化
+myDict = CreateThread("StaticDict")              // 静态字典
+mySet = CreateThread("RecordSet")                // 去重集合
+myQueue = CreateThread("Queue")                  // 队列
+myStack = CreateThread("Stack")                  // 栈
 ```
 
-### 列表操作
+### 列表
 
-```lua
-myList[0] = value                               -- 索引赋值
-myList.Insert("item")                           -- 尾部追加
-myList.Remove(key)                              -- 删除
-myList.Contains("item")                         -- 包含检查 → Boolean
-myList.Count()                                  -- 长度 → Number
-myList.GetKeys()                                -- 获取所有键
-myList.GetValues()                              -- 获取所有值
-myList.Clear()                                  -- 清空
+```js
+myList[0] = value                        // 索引写
+myList.Insert("item")                    // 尾部追加
+myList.Remove(key)                       // 删除
+myList.Contains("item")                  // 包含 → Boolean
+myList.Count()                           // 长度
+myList.GetKeys() / GetValues()           // 键/值列表
+myList.Clear()                           // 清空
 ```
 
-### 队列操作
+### 队列
 
-```lua
-queue.Enqueue(item)                              -- 入队
-queue.Dequeue()                                  -- 出队
-queue.GetCount()                                 -- 大小
+```js
+q.Enqueue(item) / q.Dequeue() / q.GetCount()
 ```
 
 ### 数学
 
-```lua
-Random(min, max)                                 -- 随机浮点
-Trunc(value)                                     -- 截断小数
-```
-
-### 拍照 API
-
-```lua
-gallery = CreateGallery()
-gallery = CreateGallery("callback", condition, area)
-gallery.Show()                                   -- 打开拍照
-gallery.Confirmed()                              -- 用户确认 → Boolean
-gallery.GetSelection()                           -- 获取选中照片列表
-
--- callback 每帧调用：
-gallery_callback:
-    if data.Futanari                              -- 检查照片元数据
-        _result = true                            -- true = 照片符合条件
+```js
+Random(min, max)          // 随机浮点
+Trunc(value)              // 截断
+Abs(value)                // 绝对值
 ```
 
 ---
 
-## 7. 操作符汇总
+## 8. 中英文档差异
 
-| 类别 | 操作符 | 备注 |
-|------|--------|------|
-| 逻辑 AND | `&` 或 `&&` | 二者均被 CM2 接受 |
-| 逻辑 OR | `\|` 或 `\|\|` | 二者均被 CM2 接受 |
-| 逻辑 NOT | `!` | |
-| 比较 | `==`, `!=`, `>`, `>=`, `<`, `<=` | |
-| 算术 | `+`, `-`, `*`, `/`, `+=`, `-=` | |
-| 字符串拼接 | `+` | `"Cosplay_" + items[i]` |
-| 空检查 | `!= null`, `== null` | |
-| 布尔常量 | `true`, `false` | |
+中文翻译 `documentation_zh.html` 缺失章节：
 
----
-
-## 8. 持久存储 `_save`
-
-```lua
-_save.Bra = worn_items          -- 保存到存档
-if _save.Bra == null             -- 检查是否存在
-    ...
-_save.Bra = null                 -- 清除
-```
-
-- `_save` 是跨游戏会话持久化的全局字典
-- 键名自定义（如 `_save.Bra`、`_save.Pants`）
-- 退出/重进游戏后数据仍在
-- 用于记录掉落物状态、任务进度等
-
----
-
-## 9. CM2Editer 节点映射速查
-
-### 已实现
-
-| CM2 函数 | CM2Editer 节点 |
-|----------|---------------|
-| `CreateThread(labelName="x")` | CreateThread |
-| `CreateListener("x")` | CreateListener |
-| `thread.Goto("x")` | Goto |
-| `Log(output="x")` | Log |
-| `SetEvent(name="x", value=y)` | SetEvent |
-| `GetEvent("x")` | GetEvent |
-| `CreateCondition(condition="[x]", id="y")` | CreateCondition |
-| `CreateArea(type="x", stage="y", ...)` | CreateArea |
-| `CreateGallery("x", condition, area)` | CreateGallery |
-| `PlaySoundEffect("x")` | PlaySoundEffect |
-
-### 生成语法待对齐
-
-| 项目 | 当前 CM2Editer 生成 | 前辈 `.code` 实际使用 | 验证状态 |
-|------|--------------------|---------------------|---------|
-| If 分支 | `If(true) [` | `if condition`（小写 if + 缩进） | ❌ 需要对齐 |
-| While 循环 | `While(true) [` | `while i < len`（小写） | ❌ 需要对齐 |
-| 逻辑与 | 无（未生成） | `&` 或 `&&` | ⭕ Phase 1 引入 |
-| 逻辑或 | 无 | `\|` 或 `\|\|` | ⭕ Phase 1 引入 |
-| 字符串拼接 | 无 | `"prefix_" + key` | ⭕ Phase 1 引入 |
-
-> **结论**：CM2Editer 的 `If(true) [` 和 `While(true) [` 语法在 80+ 个前辈项目中**零使用**。所有 `.code` 实例均使用小写 `if` / `while` + 缩进块。代码生成器需要从大写函数式语法迁移到小写语句式语法。详见 `docs/if_condition_design.md`。
+| 缺失 | 说明 |
+|------|------|
+| **`EventListener`** | 事件监听器对象（不同于 Listener） |
+| **`Common` 对象方法** | 所有 Object 共用的方法 |
+| **`Inter-Mod Tutorial`** | 跨 mod 通信（`_mod`, `_mods`）+ 自定义函数注入 |
+| **`Audio` 独立章节** | 全局音频函数 |
+| **`for...in` 循环** | 范围/列表遍历（中文版未提） |
+| **`break` 关键字** | 循环中断（中文版未提） |
+| **操作符 `**`, `//`, `%`, `^`, `in`** | 中文版缺失 |
+| **`&` vs `&&` 短路差异** | 官方有专门 Tips 解释 |
+| **if 括号性能差异** | 官方 Tips："无括号更快" |
