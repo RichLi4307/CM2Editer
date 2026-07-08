@@ -60,29 +60,34 @@ thread.Goto("label", data=myObject, index=0, nextstep="nextLabel")
 
 ## 2. 控制流
 
-### if / elseif
+### if / elseif / else
 
 ```lua
 if condition
     ...
 
-if (_state.Detection >= 50) && (!_state.Invisible)
+if _state.Position.stage != "Apart"
+    if _state.Position.laststage == "Apart"
+        ...
+
+if (_save.Bra != null) | (_save.Pants != null)
     ...
-
-if _state.Bodypaint > 0
-    _result = true
 else
-    _result = false
+    listener_bra = null
 
-if chat.Clicked() == 0
-    thread.Goto("step9")
-elseif chat.Clicked() == 1
-    thread.Goto("step9a")
+if (worn_condition != null) & (drop < 0)
+    ...
+elseif drop >= 0
+    ...
+elseif equip >= 0
+    ...
 ```
 
 - `if` 后可直接跟表达式，复杂表达式用 `()` 括起
-- `elseif`（无空格）是标准关键字
+- `elseif` 和 `else` 是标准关键字
 - **没有显式 `end`**——作用域通过缩进和标签跳转确定
+- 逻辑与/或用 `&` / `|`（单字符）。部分作者用 `&&` / `||`（双字符），CM2 加载器二者均接受
+- 取反用 `!`
 
 ### while
 
@@ -113,15 +118,25 @@ _result = condition && trueValue || falseValue
 ### MakeCond 语法
 
 ```
-CreateCondition("[条件1, 条件2, !取反条件, (OR条件1, OR条件2)]")
+CreateCondition("单个条件")                    -- 无括号 = 单个条件
+CreateCondition("[条件1, 条件2]")              -- 方括号 = AND
+CreateCondition("(条件1, 条件2)")              -- 圆括号 = OR
+CreateCondition("[条件1, 条件2, !取反条件]")    -- ! 前缀 = NOT
+CreateCondition("[条件1, (条件2, 条件3)]")      -- 嵌套
 ```
 
-| 符号 | 含义 |
-|------|------|
-| `[a, b, c]` | AND（全部成立） |
-| `(a, b, c)` | OR（任成立） |
-| `!a` | NOT（取反） |
-| `[a, (b, c)]` | 嵌套组合 |
+**动态构造条件**（字符串拼接）：
+
+```lua
+s = ""
+while i < items.Count()
+    if s != ""
+        s = s + ","
+    s = s + "Cosplay_" + items[i]
+    i = i + 1
+condition = CreateCondition("[" + s + "]")       -- AND 所有服装
+condition = CreateCondition("(" + s + ")")       -- OR 任一服装
+```
 
 ### 条件关键词
 
@@ -275,19 +290,29 @@ CreateCondition("[条件1, 条件2, !取反条件, (OR条件1, OR条件2)]")
 | 表达式 | 说明 |
 |--------|------|
 | `_state.Position.stage` | 当前场景名 |
+| `_state.Position.laststage` | 上一帧的场景名 |
 | `_state.Position.x/y/z` | 坐标 |
 | `_state.Position.rx/ry/rz/rw` | 旋转 |
 | `_state.Action` | 当前动作名 |
 | `_state.Skills[key]` | 技能是否启用（key = 技能名） |
+| `_state.Cosplay[key]` | 指定服装是否已装备（`== true` / `!= true`） |
 | `_state.AdultToys[key]` | 成人玩具状态（key = 玩具名，null = 未拥有） |
 | `_state.DayTime` | 晴天/白天布尔值（通过 gallery callback 的 data.DayTime 访问） |
-
-### 全局事件变量
-
-| 变量 | 说明 |
-|------|------|
 | `_stagechanged` | 场景切换标记 |
-| `_timediff` | 上一帧到当前帧的时间差（秒） |
+| `_timediff` | 上一帧到当前帧的时间差（秒，用于计时器累加） |
+
+### 字符串
+
+```lua
+s = s + ","
+s = s + "Cosplay_" + items[i]
+condition = CreateCondition("[" + s + "]")
+condition = CreateCondition("(" + s + ")")
+```
+
+- 字符串拼接使用 `+` 操作符
+- 字符串常量用双引号 `"..."` 括起
+- 单行注释用 `#` 开头
 
 ---
 
@@ -377,26 +402,44 @@ gallery_callback:
 
 ## 7. 操作符汇总
 
-| 类别 | 操作符 |
-|------|--------|
-| 逻辑 | `&&` (AND), `\|\|` (OR), `!` (NOT) |
-| 比较 | `==`, `!=`, `>`, `>=`, `<`, `<=` |
-| 算术 | `+`, `-`, `*`, `/`, `+=`, `-=` |
-| 空检查 | `!= null`, `== null` |
-| 布尔常量 | `true`, `false` |
+| 类别 | 操作符 | 备注 |
+|------|--------|------|
+| 逻辑 AND | `&` 或 `&&` | 二者均被 CM2 接受 |
+| 逻辑 OR | `\|` 或 `\|\|` | 二者均被 CM2 接受 |
+| 逻辑 NOT | `!` | |
+| 比较 | `==`, `!=`, `>`, `>=`, `<`, `<=` | |
+| 算术 | `+`, `-`, `*`, `/`, `+=`, `-=` | |
+| 字符串拼接 | `+` | `"Cosplay_" + items[i]` |
+| 空检查 | `!= null`, `== null` | |
+| 布尔常量 | `true`, `false` | |
 
 ---
 
-## 8. CM2Editer 节点映射速查
+## 8. 持久存储 `_save`
 
-### 已实现的映射
+```lua
+_save.Bra = worn_items          -- 保存到存档
+if _save.Bra == null             -- 检查是否存在
+    ...
+_save.Bra = null                 -- 清除
+```
+
+- `_save` 是跨游戏会话持久化的全局字典
+- 键名自定义（如 `_save.Bra`、`_save.Pants`）
+- 退出/重进游戏后数据仍在
+- 用于记录掉落物状态、任务进度等
+
+---
+
+## 9. CM2Editer 节点映射速查
+
+### 已实现
 
 | CM2 函数 | CM2Editer 节点 |
 |----------|---------------|
 | `CreateThread(labelName="x")` | CreateThread |
 | `CreateListener("x")` | CreateListener |
 | `thread.Goto("x")` | Goto |
-| `If(true) [` | If |
 | `Log(output="x")` | Log |
 | `SetEvent(name="x", value=y)` | SetEvent |
 | `GetEvent("x")` | GetEvent |
@@ -405,15 +448,14 @@ gallery_callback:
 | `CreateGallery("x", condition, area)` | CreateGallery |
 | `PlaySoundEffect("x")` | PlaySoundEffect |
 
-### 待验证的映射
+### 生成语法待对齐
 
-以下功能在前辈 `.code` 中被大量使用，但 CM2Editer 目前无法生成对应代码：
+| 项目 | 当前 CM2Editer 生成 | 前辈 `.code` 实际使用 | 验证状态 |
+|------|--------------------|---------------------|---------|
+| If 分支 | `If(true) [` | `if condition`（小写 if + 缩进） | ❌ 需要对齐 |
+| While 循环 | `While(true) [` | `while i < len`（小写） | ❌ 需要对齐 |
+| 逻辑与 | 无（未生成） | `&` 或 `&&` | ⭕ Phase 1 引入 |
+| 逻辑或 | 无 | `\|` 或 `\|\|` | ⭕ Phase 1 引入 |
+| 字符串拼接 | 无 | `"prefix_" + key` | ⭕ Phase 1 引入 |
 
-| CM2 用法 | 建议节点 |
-|----------|---------|
-| `if` + `elseif` + `else` | 现有 If 节点已生成 `If(true) [`，待确认是否需要迁移到 `if ()` 语法 |
-| `while` 循环 | While 节点（已有） |
-| `Foreach(list, thread)` | Foreach 节点（新） |
-| `_state.*` 直接访问 | 在 If condition 表达式中直接使用 |
-| `chat.Clicked()` / `gallery.Confirmed()` | Condition-check 节点 |
-| `_stagechanged` / `_timediff` | 表达式变量 |
+> **结论**：CM2Editer 的 `If(true) [` 和 `While(true) [` 语法在 80+ 个前辈项目中**零使用**。所有 `.code` 实例均使用小写 `if` / `while` + 缩进块。代码生成器需要从大写函数式语法迁移到小写语句式语法。详见 `docs/if_condition_design.md`。
