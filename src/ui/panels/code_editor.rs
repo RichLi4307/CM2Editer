@@ -1,10 +1,9 @@
 use crate::project::Project;
 
-/// 底部 `.code` 文本编辑器面板。
+/// 底部 `.code` 文本编辑器面板。内容放入 ScrollArea 防止撑高父容器。
 pub struct CodeEditorPanel;
 
 impl CodeEditorPanel {
-    /// 显示当前 `.code` 文件的文本内容，返回文本是否发生变化。
     pub fn show(ui: &mut egui::Ui, project: &mut Project) -> bool {
         ui.horizontal(|ui| {
             ui.heading("代码预览");
@@ -19,35 +18,41 @@ impl CodeEditorPanel {
         ui.separator();
 
         let mut changed = false;
-        if let Some(code_file) = project.active_code_file_mut() {
-            let mut text = code_file.code_text.clone();
-            let response = ui.add(
-                egui::TextEdit::multiline(&mut text)
-                    .desired_rows(8)
-                    .font(egui::TextStyle::Monospace)
-                    .code_editor(),
-            );
-            if response.changed() {
-                code_file.code_text = text;
-                code_file.code_text_dirty = true;
-                changed = true;
-            }
+        let rows = (ui.available_height() / 14.0).max(4.0) as usize;
 
-            ui.horizontal(|ui| {
-                if ui.button("🔄 从节点图生成").clicked() {
-                    let _ = code_file.regenerate_code();
-                }
-                if ui
-                    .small_button("重置")
-                    .on_hover_text("丢弃手动修改并从节点图重新生成")
-                    .clicked()
-                {
-                    let _ = code_file.regenerate_code();
+        egui::ScrollArea::vertical()
+            .id_salt("code_preview_scroll")
+            .show(ui, |ui| {
+                if let Some(code_file) = project.active_code_file_mut() {
+                    let mut text = code_file.code_text.clone();
+                    let response = ui.add(
+                        egui::TextEdit::multiline(&mut text)
+                            .desired_rows(rows)
+                            .font(egui::TextStyle::Monospace)
+                            .code_editor(),
+                    );
+                    if response.changed() {
+                        code_file.code_text = text;
+                        code_file.code_text_dirty = true;
+                        changed = true;
+                    }
+
+                    ui.horizontal(|ui| {
+                        if ui.button("🔄 从节点图生成").clicked() {
+                            let _ = code_file.regenerate_code();
+                        }
+                        if ui
+                            .small_button("重置")
+                            .on_hover_text("丢弃手动修改并从节点图重新生成")
+                            .clicked()
+                        {
+                            let _ = code_file.regenerate_code();
+                        }
+                    });
+                } else {
+                    ui.label("未选择 .code 文件");
                 }
             });
-        } else {
-            ui.label("未选择 .code 文件");
-        }
         changed
     }
 }

@@ -1029,9 +1029,16 @@ impl eframe::App for App {
                     egui::vec2(6.0, panel_h),
                 );
                 let r1 = ui.allocate_rect(rs1, egui::Sense::drag());
-                if r1.hovered() || r1.dragged() {
+                let sep_color = if r1.hovered() || r1.dragged() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
-                }
+                    egui::Color32::from_rgb(100, 180, 255)
+                } else {
+                    egui::Color32::from_gray(70)
+                };
+                ui.painter().line_segment(
+                    [rs1.center_top(), rs1.center_bottom()],
+                    egui::Stroke::new(2.0, sep_color),
+                );
                 if r1.dragged() {
                     split1 = (split1 + r1.drag_delta().x / panel_w).clamp(0.15, split2 - 0.1);
                     ui.ctx().data_mut(|d| d.insert_temp(s1_id, split1));
@@ -1052,9 +1059,16 @@ impl eframe::App for App {
                     egui::vec2(6.0, panel_h),
                 );
                 let r2 = ui.allocate_rect(rs2, egui::Sense::drag());
-                if r2.hovered() || r2.dragged() {
+                let sep2_color = if r2.hovered() || r2.dragged() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
-                }
+                    egui::Color32::from_rgb(100, 180, 255)
+                } else {
+                    egui::Color32::from_gray(70)
+                };
+                ui.painter().line_segment(
+                    [rs2.center_top(), rs2.center_bottom()],
+                    egui::Stroke::new(2.0, sep2_color),
+                );
                 if r2.dragged() {
                     split2 = (split2 + r2.drag_delta().x / panel_w).clamp(split1 + 0.1, 0.85);
                     ui.ctx().data_mut(|d| d.insert_temp(s2_id, split2));
