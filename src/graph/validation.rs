@@ -21,10 +21,7 @@ impl GraphValidator {
         Ok(())
     }
 
-    /// 收集所有验证错误。
-    ///
-    /// 当前实现仍逐项检查，一旦某类检查出现错误即停止该类别后续检查，
-    /// 并返回已发现的所有错误。未来可扩展为并行收集。
+    /// 收集所有验证错误，包含阻塞错误和非阻塞警告。
     pub fn collect_errors(graph: &Graph) -> Vec<FlowError> {
         let mut errors = Vec::new();
 
@@ -46,6 +43,10 @@ impl GraphValidator {
         if let Err(e) = Self::check_required_params(graph) {
             errors.push(e);
         }
+
+        // 非阻塞警告：不阻止代码生成，仅提示。
+        errors.extend(Self::warn_multiple_starts(graph));
+        errors.extend(Self::warn_unreachable_nodes(graph));
 
         errors
     }
@@ -214,6 +215,74 @@ impl GraphValidator {
             }
         }
         Ok(())
+    }
+
+    /// 警告：存在多个 Start 节点（非阻塞，但建议只保留一个）。
+    fn warn_multiple_starts(graph: &Graph) -> Vec<FlowError> {
+        use crate::graph::types::NodeType;
+        let starts: Vec<&String> = graph
+            .nodes
+            .iter()
+            .filter(|(_, n)| n.node_type == NodeType::Start)
+            .map(|(id, _)| id)
+            .collect();
+        if starts.len() > 1 {
+            vec![FlowError::Warning(format!(
+                "存在 {} 个 Start 节点（通常只需要一个）：{}",
+                starts.len(),
+                starts.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", ")
+            ))]
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// 警告：存在无法从任何 Start 节点沿 Flow 边到达的节点。
+    fn warn_unreachable_nodes(graph: &Graph) -> Vec<FlowError> {
+        use crate::graph::types::NodeType;
+        let start_ids: Vec<&String> = graph
+            .nodes
+            .iter()
+            .filter(|(_, n)| n.node_type == NodeType::Start)
+            .map(|(id, _)| id)
+            .collect();
+        if start_ids.is_empty() {
+            return Vec::new();
+        }
+
+        // BFS 沿 Flow 边
+        let mut reachable = HashSet::new();
+        let mut queue: VecDeque<String> = start_ids.iter().map(|&id| id.clone()).collect();
+        for id in &queue {
+            reachable.insert(id.clone());
+        }
+        while let Some(current) = queue.pop_front() {
+            for edge in graph.edges.values() {
+                if edge.edge_type == PortType::Flow
+                    && edge.from.node_id == current
+                    && reachable.insert(edge.to.node_id.clone())
+                {
+                    queue.push_back(edge.to.node_id.clone());
+                }
+            }
+        }
+
+        let unreachable: Vec<String> = graph
+            .nodes
+            .keys()
+            .filter(|id| !reachable.contains(*id))
+            .cloned()
+            .collect();
+
+        if unreachable.is_empty() {
+            Vec::new()
+        } else {
+            vec![FlowError::Warning(format!(
+                "{} 个节点无法从 Start 到达（缺少 Flow 连接）：{}",
+                unreachable.len(),
+                unreachable.join(", ")
+            ))]
+        }
     }
 }
 

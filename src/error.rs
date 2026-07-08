@@ -28,6 +28,10 @@ pub enum FlowError {
 
     #[error("Version mismatch: file version {file}, supported {supported}")]
     VersionMismatch { file: String, supported: String },
+
+    /// 非阻塞警告：不影响代码生成，但在编辑器状态栏提示。
+    #[error("{0}")]
+    Warning(String),
 }
 
 impl FlowError {
@@ -38,6 +42,16 @@ impl FlowError {
             Self::NodeNotFound(id) => vec![id.clone()],
             _ => Vec::new(),
         }
+    }
+
+    /// 是否为阻塞错误（vs. 非阻塞警告）。
+    pub fn is_blocking(&self) -> bool {
+        !matches!(self, Self::Warning(_))
+    }
+
+    /// 是否为警告。
+    pub fn is_warning(&self) -> bool {
+        matches!(self, Self::Warning(_))
     }
 }
 

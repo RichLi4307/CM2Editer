@@ -26,11 +26,12 @@ use crate::ui::panels::{
     data_menu::DataMenuPanel,
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
-    namespace_picker::NamespacePicker,
+    namespace_picker::{NamespacePicker, NamespacePickerState},
     node_library::NodeLibraryPanel,
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::PropertiesPanel,
     status_bar::StatusBarPanel,
+    status_bar::{ErrorDetailWindow, StatusBarEvent},
 };
 use crate::ui::theme::Theme;
 
@@ -189,7 +190,9 @@ pub struct App {
     /// 命名空间注册表，加载 assets/namespaces 下的 JSON 文件。
     pub namespace_registry: NamespaceRegistry,
     /// 命名空间选择器窗口状态。
-    pub namespace_picker: Option<crate::ui::panels::namespace_picker::NamespacePickerState>,
+    pub namespace_picker: Option<NamespacePickerState>,
+    /// 是否显示错误详情弹窗。
+    pub show_error_detail: bool,
     /// 左栏当前标签页
     left_panel_tab: LeftPanelTab,
     /// 新建工程对话框状态
@@ -226,6 +229,7 @@ impl App {
             project: None,
             namespace_registry: NamespaceRegistry::load_bundled(),
             namespace_picker: None,
+            show_error_detail: false,
             show_meta_editor: false,
             validation_errors: Vec::new(),
             search_window_open: false,
@@ -964,13 +968,16 @@ impl eframe::App for App {
         egui::TopBottomPanel::bottom("status_bar")
             .default_height(28.0)
             .show(ctx, |ui| {
-                StatusBarPanel::show(
+                let event = StatusBarPanel::show(
                     ui,
                     &self.status_message,
                     &self.validation_errors,
                     self.hover_world_pos(ctx, self.canvas_rect(ctx)),
                     self.canvas.viewport.zoom,
                 );
+                if event == StatusBarEvent::OpenErrorDetails {
+                    self.show_error_detail = true;
+                }
             });
 
         // 底部代码预览
@@ -1026,6 +1033,15 @@ impl eframe::App for App {
                     .max(ui.min_rect().height())
                     .max(120.0);
             });
+
+        // 错误详情弹窗
+        if self.show_error_detail {
+            ErrorDetailWindow::show(
+                &mut self.show_error_detail,
+                &self.validation_errors,
+                ctx,
+            );
+        }
 
         // 中央画布
         egui::CentralPanel::default()
