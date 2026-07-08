@@ -270,9 +270,18 @@ impl GraphValidator {
 
         let unreachable: Vec<String> = graph
             .nodes
-            .keys()
-            .filter(|id| !reachable.contains(*id))
-            .cloned()
+            .iter()
+            .filter(|(id, n)| {
+                if !reachable.contains(*id) {
+                    // Data-only 节点（零 Flow 端口）不需要接入 Start，跳过
+                    let has_flow = n.inputs.iter().any(|p| p.port_type == PortType::Flow)
+                        || n.outputs.iter().any(|p| p.port_type == PortType::Flow);
+                    has_flow
+                } else {
+                    false
+                }
+            })
+            .map(|(id, _)| id.clone())
             .collect();
 
         if unreachable.is_empty() {
