@@ -1,14 +1,22 @@
+use crate::api::namespace::NamespaceRegistry;
 use crate::api::registry::get_definition;
 use crate::graph::graph::Graph;
 use crate::graph::node::{Node, ParamValue};
-use crate::graph::types::PortType;
+use crate::graph::types::{NodeType, PortType};
+use crate::ui::panels::namespace_picker::NamespacePickerState;
 
 /// 属性面板。
 pub struct PropertiesPanel;
 
 impl PropertiesPanel {
     /// 显示选中节点的可编辑参数，返回发生变更的参数键值（如果有）。
-    pub fn show(ui: &mut egui::Ui, node: &Node, graph: &Graph) -> Option<(String, ParamValue)> {
+    pub fn show(
+        ui: &mut egui::Ui,
+        node: &Node,
+        graph: &Graph,
+        registry: &NamespaceRegistry,
+        picker: &mut Option<NamespacePickerState>,
+    ) -> Option<(String, ParamValue)> {
         ui.heading("属性");
         ui.separator();
         ui.label(format!("节点 ID: {}", node.id));
@@ -26,7 +34,8 @@ impl PropertiesPanel {
         for (key, value) in &node.params {
             ui.horizontal(|ui| {
                 ui.label(key);
-                if let Some((new_key, new_value)) = Self::param_editor(ui, node, graph, key, value)
+                if let Some((new_key, new_value)) =
+                    Self::param_editor(ui, node, graph, registry, picker, key, value)
                 {
                     changed = Some((new_key, new_value));
                 }
@@ -56,6 +65,8 @@ impl PropertiesPanel {
         ui: &mut egui::Ui,
         node: &Node,
         graph: &Graph,
+        registry: &NamespaceRegistry,
+        picker: &mut Option<NamespacePickerState>,
         key: &str,
         value: &ParamValue,
     ) -> Option<(String, ParamValue)> {
@@ -63,6 +74,22 @@ impl PropertiesPanel {
         if let Some((src_node, src_port)) = connected_data_source(graph, &node.id, key) {
             ui.label(format!("🔗 {}.{}", src_node, src_port));
             return None;
+        }
+
+        // 如果参数有命名空间选择器，显示选择按钮。
+        if let Some((namespace, multi)) = namespace_for_param(node.node_type, key) {
+            if registry.get(namespace).is_some() {
+                let current = selected_keys_from_value(value);
+                if ui.button("选择...").clicked() {
+                    *picker = Some(
+                        NamespacePickerState::new(namespace, key, multi)
+                            .with_selected(&current),
+                    );
+                }
+                // 显示当前值摘要
+                ui.label(format!("已选 {} 项", current.len()));
+                return None;
+            }
         }
 
         // 如果参数有固定枚举选项，直接显示枚举下拉框。
@@ -320,6 +347,39 @@ fn parse_json_literal(text: &str, original: &serde_json::Value) -> Option<serde_
         serde_json::Value::Number(_) => text.parse::<f64>().ok().map(|v| serde_json::json!(v)),
         serde_json::Value::String(_) => Some(serde_json::json!(text)),
         _ => serde_json::from_str(text).ok(),
+    }
+}
+
+/// Maps a parameter to its namespace and whether it supports multiple selections.
+fn namespace_for_param(node_type: NodeType, param_name: &str) -> Option<(&'static str, bool)> {
+    match (node_type, param_name) {
+        (NodeType::EquipCosplay | NodeType::UnequipCosplay | NodeType::OwnCosplay, "cosplayKeys") => {
+            Some(("cosplay", true))
+        }
+        (NodeType::EquipAdultToy | NodeType::UnequipAdultToy, "toyNames") => {
+            Some(("adult_toy", true))
+        }
+        (NodeType::CreateNPC, "avatarType") => Some(("avatar_type", false)),
+        (NodeType::SetPlayerData, "dataName") => Some(("player_data", false)),
+        _ => None,
+    }
+}
+
+/// Extracts a list of selected keys from a literal JSON value.
+fn selected_keys_from_value(value: &ParamValue) -> Vec<String> {
+    match value {
+        ParamValue::Literal(v) if v.is_array() => v
+            .as_array()
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|x| x.as_str().map(String::from))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        ParamValue::Literal(v) if v.is_string() => {
+            v.as_str().map(|s| vec![s.to_string()]).unwrap_or_default()
+        }
+        _ => Vec::new(),
     }
 }
 

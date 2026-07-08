@@ -1,0 +1,97 @@
+{
+  "name": "hair_type",
+  "entries": {
+    "None": {
+      "en": "None",
+      "zh": "None"
+    },
+    "Short": {
+      "en": "Short",
+      "zh": "Short"
+    },
+    "Bob": {
+      "en": "Bob",
+      "zh": "Bob"
+    },
+    "Wolf": {
+      "en": "Wolf",
+      "zh": "Wolf"
+    },
+    "SideBob": {
+      "en": "SideBob",
+      "zh": "SideBob"
+    },
+    "FairyTwin": {
+      "en": "FairyTwin",
+      "zh": "FairyTwin"
+    },
+    "HalfTwin": {
+      "en": "HalfTwin",
+      "zh": "HalfTwin"
+    },
+    "ElegantLong": {
+      "en": "ElegantLong",
+      "zh": "ElegantLong"
+    },
+    "PrincesWave": {
+      "en": "PrincesWave",
+      "zh": "PrincesWave"
+    },
+    "Pony": {
+      "en": "Pony",
+      "zh": "Pony"
+    },
+    "MafuHair": {
+      "en": "MafuHair",
+      "zh": "MafuHair"
+    },
+    "Lynn": {
+      "en": "Lynn",
+      "zh": "Lynn"
+    },
+    "Himari": {
+      "en": "Himari",
+      "zh": "Himari"
+    },
+    "Invert": {
+      "en": "Invert",
+      "zh": "Invert"
+    },
+    "Natsu": {
+      "en": "Natsu",
+      "zh": "Natsu"
+    },
+    "Nekomimi": {
+      "en": "Nekomimi",
+      "zh": "Nekomimi"
+    },
+    "Shu": {
+      "en": "Shu",
+      "zh": "Shu"
+    },
+    "Yuki": {
+      "en": "Yuki",
+      "zh": "Yuki"
+    },
+    "WavePony": {
+      "en": "WavePony",
+      "zh": "WavePony"
+    },
+    "LovelyMedium": {
+      "en": "LovelyMedium",
+      "zh": "LovelyMedium"
+    },
+    "StraightLong": {
+      "en": "StraightLong",
+      "zh": "StraightLong"
+    },
+    "WaveLong": {
+      "en": "WaveLong",
+      "zh": "WaveLong"
+    },
+    "StraightBob": {
+      "en": "StraightBob",
+      "zh": "StraightBob"
+    }
+  }
+}

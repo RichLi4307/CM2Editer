@@ -1,0 +1,269 @@
+{
+  "name": "player_data",
+  "entries": {
+    "CurrentHair": {
+      "en": "CurrentHair",
+      "zh": "CurrentHair"
+    },
+    "CustomizeArm": {
+      "en": "CustomizeArm",
+      "zh": "CustomizeArm"
+    },
+    "CustomizeBoobs": {
+      "en": "CustomizeBoobs",
+      "zh": "CustomizeBoobs"
+    },
+    "CustomizeButt": {
+      "en": "CustomizeButt",
+      "zh": "CustomizeButt"
+    },
+    "CustomizeCheekFat": {
+      "en": "CustomizeCheekFat",
+      "zh": "CustomizeCheekFat"
+    },
+    "CustomizeChinLength": {
+      "en": "CustomizeChinLength",
+      "zh": "CustomizeChinLength"
+    },
+    "CustomizeEarElf": {
+      "en": "CustomizeEarElf",
+      "zh": "CustomizeEarElf"
+    },
+    "CustomizeEyeBlowColorB": {
+      "en": "CustomizeEyeBlowColorB",
+      "zh": "CustomizeEyeBlowColorB"
+    },
+    "CustomizeEyeBlowColorG": {
+      "en": "CustomizeEyeBlowColorG",
+      "zh": "CustomizeEyeBlowColorG"
+    },
+    "CustomizeEyeBlowColorR": {
+      "en": "CustomizeEyeBlowColorR",
+      "zh": "CustomizeEyeBlowColorR"
+    },
+    "CustomizeEyeDist": {
+      "en": "CustomizeEyeDist",
+      "zh": "CustomizeEyeDist"
+    },
+    "CustomizeEyeHeight": {
+      "en": "CustomizeEyeHeight",
+      "zh": "CustomizeEyeHeight"
+    },
+    "CustomizeEyeLashColorB": {
+      "en": "CustomizeEyeLashColorB",
+      "zh": "CustomizeEyeLashColorB"
+    },
+    "CustomizeEyeLashColorG": {
+      "en": "CustomizeEyeLashColorG",
+      "zh": "CustomizeEyeLashColorG"
+    },
+    "CustomizeEyeLashColorR": {
+      "en": "CustomizeEyeLashColorR",
+      "zh": "CustomizeEyeLashColorR"
+    },
+    "CustomizeEyeLeftPattern": {
+      "en": "CustomizeEyeLeftPattern",
+      "zh": "CustomizeEyeLeftPattern"
+    },
+    "CustomizeEyeOpenness": {
+      "en": "CustomizeEyeOpenness",
+      "zh": "CustomizeEyeOpenness"
+    },
+    "CustomizeEyePattern": {
+      "en": "CustomizeEyePattern",
+      "zh": "CustomizeEyePattern"
+    },
+    "CustomizeEyeSize": {
+      "en": "CustomizeEyeSize",
+      "zh": "CustomizeEyeSize"
+    },
+    "CustomizeFutanariKitouSize": {
+      "en": "CustomizeFutanariKitouSize",
+      "zh": "CustomizeFutanariKitouSize"
+    },
+    "CustomizeFutanariSaoSize": {
+      "en": "CustomizeFutanariSaoSize",
+      "zh": "CustomizeFutanariSaoSize"
+    },
+    "CustomizeFutanariStraight": {
+      "en": "CustomizeFutanariStraight",
+      "zh": "CustomizeFutanariStraight"
+    },
+    "CustomizeFutanariTamaSize": {
+      "en": "CustomizeFutanariTamaSize",
+      "zh": "CustomizeFutanariTamaSize"
+    },
+    "CustomizeFutanariWidth": {
+      "en": "CustomizeFutanariWidth",
+      "zh": "CustomizeFutanariWidth"
+    },
+    "CustomizeHead": {
+      "en": "CustomizeHead",
+      "zh": "CustomizeHead"
+    },
+    "CustomizeHeight": {
+      "en": "CustomizeHeight",
+      "zh": "CustomizeHeight"
+    },
+    "CustomizeHitomiSize": {
+      "en": "CustomizeHitomiSize",
+      "zh": "CustomizeHitomiSize"
+    },
+    "CustomizeHyperBoobs": {
+      "en": "CustomizeHyperBoobs",
+      "zh": "CustomizeHyperBoobs"
+    },
+    "CustomizeInmou1": {
+      "en": "CustomizeInmou1",
+      "zh": "CustomizeInmou1"
+    },
+    "CustomizeInmou2": {
+      "en": "CustomizeInmou2",
+      "zh": "CustomizeInmou2"
+    },
+    "CustomizeInmouColorB": {
+      "en": "CustomizeInmouColorB",
+      "zh": "CustomizeInmouColorB"
+    },
+    "CustomizeInmouColorG": {
+      "en": "CustomizeInmouColorG",
+      "zh": "CustomizeInmouColorG"
+    },
+    "CustomizeInmouColorR": {
+      "en": "CustomizeInmouColorR",
+      "zh": "CustomizeInmouColorR"
+    },
+    "CustomizeLegInterval": {
+      "en": "CustomizeLegInterval",
+      "zh": "CustomizeLegInterval"
+    },
+    "CustomizeLoliFace": {
+      "en": "CustomizeLoliFace",
+      "zh": "CustomizeLoliFace"
+    },
+    "CustomizeLowerLeg": {
+      "en": "CustomizeLowerLeg",
+      "zh": "CustomizeLowerLeg"
+    },
+    "CustomizeLowerLegLength": {
+      "en": "CustomizeLowerLegLength",
+      "zh": "CustomizeLowerLegLength"
+    },
+    "CustomizeMatsugeLength": {
+      "en": "CustomizeMatsugeLength",
+      "zh": "CustomizeMatsugeLength"
+    },
+    "CustomizeMatsugeThick": {
+      "en": "CustomizeMatsugeThick",
+      "zh": "CustomizeMatsugeThick"
+    },
+    "CustomizeMayuDog": {
+      "en": "CustomizeMayuDog",
+      "zh": "CustomizeMayuDog"
+    },
+    "CustomizeMayuThick": {
+      "en": "CustomizeMayuThick",
+      "zh": "CustomizeMayuThick"
+    },
+    "CustomizeNeck": {
+      "en": "CustomizeNeck",
+      "zh": "CustomizeNeck"
+    },
+    "CustomizeNeckThick": {
+      "en": "CustomizeNeckThick",
+      "zh": "CustomizeNeckThick"
+    },
+    "CustomizeNipple": {
+      "en": "CustomizeNipple",
+      "zh": "CustomizeNipple"
+    },
+    "CustomizeShoulder": {
+      "en": "CustomizeShoulder",
+      "zh": "CustomizeShoulder"
+    },
+    "CustomizeSkinColor": {
+      "en": "CustomizeSkinColor",
+      "zh": "CustomizeSkinColor"
+    },
+    "CustomizeSkinColorB": {
+      "en": "CustomizeSkinColorB",
+      "zh": "CustomizeSkinColorB"
+    },
+    "CustomizeSkinColorG": {
+      "en": "CustomizeSkinColorG",
+      "zh": "CustomizeSkinColorG"
+    },
+    "CustomizeSkinColorR": {
+      "en": "CustomizeSkinColorR",
+      "zh": "CustomizeSkinColorR"
+    },
+    "CustomizeSuperBoobs": {
+      "en": "CustomizeSuperBoobs",
+      "zh": "CustomizeSuperBoobs"
+    },
+    "CustomizeTareme": {
+      "en": "CustomizeTareme",
+      "zh": "CustomizeTareme"
+    },
+    "CustomizeThighs": {
+      "en": "CustomizeThighs",
+      "zh": "CustomizeThighs"
+    },
+    "CustomizeThighsLength": {
+      "en": "CustomizeThighsLength",
+      "zh": "CustomizeThighsLength"
+    },
+    "CustomizeUpperBody": {
+      "en": "CustomizeUpperBody",
+      "zh": "CustomizeUpperBody"
+    },
+    "CustomizeUpperBody2": {
+      "en": "CustomizeUpperBody2",
+      "zh": "CustomizeUpperBody2"
+    },
+    "CustomizeUpperBodyLength": {
+      "en": "CustomizeUpperBodyLength",
+      "zh": "CustomizeUpperBodyLength"
+    },
+    "CustomizeUpperBodyLength2": {
+      "en": "CustomizeUpperBodyLength2",
+      "zh": "CustomizeUpperBodyLength2"
+    },
+    "CustomizeWaist": {
+      "en": "CustomizeWaist",
+      "zh": "CustomizeWaist"
+    },
+    "CustomIsSkinColorFree": {
+      "en": "CustomIsSkinColorFree",
+      "zh": "CustomIsSkinColorFree"
+    },
+    "CustomizeAdjustHeight": {
+      "en": "CustomizeAdjustHeight",
+      "zh": "CustomizeAdjustHeight"
+    },
+    "CustomizeEyeDark": {
+      "en": "CustomizeEyeDark",
+      "zh": "CustomizeEyeDark"
+    },
+    "CustomizeFutanariTamaVisible": {
+      "en": "CustomizeFutanariTamaVisible",
+      "zh": "CustomizeFutanariTamaVisible"
+    },
+    "CustomizeOddEye": {
+      "en": "CustomizeOddEye",
+      "zh": "CustomizeOddEye"
+    },
+    "CustomizeYaeba": {
+      "en": "CustomizeYaeba",
+      "zh": "CustomizeYaeba"
+    },
+    "BodyPaintTypeDict": {
+      "en": "BodyPaintTypeDict",
+      "zh": "BodyPaintTypeDict"
+    },
+    "HairCustomizeDataDict": {
+      "en": "HairCustomizeDataDict",
+      "zh": "HairCustomizeDataDict"
+    }
+  }
+}

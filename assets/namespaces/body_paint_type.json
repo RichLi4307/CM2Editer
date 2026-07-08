@@ -1,0 +1,45 @@
+{
+  "name": "body_paint_type",
+  "entries": {
+    "Inmon": {
+      "en": "Inmon",
+      "zh": "Inmon"
+    },
+    "Rakugaki": {
+      "en": "Rakugaki",
+      "zh": "Rakugaki"
+    },
+    "TattooDark": {
+      "en": "TattooDark",
+      "zh": "TattooDark"
+    },
+    "TattooFlower1": {
+      "en": "TattooFlower1",
+      "zh": "TattooFlower1"
+    },
+    "TattooFlower2": {
+      "en": "TattooFlower2",
+      "zh": "TattooFlower2"
+    },
+    "TattooLotus": {
+      "en": "TattooLotus",
+      "zh": "TattooLotus"
+    },
+    "TattooSatanism": {
+      "en": "TattooSatanism",
+      "zh": "TattooSatanism"
+    },
+    "TattooSlave": {
+      "en": "TattooSlave",
+      "zh": "TattooSlave"
+    },
+    "BodyOil": {
+      "en": "BodyOil",
+      "zh": "BodyOil"
+    },
+    "RubberSuit": {
+      "en": "RubberSuit",
+      "zh": "RubberSuit"
+    }
+  }
+}

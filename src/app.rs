@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use egui::{Align2, FontId, Pos2, Rect, Vec2 as EVec2};
 
 use crate::api::definitions::{NodeDefinition, PortDefinition};
+use crate::api::namespace::NamespaceRegistry;
 use crate::api::registry::get_definition;
 use crate::code_gen::generator::generate_code_to_file;
 use crate::error::{FlowError, Result};
@@ -25,6 +26,7 @@ use crate::ui::panels::{
     data_menu::DataMenuPanel,
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
+    namespace_picker::{NamespacePicker, NamespacePickerState},
     node_library::NodeLibraryPanel,
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::PropertiesPanel,
@@ -182,6 +184,10 @@ pub struct App {
     pub cached_json_version: u64,
     /// 图版本号，变化时重新生成缓存 JSON
     pub graph_version: u64,
+    /// 命名空间注册表，加载 assets/namespaces 下的 JSON 文件。
+    pub namespace_registry: NamespaceRegistry,
+    /// 命名空间选择器窗口状态。
+    pub namespace_picker: Option<NamespacePickerState>,
     /// 左栏当前标签页
     left_panel_tab: LeftPanelTab,
     /// 新建工程对话框状态
@@ -206,6 +212,7 @@ impl App {
         setup_fonts(&cc.egui_ctx);
         let graph = Graph::default();
         Self {
+            graph,
             canvas: Canvas::new(),
             selected_nodes: HashSet::new(),
             selected_edges: HashSet::new(),
@@ -215,14 +222,15 @@ impl App {
             redo_stack: Vec::new(),
             clipboard: Clipboard::default(),
             project: None,
+            namespace_registry: NamespaceRegistry::load_bundled(),
+            namespace_picker: None,
             show_meta_editor: false,
             validation_errors: Vec::new(),
             search_window_open: false,
             search_query: String::new(),
-            status_message: String::from("就绪"),
-            graph,
-            show_welcome_hint: true,
-            cached_json: String::from("{}"),
+            status_message: String::new(),
+            show_welcome_hint: false,
+            cached_json: String::new(),
             cached_json_version: 0,
             graph_version: 0,
             left_panel_tab: LeftPanelTab::default(),
@@ -237,6 +245,7 @@ impl App {
             export_project_dialog_open: false,
             export_destination: None,
         }
+
     }
 
     /// 执行命令并压入 Undo 栈。
@@ -863,6 +872,7 @@ impl eframe::App for App {
         self.handle_project_action(left_action);
 
         // 右栏：属性面板 / meta 编辑器
+        let mut edited_node_id = None;
         egui::SidePanel::right("properties")
             .width_range(200.0..=400.0)
             .show(ctx, |ui| {
@@ -871,8 +881,15 @@ impl eframe::App for App {
                         let _changed = MetaEditorPanel::show(ui, project);
                     }
                 } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
+                    edited_node_id = Some(node_id.clone());
                     if let Some(node) = self.graph.nodes.get(&node_id).cloned() {
-                        if let Some((key, value)) = PropertiesPanel::show(ui, &node, &self.graph) {
+                        if let Some((key, value)) = PropertiesPanel::show(
+                            ui,
+                            &node,
+                            &self.graph,
+                            &self.namespace_registry,
+                            &mut self.namespace_picker,
+                        ) {
                             if let Some(n) = self.graph.nodes.get(&node_id) {
                                 let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
                                 self.push_command(Command::SetParam {
@@ -892,6 +909,35 @@ impl eframe::App for App {
                     ui.label("打开工程后编辑节点属性");
                 }
             });
+
+        // 命名空间选择器悬浮窗口
+        if let Some(picker) = self.namespace_picker.as_mut() {
+            if picker.open {
+                if let Some(keys) = NamespacePicker::show(ctx, &self.namespace_registry, picker) {
+                    if let Some(node_id) = edited_node_id {
+                        let value = if picker.multi {
+                            ParamValue::Literal(serde_json::json!(keys))
+                        } else {
+                            ParamValue::Literal(serde_json::json!(
+                                keys.into_iter().next().unwrap_or_default()
+                            ))
+                        };
+                        let key = picker.param_key.clone();
+                        if let Some(n) = self.graph.nodes.get(&node_id) {
+                            let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
+                            self.push_command(Command::SetParam {
+                                node_id,
+                                key,
+                                from,
+                                to: value,
+                            });
+                        }
+                    }
+                }
+            } else {
+                self.namespace_picker = None;
+            }
+        }
 
         // 底部状态栏
         egui::TopBottomPanel::bottom("status_bar")

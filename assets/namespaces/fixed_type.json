@@ -1,0 +1,49 @@
+{
+  "name": "fixed_type",
+  "entries": {
+    "None": {
+      "en": "None",
+      "zh": "None"
+    },
+    "Car": {
+      "en": "Car",
+      "zh": "Car"
+    },
+    "Talk": {
+      "en": "Talk",
+      "zh": "Talk"
+    },
+    "SitWork": {
+      "en": "SitWork",
+      "zh": "SitWork"
+    },
+    "SitTalk": {
+      "en": "SitTalk",
+      "zh": "SitTalk"
+    },
+    "SitSleep": {
+      "en": "SitSleep",
+      "zh": "SitSleep"
+    },
+    "SitBook": {
+      "en": "SitBook",
+      "zh": "SitBook"
+    },
+    "SitSumaho": {
+      "en": "SitSumaho",
+      "zh": "SitSumaho"
+    },
+    "StandSumaho": {
+      "en": "StandSumaho",
+      "zh": "StandSumaho"
+    },
+    "Pinpon": {
+      "en": "Pinpon",
+      "zh": "Pinpon"
+    },
+    "Conbini": {
+      "en": "Conbini",
+      "zh": "Conbini"
+    }
+  }
+}

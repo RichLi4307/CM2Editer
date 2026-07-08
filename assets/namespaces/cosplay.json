@@ -1,0 +1,757 @@
+{
+  "name": "cosplay",
+  "entries": {
+    "m_cosplay_general_head_mask": {
+      "en": "Mask",
+      "zh": "Mask"
+    },
+    "m_cosplay_general_head_glasses": {
+      "en": "Glasses",
+      "zh": "Glasses"
+    },
+    "m_cosplay_general_head_sun_glasses": {
+      "en": "Sun Glasses",
+      "zh": "Sun Glasses"
+    },
+    "m_cosplay_general_head_osyaburi": {
+      "en": "Osyaburi",
+      "zh": "Osyaburi"
+    },
+    "m_cosplay_general_head_kuchikase": {
+      "en": "Kuchikase",
+      "zh": "Kuchikase"
+    },
+    "m_cosplay_general_head_eye_censor": {
+      "en": "Eye Censor",
+      "zh": "Eye Censor"
+    },
+    "m_cosplay_general_head_police_hat": {
+      "en": "Police Hat",
+      "zh": "Police Hat"
+    },
+    "m_cosplay_general_head_mekakushi": {
+      "en": "Mekakushi",
+      "zh": "Mekakushi"
+    },
+    "m_cosplay_general_head_houtai": {
+      "en": "Houtai",
+      "zh": "Houtai"
+    },
+    "m_cosplay_general_upper_kubiwa": {
+      "en": "Kubiwa",
+      "zh": "Kubiwa"
+    },
+    "m_cosplay_general_upper_mufflar": {
+      "en": "Mufflar",
+      "zh": "Mufflar"
+    },
+    "m_cosplay_general_upper_kubiwa_seisyori": {
+      "en": "Kubiwa Seisyori",
+      "zh": "Kubiwa Seisyori"
+    },
+    "m_cosplay_general_upper_race_pants": {
+      "en": "Race Pants",
+      "zh": "Race Pants"
+    },
+    "m_cosplay_general_upper_bra": {
+      "en": "Bra",
+      "zh": "Bra"
+    },
+    "m_cosplay_general_upper_condom": {
+      "en": "Condom",
+      "zh": "Condom"
+    },
+    "m_cosplay_general_upper_necktie": {
+      "en": "Necktie",
+      "zh": "Necktie"
+    },
+    "m_cosplay_general_upper_rain_coat": {
+      "en": "Rain Coat",
+      "zh": "Rain Coat"
+    },
+    "m_cosplay_general_upper_far": {
+      "en": "Far",
+      "zh": "Far"
+    },
+    "m_cosplay_general_upper_kanban": {
+      "en": "Kanban",
+      "zh": "Kanban"
+    },
+    "m_cosplay_general_upper_body_net": {
+      "en": "Body Net",
+      "zh": "Body Net"
+    },
+    "m_cosplay_general_upper_nip_piasu": {
+      "en": "Nip Piasu",
+      "zh": "Nip Piasu"
+    },
+    "m_cosplay_general_upper_cross_piasu": {
+      "en": "Cross Piasu",
+      "zh": "Cross Piasu"
+    },
+    "m_cosplay_general_upper_gentle_hand": {
+      "en": "Gentle Hand",
+      "zh": "Gentle Hand"
+    },
+    "m_cosplay_general_upper_ofuda": {
+      "en": "Ofuda",
+      "zh": "Ofuda"
+    },
+    "m_cosplay_general_upper_bansoukou": {
+      "en": "Bansoukou",
+      "zh": "Bansoukou"
+    },
+    "m_cosplay_general_upper_glove": {
+      "en": "Glove",
+      "zh": "Glove"
+    },
+    "m_cosplay_general_upper_ultimate_pants": {
+      "en": "Ultimate Pants",
+      "zh": "Ultimate Pants"
+    },
+    "m_cosplay_general_upper_nippless": {
+      "en": "Nippless",
+      "zh": "Nippless"
+    },
+    "m_cosplay_general_upper_randoseru": {
+      "en": "Randoseru",
+      "zh": "Randoseru"
+    },
+    "m_cosplay_general_upper_glove_net": {
+      "en": "Glove Net",
+      "zh": "Glove Net"
+    },
+    "m_cosplay_general_upper_chack_bikini_pants": {
+      "en": "Chack Bikini Pants",
+      "zh": "Chack Bikini Pants"
+    },
+    "m_cosplay_general_upper_long_leather_glove": {
+      "en": "Long Leather Glove",
+      "zh": "Long Leather Glove"
+    },
+    "m_cosplay_general_upper_micro_bikini_bra": {
+      "en": "Micro Bikini Bra",
+      "zh": "Micro Bikini Bra"
+    },
+    "m_cosplay_general_upper_full_glove": {
+      "en": "Full Glove",
+      "zh": "Full Glove"
+    },
+    "m_cosplay_general_upper_micro_bikini_pants": {
+      "en": "Micro Bikini Pants",
+      "zh": "Micro Bikini Pants"
+    },
+    "m_cosplay_general_upper_sling_shot": {
+      "en": "Sling Shot",
+      "zh": "Sling Shot"
+    },
+    "m_cosplay_general_upper_kikkou": {
+      "en": "Kikkou",
+      "zh": "Kikkou"
+    },
+    "m_cosplay_general_upper_harness": {
+      "en": "Harness",
+      "zh": "Harness"
+    },
+    "m_cosplay_general_upper_swimsuit": {
+      "en": "Swimsuit",
+      "zh": "Swimsuit"
+    },
+    "m_cosplay_general_upper_sukumizu": {
+      "en": "Sukumizu",
+      "zh": "Sukumizu"
+    },
+    "m_cosplay_general_upper_rubber_suit": {
+      "en": "Rubber Suit",
+      "zh": "Rubber Suit"
+    },
+    "m_cosplay_general_upper_chack_bikini_bra": {
+      "en": "Chack Bikini Bra",
+      "zh": "Chack Bikini Bra"
+    },
+    "m_cosplay_general_leg_stocking_net_dark_thin": {
+      "en": "Stocking Net Dark Thin",
+      "zh": "Stocking Net Dark Thin"
+    },
+    "m_cosplay_general_leg_stocking_net_dark": {
+      "en": "Stocking Net Dark",
+      "zh": "Stocking Net Dark"
+    },
+    "m_cosplay_general_leg_stocking_net_thin": {
+      "en": "Stocking Net Thin",
+      "zh": "Stocking Net Thin"
+    },
+    "m_cosplay_general_leg_stocking_net": {
+      "en": "Stocking Net",
+      "zh": "Stocking Net"
+    },
+    "m_cosplay_general_leg_stocking_race_dark": {
+      "en": "Stocking Race Dark",
+      "zh": "Stocking Race Dark"
+    },
+    "m_cosplay_general_leg_stocking_race": {
+      "en": "Stocking Race",
+      "zh": "Stocking Race"
+    },
+    "m_cosplay_general_leg_stocking_nieso": {
+      "en": "Stocking Nieso",
+      "zh": "Stocking Nieso"
+    },
+    "m_cosplay_general_leg_stocking_rain_boots": {
+      "en": "Stocking Rain Boots",
+      "zh": "Stocking Rain Boots"
+    },
+    "m_cosplay_general_leg_stocking": {
+      "en": "Stocking",
+      "zh": "Stocking"
+    },
+    "m_cosplay_general_leg_stocking_stripe": {
+      "en": "Stocking Stripe",
+      "zh": "Stocking Stripe"
+    },
+    "m_cosplay_general_leg_heel": {
+      "en": "Heel",
+      "zh": "Heel"
+    },
+    "m_cosplay_general_leg_stocking_sneaker": {
+      "en": "Stocking Sneaker",
+      "zh": "Stocking Sneaker"
+    },
+    "m_cosplay_general_leg_stocking_pin_heel": {
+      "en": "Stocking Pin Heel",
+      "zh": "Stocking Pin Heel"
+    },
+    "m_cosplay_general_leg_garter": {
+      "en": "Garter",
+      "zh": "Garter"
+    },
+    "m_cosplay_general_leg_long_boots": {
+      "en": "Long Boots",
+      "zh": "Long Boots"
+    },
+    "m_cosplay_general_leg_high_heel_boots": {
+      "en": "High Heel Boots",
+      "zh": "High Heel Boots"
+    },
+    "m_cosplay_general_leg_boots": {
+      "en": "Boots",
+      "zh": "Boots"
+    },
+    "m_cosplay_general_genital_tail_plug": {
+      "en": "Tail Plug",
+      "zh": "Tail Plug"
+    },
+    "m_cosplay_general_genital_ninjin": {
+      "en": "Ninjin",
+      "zh": "Ninjin"
+    },
+    "m_cosplay_general_genital_rubbit_tail": {
+      "en": "Rubbit Tail",
+      "zh": "Rubbit Tail"
+    },
+    "m_cosplay_general_genital_beads": {
+      "en": "Beads",
+      "zh": "Beads"
+    },
+    "m_cosplay_general_genital_gentle_hand": {
+      "en": "Gentle Hand",
+      "zh": "Gentle Hand"
+    },
+    "m_cosplay_general_genital_ofuda": {
+      "en": "Ofuda",
+      "zh": "Ofuda"
+    },
+    "m_cosplay_general_genital_bansoukou": {
+      "en": "Bansoukou",
+      "zh": "Bansoukou"
+    },
+    "m_cosplay_general_genital_anal_plug": {
+      "en": "Anal Plug",
+      "zh": "Anal Plug"
+    },
+    "m_cosplay_general_genital_maebari": {
+      "en": "Maebari",
+      "zh": "Maebari"
+    },
+    "m_cosplay_general_genital_plug_light": {
+      "en": "Plug Light",
+      "zh": "Plug Light"
+    },
+    "m_cosplay_succubus_cosplay_horn": {
+      "en": "M Cosplay Succubus Cosplay Horn",
+      "zh": "M Cosplay Succubus Cosplay Horn"
+    },
+    "m_cosplay_succubus_cosplay_tops": {
+      "en": "M Cosplay Succubus Cosplay Tops",
+      "zh": "M Cosplay Succubus Cosplay Tops"
+    },
+    "m_cosplay_succubus_cosplay_wing": {
+      "en": "M Cosplay Succubus Cosplay Wing",
+      "zh": "M Cosplay Succubus Cosplay Wing"
+    },
+    "m_cosplay_succubus_cosplay_skirt": {
+      "en": "M Cosplay Succubus Cosplay Skirt",
+      "zh": "M Cosplay Succubus Cosplay Skirt"
+    },
+    "m_cosplay_succubus_cosplay_pants": {
+      "en": "M Cosplay Succubus Cosplay Pants",
+      "zh": "M Cosplay Succubus Cosplay Pants"
+    },
+    "m_cosplay_succubus_cosplay_tail": {
+      "en": "M Cosplay Succubus Cosplay Tail",
+      "zh": "M Cosplay Succubus Cosplay Tail"
+    },
+    "m_cosplay_maid_choker": {
+      "en": "M Cosplay Maid Choker",
+      "zh": "M Cosplay Maid Choker"
+    },
+    "m_cosplay_ninja_omen": {
+      "en": "M Cosplay Ninja Omen",
+      "zh": "M Cosplay Ninja Omen"
+    },
+    "m_cosplay_ninja_mask": {
+      "en": "M Cosplay Ninja Mask",
+      "zh": "M Cosplay Ninja Mask"
+    },
+    "m_cosplay_ninja_sleeve": {
+      "en": "M Cosplay Ninja Sleeve",
+      "zh": "M Cosplay Ninja Sleeve"
+    },
+    "m_cosplay_ninja_tops": {
+      "en": "M Cosplay Ninja Tops",
+      "zh": "M Cosplay Ninja Tops"
+    },
+    "m_cosplay_ninja_boots": {
+      "en": "M Cosplay Ninja Boots",
+      "zh": "M Cosplay Ninja Boots"
+    },
+    "m_cosplay_maid_onepiece": {
+      "en": "M Cosplay Maid Onepiece",
+      "zh": "M Cosplay Maid Onepiece"
+    },
+    "m_cosplay_maid_sleeve": {
+      "en": "M Cosplay Maid Sleeve",
+      "zh": "M Cosplay Maid Sleeve"
+    },
+    "m_cosplay_maid_harness_belt": {
+      "en": "M Cosplay Maid Harness Belt",
+      "zh": "M Cosplay Maid Harness Belt"
+    },
+    "m_cosplay_maid_apron": {
+      "en": "M Cosplay Maid Apron",
+      "zh": "M Cosplay Maid Apron"
+    },
+    "m_cosplay_maid_bag": {
+      "en": "M Cosplay Maid Bag",
+      "zh": "M Cosplay Maid Bag"
+    },
+    "m_cosplay_maid_ankle_belt": {
+      "en": "M Cosplay Maid Ankle Belt",
+      "zh": "M Cosplay Maid Ankle Belt"
+    },
+    "m_cosplay_maid_shoes": {
+      "en": "M Cosplay Maid Shoes",
+      "zh": "M Cosplay Maid Shoes"
+    },
+    "m_cosplay_maid_stocking": {
+      "en": "M Cosplay Maid Stocking",
+      "zh": "M Cosplay Maid Stocking"
+    },
+    "m_cosplay_maid_ribbon": {
+      "en": "M Cosplay Maid Ribbon",
+      "zh": "M Cosplay Maid Ribbon"
+    },
+    "m_cosplay_sister_head": {
+      "en": "M Cosplay Sister Head",
+      "zh": "M Cosplay Sister Head"
+    },
+    "m_cosplay_kemono_ear_cat": {
+      "en": "M Cosplay Kemono Ear Cat",
+      "zh": "M Cosplay Kemono Ear Cat"
+    },
+    "m_cosplay_sister_face": {
+      "en": "M Cosplay Sister Face",
+      "zh": "M Cosplay Sister Face"
+    },
+    "m_cosplay_sister_cloth": {
+      "en": "M Cosplay Sister Cloth",
+      "zh": "M Cosplay Sister Cloth"
+    },
+    "m_cosplay_sister_leotard": {
+      "en": "M Cosplay Sister Leotard",
+      "zh": "M Cosplay Sister Leotard"
+    },
+    "m_cosplay_sister_curtain": {
+      "en": "M Cosplay Sister Curtain",
+      "zh": "M Cosplay Sister Curtain"
+    },
+    "m_cosplay_sister_shoulder": {
+      "en": "M Cosplay Sister Shoulder",
+      "zh": "M Cosplay Sister Shoulder"
+    },
+    "m_cosplay_sister_collar": {
+      "en": "M Cosplay Sister Collar",
+      "zh": "M Cosplay Sister Collar"
+    },
+    "m_cosplay_sister_arm": {
+      "en": "M Cosplay Sister Arm",
+      "zh": "M Cosplay Sister Arm"
+    },
+    "m_cosplay_sister_socks": {
+      "en": "M Cosplay Sister Socks",
+      "zh": "M Cosplay Sister Socks"
+    },
+    "m_cosplay_sister_shoes": {
+      "en": "M Cosplay Sister Shoes",
+      "zh": "M Cosplay Sister Shoes"
+    },
+    "m_cosplay_sister_pants": {
+      "en": "M Cosplay Sister Pants",
+      "zh": "M Cosplay Sister Pants"
+    },
+    "m_cosplay_kemono_ear_fox": {
+      "en": "M Cosplay Kemono Ear Fox",
+      "zh": "M Cosplay Kemono Ear Fox"
+    },
+    "m_cosplay_kemono_hand": {
+      "en": "M Cosplay Kemono Hand",
+      "zh": "M Cosplay Kemono Hand"
+    },
+    "m_cosplay_kemono_tail": {
+      "en": "M Cosplay Kemono Tail",
+      "zh": "M Cosplay Kemono Tail"
+    },
+    "m_cosplay_kemono_foot": {
+      "en": "M Cosplay Kemono Foot",
+      "zh": "M Cosplay Kemono Foot"
+    },
+    "m_cosplay_bunny_ear": {
+      "en": "M Cosplay Bunny Ear",
+      "zh": "M Cosplay Bunny Ear"
+    },
+    "m_cosplay_bunny_tops": {
+      "en": "M Cosplay Bunny Tops",
+      "zh": "M Cosplay Bunny Tops"
+    },
+    "m_cosplay_bunny_harness_top": {
+      "en": "M Cosplay Bunny Harness Top",
+      "zh": "M Cosplay Bunny Harness Top"
+    },
+    "m_cosplay_bunny_harness_under": {
+      "en": "M Cosplay Bunny Harness Under",
+      "zh": "M Cosplay Bunny Harness Under"
+    },
+    "m_cosplay_bunny_nippless": {
+      "en": "M Cosplay Bunny Nippless",
+      "zh": "M Cosplay Bunny Nippless"
+    },
+    "m_cosplay_bunny_jacket": {
+      "en": "M Cosplay Bunny Jacket",
+      "zh": "M Cosplay Bunny Jacket"
+    },
+    "m_cosplay_bunny_sockes": {
+      "en": "M Cosplay Bunny Sockes",
+      "zh": "M Cosplay Bunny Sockes"
+    },
+    "m_cosplay_bunny_shoes": {
+      "en": "M Cosplay Bunny Shoes",
+      "zh": "M Cosplay Bunny Shoes"
+    },
+    "m_cosplay_latex_pony_ear": {
+      "en": "M Cosplay Latex Pony Ear",
+      "zh": "M Cosplay Latex Pony Ear"
+    },
+    "m_cosplay_latex_pony_full_face": {
+      "en": "M Cosplay Latex Pony Full Face",
+      "zh": "M Cosplay Latex Pony Full Face"
+    },
+    "m_cosplay_latex_pony_head": {
+      "en": "M Cosplay Latex Pony Head",
+      "zh": "M Cosplay Latex Pony Head"
+    },
+    "m_cosplay_latex_pony_colllar": {
+      "en": "M Cosplay Latex Pony Colllar",
+      "zh": "M Cosplay Latex Pony Colllar"
+    },
+    "m_cosplay_latex_pony_tops": {
+      "en": "M Cosplay Latex Pony Tops",
+      "zh": "M Cosplay Latex Pony Tops"
+    },
+    "m_cosplay_latex_pony_nippless": {
+      "en": "M Cosplay Latex Pony Nippless",
+      "zh": "M Cosplay Latex Pony Nippless"
+    },
+    "m_cosplay_latex_pony_glove": {
+      "en": "M Cosplay Latex Pony Glove",
+      "zh": "M Cosplay Latex Pony Glove"
+    },
+    "m_cosplay_latex_pony_hip_belt": {
+      "en": "M Cosplay Latex Pony Hip Belt",
+      "zh": "M Cosplay Latex Pony Hip Belt"
+    },
+    "m_cosplay_latex_pony_tail": {
+      "en": "M Cosplay Latex Pony Tail",
+      "zh": "M Cosplay Latex Pony Tail"
+    },
+    "m_cosplay_latex_pony_boots": {
+      "en": "M Cosplay Latex Pony Boots",
+      "zh": "M Cosplay Latex Pony Boots"
+    },
+    "m_cosplay_jump_suit_suit": {
+      "en": "Suit",
+      "zh": "Suit"
+    },
+    "m_cosplay_jump_suit_boots": {
+      "en": "Boots",
+      "zh": "Boots"
+    },
+    "m_cosplay_jailer_cap": {
+      "en": "M Cosplay Jailer Cap",
+      "zh": "M Cosplay Jailer Cap"
+    },
+    "m_cosplay_jailer_jacket": {
+      "en": "M Cosplay Jailer Jacket",
+      "zh": "M Cosplay Jailer Jacket"
+    },
+    "m_cosplay_jailer_reotard": {
+      "en": "M Cosplay Jailer Reotard",
+      "zh": "M Cosplay Jailer Reotard"
+    },
+    "m_cosplay_jailer_pants": {
+      "en": "M Cosplay Jailer Pants",
+      "zh": "M Cosplay Jailer Pants"
+    },
+    "m_cosplay_jailer_bag": {
+      "en": "M Cosplay Jailer Bag",
+      "zh": "M Cosplay Jailer Bag"
+    },
+    "m_cosplay_jailer_boots": {
+      "en": "M Cosplay Jailer Boots",
+      "zh": "M Cosplay Jailer Boots"
+    },
+    "m_cosplay_cow_hair_band": {
+      "en": "M Cosplay Cow Hair Band",
+      "zh": "M Cosplay Cow Hair Band"
+    },
+    "m_cosplay_cow_choker": {
+      "en": "M Cosplay Cow Choker",
+      "zh": "M Cosplay Cow Choker"
+    },
+    "m_cosplay_cow_glove": {
+      "en": "M Cosplay Cow Glove",
+      "zh": "M Cosplay Cow Glove"
+    },
+    "m_cosplay_cow_bra": {
+      "en": "M Cosplay Cow Bra",
+      "zh": "M Cosplay Cow Bra"
+    },
+    "m_cosplay_cow_pants": {
+      "en": "M Cosplay Cow Pants",
+      "zh": "M Cosplay Cow Pants"
+    },
+    "m_cosplay_cow_tail": {
+      "en": "M Cosplay Cow Tail",
+      "zh": "M Cosplay Cow Tail"
+    },
+    "m_cosplay_cow_boots": {
+      "en": "M Cosplay Cow Boots",
+      "zh": "M Cosplay Cow Boots"
+    },
+    "m_cosplay_wild_neck_mohu": {
+      "en": "M Cosplay Wild Neck Mohu",
+      "zh": "M Cosplay Wild Neck Mohu"
+    },
+    "m_cosplay_wild_belt": {
+      "en": "M Cosplay Wild Belt",
+      "zh": "M Cosplay Wild Belt"
+    },
+    "m_cosplay_wild_nippless_mohu": {
+      "en": "M Cosplay Wild Nippless Mohu",
+      "zh": "M Cosplay Wild Nippless Mohu"
+    },
+    "m_cosplay_wild_hand_mohu": {
+      "en": "M Cosplay Wild Hand Mohu",
+      "zh": "M Cosplay Wild Hand Mohu"
+    },
+    "m_cosplay_wild_pants": {
+      "en": "M Cosplay Wild Pants",
+      "zh": "M Cosplay Wild Pants"
+    },
+    "m_cosplay_wild_upper_leg_mohu": {
+      "en": "Leg Mohu",
+      "zh": "Leg Mohu"
+    },
+    "m_cosplay_wild_foot_mohu": {
+      "en": "M Cosplay Wild Foot Mohu",
+      "zh": "M Cosplay Wild Foot Mohu"
+    },
+    "m_cosplay_suit_chic_shirt": {
+      "en": "M Cosplay Suit Chic Shirt",
+      "zh": "M Cosplay Suit Chic Shirt"
+    },
+    "m_cosplay_suit_luxe_chorker": {
+      "en": "M Cosplay Suit Luxe Chorker",
+      "zh": "M Cosplay Suit Luxe Chorker"
+    },
+    "m_cosplay_suit_luxe_jacket": {
+      "en": "M Cosplay Suit Luxe Jacket",
+      "zh": "M Cosplay Suit Luxe Jacket"
+    },
+    "m_cosplay_suit_chic_jacket": {
+      "en": "M Cosplay Suit Chic Jacket",
+      "zh": "M Cosplay Suit Chic Jacket"
+    },
+    "m_cosplay_suit_chic_card": {
+      "en": "M Cosplay Suit Chic Card",
+      "zh": "M Cosplay Suit Chic Card"
+    },
+    "m_cosplay_suit_chic_skirt": {
+      "en": "M Cosplay Suit Chic Skirt",
+      "zh": "M Cosplay Suit Chic Skirt"
+    },
+    "m_cosplay_suit_chic_pants": {
+      "en": "M Cosplay Suit Chic Pants",
+      "zh": "M Cosplay Suit Chic Pants"
+    },
+    "m_cosplay_suit_chic_panty": {
+      "en": "M Cosplay Suit Chic Panty",
+      "zh": "M Cosplay Suit Chic Panty"
+    },
+    "m_cosplay_suit_chic_stocking": {
+      "en": "M Cosplay Suit Chic Stocking",
+      "zh": "M Cosplay Suit Chic Stocking"
+    },
+    "m_cosplay_suit_chic_shoes": {
+      "en": "M Cosplay Suit Chic Shoes",
+      "zh": "M Cosplay Suit Chic Shoes"
+    },
+    "m_cosplay_suit_luxe_tops": {
+      "en": "M Cosplay Suit Luxe Tops",
+      "zh": "M Cosplay Suit Luxe Tops"
+    },
+    "m_cosplay_suit_luxe_pants": {
+      "en": "M Cosplay Suit Luxe Pants",
+      "zh": "M Cosplay Suit Luxe Pants"
+    },
+    "m_cosplay_suit_luxe_shoes": {
+      "en": "M Cosplay Suit Luxe Shoes",
+      "zh": "M Cosplay Suit Luxe Shoes"
+    },
+    "m_cosplay_sweater_tops": {
+      "en": "M Cosplay Sweater Tops",
+      "zh": "M Cosplay Sweater Tops"
+    },
+    "m_cosplay_sweater_pants": {
+      "en": "M Cosplay Sweater Pants",
+      "zh": "M Cosplay Sweater Pants"
+    },
+    "m_cosplay_sweater_arm": {
+      "en": "M Cosplay Sweater Arm",
+      "zh": "M Cosplay Sweater Arm"
+    },
+    "m_cosplay_sweater_leg": {
+      "en": "M Cosplay Sweater Leg",
+      "zh": "M Cosplay Sweater Leg"
+    },
+    "m_cosplay_glossy_jacket": {
+      "en": "M Cosplay Glossy Jacket",
+      "zh": "M Cosplay Glossy Jacket"
+    },
+    "m_cosplay_glossy_knit": {
+      "en": "M Cosplay Glossy Knit",
+      "zh": "M Cosplay Glossy Knit"
+    },
+    "m_cosplay_glossy_boots": {
+      "en": "M Cosplay Glossy Boots",
+      "zh": "M Cosplay Glossy Boots"
+    },
+    "m_cosplay_school_hoodie_ribbon": {
+      "en": "M Cosplay School Hoodie Ribbon",
+      "zh": "M Cosplay School Hoodie Ribbon"
+    },
+    "m_cosplay_school_hoodie_necktie": {
+      "en": "M Cosplay School Hoodie Necktie",
+      "zh": "M Cosplay School Hoodie Necktie"
+    },
+    "m_cosplay_school_hoodie_hoodie": {
+      "en": "M Cosplay School Hoodie Hoodie",
+      "zh": "M Cosplay School Hoodie Hoodie"
+    },
+    "m_cosplay_school_hoodie_bag": {
+      "en": "M Cosplay School Hoodie Bag",
+      "zh": "M Cosplay School Hoodie Bag"
+    },
+    "m_cosplay_school_hoodie_shirt": {
+      "en": "M Cosplay School Hoodie Shirt",
+      "zh": "M Cosplay School Hoodie Shirt"
+    },
+    "m_cosplay_school_hoodie_socks": {
+      "en": "M Cosplay School Hoodie Socks",
+      "zh": "M Cosplay School Hoodie Socks"
+    },
+    "m_cosplay_school_hoodie_shoes": {
+      "en": "M Cosplay School Hoodie Shoes",
+      "zh": "M Cosplay School Hoodie Shoes"
+    },
+    "m_cosplay_school_hoodie_skirt": {
+      "en": "M Cosplay School Hoodie Skirt",
+      "zh": "M Cosplay School Hoodie Skirt"
+    },
+    "m_cosplay_school_gal_blazer": {
+      "en": "M Cosplay School Gal Blazer",
+      "zh": "M Cosplay School Gal Blazer"
+    },
+    "m_cosplay_school_gal_ribbon": {
+      "en": "M Cosplay School Gal Ribbon",
+      "zh": "M Cosplay School Gal Ribbon"
+    },
+    "m_cosplay_school_gal_cardigan_summer": {
+      "en": "M Cosplay School Gal Cardigan Summer",
+      "zh": "M Cosplay School Gal Cardigan Summer"
+    },
+    "m_cosplay_school_gal_shirt_winter": {
+      "en": "M Cosplay School Gal Shirt Winter",
+      "zh": "M Cosplay School Gal Shirt Winter"
+    },
+    "m_cosplay_school_gal_necktie": {
+      "en": "M Cosplay School Gal Necktie",
+      "zh": "M Cosplay School Gal Necktie"
+    },
+    "m_cosplay_school_gal_cardigan_winter": {
+      "en": "M Cosplay School Gal Cardigan Winter",
+      "zh": "M Cosplay School Gal Cardigan Winter"
+    },
+    "m_cosplay_school_gal_skirt": {
+      "en": "M Cosplay School Gal Skirt",
+      "zh": "M Cosplay School Gal Skirt"
+    },
+    "m_cosplay_school_gal_bag": {
+      "en": "M Cosplay School Gal Bag",
+      "zh": "M Cosplay School Gal Bag"
+    },
+    "m_cosplay_school_gal_sockes": {
+      "en": "M Cosplay School Gal Sockes",
+      "zh": "M Cosplay School Gal Sockes"
+    },
+    "m_cosplay_school_gal_shoes": {
+      "en": "M Cosplay School Gal Shoes",
+      "zh": "M Cosplay School Gal Shoes"
+    },
+    "m_cosplay_school_gal_earing": {
+      "en": "M Cosplay School Gal Earing",
+      "zh": "M Cosplay School Gal Earing"
+    },
+    "m_cosplay_school_gal_necklace": {
+      "en": "M Cosplay School Gal Necklace",
+      "zh": "M Cosplay School Gal Necklace"
+    },
+    "m_cosplay_school_gal_bracelet": {
+      "en": "M Cosplay School Gal Bracelet",
+      "zh": "M Cosplay School Gal Bracelet"
+    },
+    "m_cosplay_school_gal_shirt_summer": {
+      "en": "M Cosplay School Gal Shirt Summer",
+      "zh": "M Cosplay School Gal Shirt Summer"
+    }
+  }
+}

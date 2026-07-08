@@ -1,0 +1,29 @@
+{
+  "name": "avatar_type",
+  "entries": {
+    "NewFemale": {
+      "en": "NewFemale",
+      "zh": "NewFemale"
+    },
+    "NewMale": {
+      "en": "NewMale",
+      "zh": "NewMale"
+    },
+    "NewOji": {
+      "en": "NewOji",
+      "zh": "NewOji"
+    },
+    "NewOba": {
+      "en": "NewOba",
+      "zh": "NewOba"
+    },
+    "PreviousFemale": {
+      "en": "PreviousFemale",
+      "zh": "PreviousFemale"
+    },
+    "PreviousMale": {
+      "en": "PreviousMale",
+      "zh": "PreviousMale"
+    }
+  }
+}
