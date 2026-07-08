@@ -93,3 +93,82 @@
 
 - 新增 `src/project.rs` 单元测试：`MissionMeta` 序列化、Setting 反序列化、工程创建/打开/增删改 `.code` 文件。
 - `cargo test`：81 个 lib tests + 16 个 integration tests 全部通过，0 失败。
+
+---
+
+## [0.1.0] — 2026-07-08
+
+### 新增（Phase 5.1.1：DataFlow 重构）
+
+- 节点参数自动生成 Data 输入端口（ID = 参数名），端口数自适应节点高度。
+- DataFlow 边以**虚线**渲染，仅在单选相关节点时显示；Data 边自身被选中时也保持可见。
+- 属性面板新增数据源下拉框：可切换"字面量"或引用其他节点的 Data 输出端口。
+- 底部面板拆分为 JSON 预览（左）与 Data 菜单（右），通过 `Separator` 分隔。
+- 代码生成优先使用 Data 端口连接的值，无连接时回退到 `ParamValue`。
+- 新增 4 项单元测试；`cargo test` 96 项通过。
+
+### 新增（Phase 5.1.2：参数类型重构）
+
+- `src/api/enums.rs`：从 `documentation_zh.html` 提取游戏常量——场景类型、动作、技能、物品、掉落物、音效、成人玩具、手铐类型、振动器/活塞强度、体位、图形选项、条件类型。
+- `ParamType::Enum` 变体，映射到 `PortType::String`，默认值为第一个选项。
+- `ParamDefinition::options` 字段填充枚举选项；**20+ 个节点参数**从手动输入改为下拉选择。
+- `PropertiesPanel` 对含 options 的参数渲染 `ComboBox` 下拉框。
+
+### 新增（Phase 5.1.3：命名空间管理）
+
+- `src/api/namespace.rs`：`Namespace`、`NamespaceEntry`、`NamespaceRegistry` 数据结构。
+- 7 个命名空间 JSON 文件（`assets/namespaces/`）：cosplay、adult_toy、avatar_type、fixed_type、hair_type、body_paint_type、player_data。
+- 浮动命名空间选择器窗口：搜索、多选/单选、中英文显示名切换。
+- `cosplayKeys`、`toyNames`、`avatarType`、`dataName` 参数绑定到对应命名空间选择按钮。
+- App 启动时自动加载命名空间注册表。
+
+### 新增（Phase 5.2.2 + 5.2.3 + 5.2.4：静态检查与错误详情）
+
+- `FlowError::Warning` 变体：非阻塞警告，不影响代码生成但展示在状态栏。
+- 多 Start 节点警告：存在 >1 个 Start 时提示。
+- 不可达节点警告：BFS 从 Start 沿 Flow 边遍历，标记不可达节点。
+- 菱形依赖警告：检测 `Start→B` 与 `Start→A→B` 多路到达同节点的菱形结构。
+- 状态栏错误计数改为可点击链接；点击弹出 `ErrorDetailWindow` 列出全部错误/警告描述。
+
+### 新增（Data 面板 UI 重构）
+
+- DataFlow 面板改为**水平换行方块**（巧克力板布局），每块 64×40px，按端口类型着色。
+- 点击方块选中画布中对应节点。
+- DataFlow 虚线可单独点选/框选；`delete_selected` 优先删连线（有连线选中时绝不删节点）。
+- Data 边在自身被选中时继续保持渲染，确保点击选中后虚线不消失。
+
+### 新增（底部面板重构）
+
+- 三合一布局：`代码 ┃ JSON ┃ DataFlow` 并排于同一可拖拽 `TopBottomPanel`。
+- 两条 6px 宽**可见竖直分隔线**（灰色/蓝色，鼠标悬停变 `ResizeHorizontal`），拖拽调整三列宽度，`drag_delta()` 安全计算比例。
+- `.code` 预览和 JSON 预览均放入 `ScrollArea`，防止长内容撑高父面板。
+- 底部面板整体高度可拖拽，`resizable(true)` + 固定 `default_height`。
+
+### 修复
+
+- egui ID 冲突：7 个 `ScrollArea` + 1 个 `CollapsingHeader` 添加 `id_salt`，消除运行时红色 ID clash 警告。
+- 代码生成按钮无效：`CodeEditorPanel` 接收 `&Graph` 参数，点击时先同步实时 graph 再生成。
+- 旧图档必填参数 Null 错误：`NodeData → Node` 反序列化时自动补填缺失 required 参数的默认值。
+- 底栏弹回/自缩：移除 `default_height ⇒ ui.available_size() ⇒ data_mut` 循环写逻辑，改用常量默认值。
+- `node_library` 的 `ui.collapsing` 废弃 API 替换为 `CollapsingHeader::new().id_salt()`。
+
+### 变更
+
+- `GraphValidator` 新增 `warn_multiple_starts`、`warn_unreachable_nodes`、`warn_diamond_reachable` 三个非阻塞检查。
+- `FlowError` 新增 `is_blocking()` 和 `is_warning()` 方法。
+- `StatusBarPanel::show` 返回 `StatusBarEvent` 以支持点击事件。
+- 底部面板 ID 从 `"bottom_panel"` 迁移为 `"bottom_main"`（合并后）。
+
+### 文档
+
+- `README.md` 更新至 v0.1.0：Phase 5 进度、DataFlow 功能、项目结构、Release 构建说明。
+- `docs/TODO.md` 标记 5.1.2–5.4.1 为已完成。
+
+### 测试
+
+- `cargo test --lib`：92 项通过。
+- `cargo test`（完整）：108 项通过（92 lib + 16 integration）。
+- `cargo clippy`：仅 4 个 pre-existing 警告，零新增。
+- Release 构建产物：`target/release/CM2Editer.exe`（~6.5 MB）。
+
+
