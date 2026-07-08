@@ -26,7 +26,7 @@ use crate::ui::panels::{
     data_menu::DataMenuPanel,
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
-    namespace_picker::{NamespacePicker, NamespacePickerState},
+    namespace_picker::NamespacePicker,
     node_library::NodeLibraryPanel,
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::PropertiesPanel,
@@ -184,10 +184,12 @@ pub struct App {
     pub cached_json_version: u64,
     /// 图版本号，变化时重新生成缓存 JSON
     pub graph_version: u64,
+    /// 底部面板高度，用于持久化拖拽高度
+    pub bottom_panel_height: f32,
     /// 命名空间注册表，加载 assets/namespaces 下的 JSON 文件。
     pub namespace_registry: NamespaceRegistry,
     /// 命名空间选择器窗口状态。
-    pub namespace_picker: Option<NamespacePickerState>,
+    pub namespace_picker: Option<crate::ui::panels::namespace_picker::NamespacePickerState>,
     /// 左栏当前标签页
     left_panel_tab: LeftPanelTab,
     /// 新建工程对话框状态
@@ -233,6 +235,7 @@ impl App {
             cached_json: String::new(),
             cached_json_version: 0,
             graph_version: 0,
+            bottom_panel_height: 200.0,
             left_panel_tab: LeftPanelTab::default(),
             new_project_dialog_open: false,
             new_project_parent: None,
@@ -319,12 +322,30 @@ impl App {
         self.status_message = format!("已添加 {}", def.display_name);
     }
 
-    /// 删除选中的节点和边。
+    /// 删除选中的项。
+    ///
+    /// 当存在选中的连线时，优先仅删除连线；否则删除选中的节点及其连接。
+    /// 这样可以单独删除 Data 虚线而不误删节点。
     fn delete_selected(&mut self) {
+        if !self.selected_edges.is_empty() {
+            // 优先只删除选中的连线
+            let mut edges_to_remove = Vec::new();
+            for edge in self.graph.edges.values() {
+                if self.selected_edges.contains(&edge.id) {
+                    edges_to_remove.push(edge.clone());
+                }
+            }
+            for edge in &edges_to_remove {
+                self.push_command(Command::RemoveEdge { edge: edge.clone() });
+            }
+            self.selected_edges.clear();
+            self.status_message = format!("已删除 {} 条连线", edges_to_remove.len());
+            return;
+        }
+
         let mut edges_to_remove = Vec::new();
         for edge in self.graph.edges.values() {
-            if self.selected_edges.contains(&edge.id)
-                || self.selected_nodes.contains(&edge.from.node_id)
+            if self.selected_nodes.contains(&edge.from.node_id)
                 || self.selected_nodes.contains(&edge.to.node_id)
             {
                 edges_to_remove.push(edge.clone());
@@ -970,9 +991,10 @@ impl eframe::App for App {
         }
         egui::TopBottomPanel::bottom("bottom_panel")
             .resizable(true)
-            .default_height(120.0)
-            .min_height(80.0)
+            .default_height(self.bottom_panel_height)
+            .min_height(120.0)
             .show(ctx, |ui| {
+                self.bottom_panel_height = ui.available_size().y;
                 ui.horizontal(|ui| {
                     let available = ui.available_size_before_wrap();
                     let half_width = available.x / 2.0;
@@ -988,10 +1010,21 @@ impl eframe::App for App {
                         egui::vec2(half_width - 12.0, available.y),
                         egui::Layout::top_down(egui::Align::LEFT),
                         |ui| {
-                            DataMenuPanel::show(ui, &self.graph, &self.selected_nodes);
+                            if let Some(node_id) =
+                                DataMenuPanel::show(ui, &self.graph, &self.selected_nodes)
+                            {
+                                self.selected_nodes.clear();
+                                self.selected_nodes.insert(node_id);
+                                self.selected_edges.clear();
+                            }
                         },
                     );
                 });
+                // 再次记录实际高度，确保即使 egui 内部调整了尺寸也能更新
+                self.bottom_panel_height = self
+                    .bottom_panel_height
+                    .max(ui.min_rect().height())
+                    .max(120.0);
             });
 
         // 中央画布
@@ -1223,14 +1256,16 @@ impl App {
 
         // 第二遍：渲染连线（在节点下方），并裁剪
         let mut edge_hits: Vec<(String, Rect)> = Vec::new();
-        // DataFlow 边仅在单选相关节点时显示，避免复杂图被虚线淹没
+        // DataFlow 边在单选相关节点时显示，或当该 Data 边本身被选中时显示，
+        // 便于用户点选/框选虚线并单独删除。
         let selected_node = self.selected_nodes.iter().next().cloned();
         for edge in self.graph.edges.values() {
             if edge.edge_type != PortType::Flow {
                 let related = selected_node.as_ref().is_some_and(|selected| {
                     edge.from.node_id == *selected || edge.to.node_id == *selected
                 });
-                if !related {
+                let edge_selected = self.selected_edges.contains(&edge.id);
+                if !related && !edge_selected {
                     continue;
                 }
             }
