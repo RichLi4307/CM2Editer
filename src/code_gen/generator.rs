@@ -536,18 +536,6 @@ fn format_literal(value: &serde_json::Value) -> String {
     serde_json::to_string(value).unwrap_or_else(|_| "null".to_string())
 }
 
-/// 格式化字符串字面量，去掉 JSON 双引号包裹——
-/// 专门的 Data 节点（如 Boolean、GetStateBool）的 param 值是裸表达式，不能加引号。
-fn format_literal_string(value: &str) -> String {
-    let json = serde_json::to_string(value).unwrap_or_else(|_| "null".to_string());
-    // 剥去周围的双引号
-    if json.len() >= 2 && json.starts_with('"') && json.ends_with('"') {
-        json[1..json.len() - 1].to_string()
-    } else {
-        json
-    }
-}
-
 /// 查找两个分支汇合的第一个公共节点
 fn find_join_node(graph: &Graph, a: &str, b: &str) -> Option<String> {
     let reachable_a = reachable_nodes(graph, a);
