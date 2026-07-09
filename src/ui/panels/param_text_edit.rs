@@ -54,8 +54,8 @@ impl ParamTextEdit {
             );
         }
 
-        // 提交条件：失焦或回车，且文本有修改
-        let committed = resp.changed()
+        // 提交条件：缓冲区与原始值不同 且 (失焦 或 回车)
+        let committed = (*buf != val_to_str(value))
             && (resp.lost_focus()
                 || ui.input(|i| i.key_pressed(egui::Key::Enter)));
         if committed && (json_ok || !needs_json) {
