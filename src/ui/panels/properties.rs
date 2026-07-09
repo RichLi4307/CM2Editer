@@ -141,6 +141,12 @@ impl PropertiesPanel {
             }
         }
 
+        // Object/List 类型无合适 Data 源，跳过 ComboBox 直通文本编辑器
+        let skip_combo = matches!(value, ParamValue::Literal(v) if v.is_object() || v.is_array());
+        if skip_combo {
+            return Self::literal_editor(ui, key, value, &node.id, edit_bufs);
+        }
+
         // 否则使用数据源选择器 + 字面量编辑器。
         Self::source_editor(ui, node, graph, key, value, edit_bufs)
     }
