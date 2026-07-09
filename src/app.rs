@@ -941,20 +941,44 @@ impl eframe::App for App {
                                 if self.graph.labels.is_empty() {
                                     ui.label("暂无标签");
                                 } else {
-                                    for (name, ids) in self.graph.labels.clone() {
-                                        ui.horizontal(|ui| {
-                                            if ui.button(&name).clicked() {
-                                                self.selected_nodes.clear();
-                                                for id in &ids {
-                                                    self.selected_nodes.insert(id.clone());
-                                                }
-                                                self.selected_edges.clear();
-                                                self.status_message =
-                                                    format!("已选中标签 {name} ({} 个节点)", ids.len());
+                                let mut to_delete = None;
+                                let mut to_rename = None;
+                                for (name, ids) in self.graph.labels.clone() {
+                                    let is_main = name.starts_with("main");
+                                    ui.horizontal(|ui| {
+                                        if ui.button(&name).clicked() {
+                                            self.selected_nodes.clear();
+                                            for id in &ids {
+                                                self.selected_nodes.insert(id.clone());
                                             }
-                                            ui.label(format!("({} 节点)", ids.len()));
-                                        });
+                                            self.selected_edges.clear();
+                                            self.status_message =
+                                                format!("已选中标签 {name} ({} 个节点)", ids.len());
+                                        }
+                                        ui.label(format!("({} 节点)", ids.len()));
+                                        if !is_main {
+                                            if ui.small_button("Del").clicked() {
+                                                to_delete = Some(name.clone());
+                                            }
+                                            if ui.small_button("Ren").clicked() {
+                                                to_rename = Some(name.clone());
+                                            }
+                                        }
+                                    });
+                                    if let Some(del) = to_delete.take() {
+                                        self.graph.labels.remove(&del);
+                                        self.graph_version += 1;
+                                        self.status_message = format!("已删除标签 {}", del);
                                     }
+                                    if let Some(old) = to_rename.take() {
+                                        let new_name = format!("{old}_renamed");
+                                        let ids_clone = ids.clone();
+                                        self.graph.labels.remove(&old);
+                                        self.graph.labels.insert(new_name.clone(), ids_clone);
+                                        self.graph_version += 1;
+                                        self.status_message = format!("已重命名 {old} → {new_name}");
+                                    }
+                                }
                                 }
                                 if ui.button("+ 新建标签").clicked() {
                                     self.graph.labels.entry("new_label".to_string()).or_default();
