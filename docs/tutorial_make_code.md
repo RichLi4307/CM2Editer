@@ -64,7 +64,7 @@ main:
 
 If 节点需要接在 Flow 链上——用它替换第二步的 Log，Data 管线并行输入：
 
-```
+```text
 Start ──Flow──→ [If] ──Flow(true)──→ Log("高")
                   │   ──Flow(false)─→ Log("低")
                   │ (Data 输入)
@@ -104,19 +104,22 @@ main:
 
 > 目标：每帧都检查状态，而不是只检查一次
 
+监听器的回调标签是一个**独立的标签体**（不需要 Start），需要用一个 **Label 节点**作为标签体的入口。
+
 | 步骤 | 操作 | 需要的节点 |
 |------|------|-----------|
 | 1 | 从 Objects 拖 **CreateListener** 到画布 | `CreateListener` |
 | 2 | 属性面板 `labelName` 填 `check_loop` → 回车 | |
-| 3 | 将 Start → If 的 Flow 改为：Start.`out_flow` → CreateListener.`in_flow` | |
-| 4 | 删除 Start → If 的旧边 | |
-| 5 | 左栏标签管理器 → 点击 `check_loop` 选中该标签下的节点 | |
-| 6 | 把第三步的 If+CompareNumbers+GetStateNumber+Log 整套挪进 `check_loop` 标签 | |
-| 7 | If.`in_flow` 无需连 Flow——监听器标签体内部节点顺序执行，If 直接作为第一个节点 | |
+| 3 | 将 Start.`out_flow` → CreateListener.`in_flow`（main 标签创建监听器） | |
+| 4 | 从 Control 拖 **Label** 到画布，`name` 填 `check_loop` → 回车 | `Label` |
+| 5 | 左栏标签管理器 → 展开"标签" → `check_loop` 现在显示 1 个节点（Label） | |
+| 6 | 把第三步的 If + CompareNumbers + GetStateNumber + Log 连在 Label 后面：Label.`out_flow` → If.`in_flow` → ... | |
+| 7 | If 后面不再连回 CreateListener——监听器每帧从头执行，自然循环 | |
 
-`check_loop` 是 CreateListener 的回调标签，**每帧自动执行一次**。标签体内不需要 Start——它本身就是入口。If 直接作为第一个节点——监听器调用该标签时，从标签内的首节点开始执行。
-
-> `check_loop` 标签会自动注册到左栏标签管理器。监听器结束后无需 Goto——每帧重新进入标签体从头执行。
+工作方式：
+- `main:` 标签 → CreateListener 启动 `check_loop`
+- `check_loop:` 标签 → Label 节点（入口）→ If → Log → `_result = null`
+- 每帧 CM2 调用 `check_loop:` 一次，执行整个标签体
 
 ---
 
@@ -130,9 +133,7 @@ main:
 | 2 | 连接 If.`out_true` → Goto.`in_flow`（替换原来连到 Log("高") 的 Flow 边） | |
 | 3 | `step2` 标签自动出现在左栏标签管理器中 | |
 
-Goto 之后当前线程结束执行。`step2` 标签体代码生成器会自动创建（含 `_result = null`）。要向 `step2` 添加内容，请将节点连入 `step2` 的 Flow 链。
-
-> **当前限制**：新标签默认只有 `_result = null`。要编辑标签体内容，需手动通过左栏标签管理器将节点 ID 添加到对应标签。
+Goto 之后当前线程结束执行。`step2` 标签体可通过添加 Label 节点并设置 `name="step2"` 来定义内容，和第四步的 `check_loop` 标签用法一致。
 
 ---
 

@@ -1307,10 +1307,17 @@ impl eframe::App for App {
                                         NodeType::CreateThread
                                         | NodeType::CreateListener
                                         | NodeType::CreateListenerLocal => key == "labelName",
+                                        NodeType::Label => key == "name",
                                         _ => false,
                                     };
                                     if needs_label {
-                                        self.graph.labels.entry(lbl).or_default();
+                                        let entry = self.graph.labels.entry(lbl).or_default();
+                                        // Label 节点本身是该标签的入口节点
+                                        if n.node_type == NodeType::Label {
+                                            if !entry.contains(&node_id) {
+                                                entry.push(node_id.clone());
+                                            }
+                                        }
                                         self.graph_version += 1;
                                     }
                                 }
