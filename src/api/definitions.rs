@@ -507,7 +507,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![
             p_req("function", "函数名", ParamType::String),
-            p_opt("params", "参数", ParamType::List),
+            p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
             NodeType::CallMethod,
@@ -524,7 +524,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_params(vec![
             p_req("thread", "线程对象", ParamType::Object),
             p_req("method", "方法名", ParamType::String),
-            p_opt("params", "参数", ParamType::List),
+            p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
             NodeType::Color,
@@ -1756,7 +1756,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![
             p_req("fmt", "格式", ParamType::String),
-            p_opt("params", "参数", ParamType::List),
+            p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
             NodeType::ToNumber,
@@ -1875,7 +1875,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![
             p_req("labelName", "标签名", ParamType::String),
-            p_opt("params", "参数", ParamType::List),
+            p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
             NodeType::CreateListener,
@@ -1891,7 +1891,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![
             p_req("labelName", "标签名", ParamType::String),
-            p_opt("params", "参数", ParamType::List),
+            p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
             NodeType::CreateListenerLocal,
@@ -1907,7 +1907,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![
             p_req("labelName", "标签名", ParamType::String),
-            p_opt("params", "参数", ParamType::List),
+            p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
             NodeType::CreateMissionPanel,
