@@ -22,23 +22,26 @@ impl PropertiesPanel {
         coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
     ) -> Option<(String, ParamValue)> {
-        ui.heading("属性");
+        // 节点标题 + 简介
+        if let Some(def) = get_definition(node.node_type) {
+            ui.heading(&def.display_name);
+            ui.label(egui::RichText::new(format!("{:?}", node.node_type))
+                .color(egui::Color32::from_gray(150))
+                .size(11.0));
+            ui.label(egui::RichText::new(&def.description)
+                .color(egui::Color32::from_gray(130))
+                .size(11.0));
+        } else {
+            ui.heading("属性");
+            ui.label(format!("类型: {:?}", node.node_type));
+        }
         ui.separator();
-        ui.label(format!("节点 ID: {}", node.id));
-        ui.label(format!("类型: {:?}", node.node_type));
-        ui.label(format!("分类: {}", node.category));
-        ui.label(format!(
-            "折叠: {}",
-            if node.collapsed { "是" } else { "否" }
-        ));
-
-        ui.separator();
-        ui.label("参数");
 
         let mut changed = None;
         for (key, value) in &node.params {
-            ui.horizontal(|ui| {
-                let type_hint = param_type_label(node, key);
+            let type_hint = param_type_label(node, key);
+            // 纵向布局：标签在上，编辑器在下
+            ui.vertical(|ui| {
                 ui.label(format!("{} {}", key, type_hint));
                 if let Some((new_key, new_value)) =
                     Self::param_editor(ui, node, graph, registry, picker, coord, coord_picker, key, value)
@@ -46,6 +49,8 @@ impl PropertiesPanel {
                     changed = Some((new_key, new_value));
                 }
             });
+            ui.add_space(2.0);
+            ui.separator();
         }
 
         if node.params.is_empty() {

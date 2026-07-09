@@ -1577,6 +1577,33 @@ impl eframe::App for App {
 
         // 对话框
         self.draw_dialogs(ctx);
+
+        // 从节点库拖拽虚影
+        if let Some(nt) = self.dragged_node {
+            if let Some(pos) = ctx.pointer_latest_pos() {
+                egui::Area::new(egui::Id::new("drag_ghost"))
+                    .order(egui::Order::Foreground)
+                    .fixed_pos(pos)
+                    .show(ctx, |ui| {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(150, 200, 255),
+                            &format!("{:?}", nt),
+                        );
+                    });
+            }
+        }
+        // 拖拽落点
+        if ctx.input(|i| i.pointer.any_released()) {
+            if let Some(nt) = self.dragged_node.take() {
+                let canvas_rect = self.canvas_rect(ctx);
+                if let Some(p) = ctx.pointer_latest_pos() {
+                    if canvas_rect.contains(p) {
+                        let world = self.canvas.screen_to_world(p, canvas_rect);
+                        self.add_node_at(nt, Vec2::new(world.x, world.y));
+                    }
+                }
+            }
+        }
     }
 }
 
