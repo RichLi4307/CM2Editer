@@ -54,10 +54,10 @@ impl ParamTextEdit {
             );
         }
 
-        // 提交条件：失焦 或 回车 且 (不需要 JSON 或 JSON 合法)
-        let committed = resp.lost_focus()
-            || ui.input(|i| i.key_pressed(egui::Key::Enter) && resp.has_focus());
-
+        // 提交条件：失焦或回车，且文本有修改
+        let committed = resp.changed()
+            && (resp.lost_focus()
+                || ui.input(|i| i.key_pressed(egui::Key::Enter)));
         if committed && (json_ok || !needs_json) {
             Some((buf_key.split('.').last().unwrap_or(buf_key).to_string(), str_to_param(&text, value, json_ok)))
         } else {
