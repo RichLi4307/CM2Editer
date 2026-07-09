@@ -30,7 +30,7 @@ use crate::ui::panels::{
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
     namespace_picker::{NamespacePicker, NamespacePickerState},
-    node_library::NodeLibraryPanel,
+    node_library::{NodeLibraryAction, NodeLibraryPanel},
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::PropertiesPanel,
     status_bar::StatusBarPanel,
@@ -200,6 +200,7 @@ pub struct App {
     pub coordinate_registry: CoordinateRegistry,
     /// 坐标选择器窗口状态。
     pub coordinate_picker: Option<CoordinatePickerState>,
+    pub dragged_node: Option<NodeType>,
     pub show_error_detail: bool,
     /// 命名空间添加表单
     pub ns_add_key: String,
@@ -249,6 +250,7 @@ impl App {
             namespace_picker: None,
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
+            dragged_node: None,
             show_error_detail: false,
             ns_add_key: String::new(),
             ns_add_name: String::new(),
@@ -917,13 +919,15 @@ impl eframe::App for App {
                             .hover_world_pos(ctx, self.canvas_rect(ctx))
                             .map(|p| Vec2::new(p.x, p.y));
                         // 节点库（置顶，可搜索）
-                        if let Some(node_type) = NodeLibraryPanel::show(
-                            ui,
-                            &mut self.search_query,
-                            &mut self.search_window_open,
-                        ) {
-                            let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
-                            self.add_node_at(node_type, pos);
+                        match NodeLibraryPanel::show(ui, &mut self.search_query, &mut self.search_window_open) {
+                            NodeLibraryAction::Create(node_type) => {
+                                let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
+                                self.add_node_at(node_type, pos);
+                            }
+                            NodeLibraryAction::DragStart(node_type) => {
+                                self.dragged_node = Some(node_type);
+                            }
+                            NodeLibraryAction::None => {}
                         }
                         ui.separator();
                         // 标签管理
@@ -1700,6 +1704,20 @@ impl App {
                 });
             if !open {
                 self.export_project_dialog_open = false;
+            }
+        }
+
+        // 从节点库拖拽节点到画布
+        if ctx.input(|i| i.pointer.any_released()) {
+            if let Some(nt) = self.dragged_node {
+                let canvas_rect = self.canvas_rect(ctx);
+                if let Some(p) = ctx.pointer_latest_pos() {
+                    if canvas_rect.contains(p) {
+                        let world = self.canvas.screen_to_world(p, canvas_rect);
+                        self.add_node_at(nt, Vec2::new(world.x, world.y));
+                        self.dragged_node = None;
+                    }
+                }
             }
         }
     }

@@ -2,16 +2,23 @@ use crate::api::registry::all_node_definitions;
 use crate::graph::types::NodeType;
 use crate::ui::theme::category_color;
 
+/// 节点库操作结果。
+#[derive(Debug)]
+pub enum NodeLibraryAction {
+    Create(NodeType),
+    DragStart(NodeType),
+    None,
+}
+
 /// 节点库面板。
 pub struct NodeLibraryPanel;
 
 impl NodeLibraryPanel {
-    /// 在侧边栏中显示节点库，返回用户选中的节点类型（如果有）。
     pub fn show(
         ui: &mut egui::Ui,
         search_query: &mut String,
         search_window_open: &mut bool,
-    ) -> Option<NodeType> {
+    ) -> NodeLibraryAction {
         ui.heading("节点库");
         ui.text_edit_singleline(search_query);
         ui.separator();
@@ -25,7 +32,7 @@ impl NodeLibraryPanel {
             categories.entry(&def.category).or_default().push(def);
         }
 
-        let mut created = None;
+        let mut action = NodeLibraryAction::None;
         egui::ScrollArea::vertical()
             .id_salt("node_library_scroll")
             .show(ui, |ui| {
@@ -52,17 +59,24 @@ impl NodeLibraryPanel {
                         .show(ui, |ui| {
                             for def in filtered {
                                 let color = category_color(&def.category);
-                                ui.horizontal(|ui| {
+                                let resp = ui.horizontal(|ui| {
                                     ui.painter().circle_filled(
                                         ui.cursor().min + egui::vec2(8.0, 8.0),
                                         6.0,
                                         color,
                                     );
                                     ui.add_space(16.0);
-                                    if ui.button(&def.display_name).clicked() {
-                                        created = Some(def.node_type);
-                                    }
+                                    ui.add(
+                                        egui::Button::new(&def.display_name)
+                                            .sense(egui::Sense::drag()),
+                                    )
                                 });
+                                if resp.inner.clicked() {
+                                    action = NodeLibraryAction::Create(def.node_type);
+                                }
+                                if resp.inner.drag_started() {
+                                    action = NodeLibraryAction::DragStart(def.node_type);
+                                }
                             }
                         });
                 }
@@ -72,7 +86,7 @@ impl NodeLibraryPanel {
             *search_window_open = !*search_window_open;
         }
 
-        created
+        action
     }
 
     /// 在弹出窗口中显示搜索界面，返回选中的节点类型（如果有）。
