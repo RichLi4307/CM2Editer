@@ -7,6 +7,7 @@ use crate::graph::types::{NodeType, PortType};
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::api::definitions::ParamType;
+use crate::ui::panels::param_text_edit::ParamTextEdit;
 
 /// 属性面板。
 pub struct PropertiesPanel;
@@ -256,25 +257,16 @@ impl PropertiesPanel {
                 }
                 None
             }
-            // 字符串 / Null / 空数组：文本编辑
+            // 字符串 / Null / 空数组：文本编辑（统一组件）
             _ => {
-                let mut text = param_value_to_string(value);
                 let hint = if matches!(value, ParamValue::Literal(v) if v.is_array()) {
-                    "输入 JSON 数组如 [1,2,3]"
+                    "JSON 数组 [1,2,3]"
                 } else if matches!(value, ParamValue::Literal(v) if v.is_object()) {
-                    "输入 JSON 对象如 {\"key\":1}"
+                    "JSON 对象"
                 } else {
                     ""
                 };
-                if ui.text_edit_singleline(&mut text).changed() {
-                    if let Some(new_value) = parse_param_value(&text, value) {
-                        return Some((key.to_string(), new_value));
-                    }
-                }
-                if !hint.is_empty() {
-                    ui.label(egui::RichText::new(hint).color(egui::Color32::GRAY).size(10.0));
-                }
-                None
+                ParamTextEdit::show(ui, key, value, hint)
             }
         }
     }
@@ -551,7 +543,7 @@ static IF_CONDITION_TEMPLATES: &[(&str, &str)] = &[
 /// 返回参数类型简短标签，显示在参数名旁边帮助用户理解预期格式。
 fn param_type_label(node: &Node, param_name: &str) -> String {
     use crate::api::registry::get_definition;
-    use crate::api::definitions::ParamType;
+use crate::api::definitions::ParamType;
     let pt = get_definition(node.node_type)
         .and_then(|d| d.params.iter().find(|p| p.name == param_name))
         .map(|p| p.param_type);
