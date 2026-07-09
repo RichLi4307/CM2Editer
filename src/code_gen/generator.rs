@@ -71,16 +71,16 @@ impl<'a> CodeGenerator<'a> {
 
         // Label bodies with flow code + _result = null tail
         for (label_name, node_ids) in labels {
+            self.result_written = false;
+            self.formatter.write_line(&format!("{label_name}:"));
+            self.formatter.indent();
             if let Some(first_id) = node_ids.first() {
-                self.result_written = false;
-                self.formatter.write_line(&format!("{label_name}:"));
-                self.formatter.indent();
                 self.generate_sequence(first_id, None)?;
-                if !self.result_written {
-                    self.formatter.write_line("_result = null");
-                }
-                self.formatter.dedent();
             }
+            if !self.result_written {
+                self.formatter.write_line("_result = null");
+            }
+            self.formatter.dedent();
         }
         Ok(())
     }
@@ -471,6 +471,36 @@ impl<'a> CodeGenerator<'a> {
                     format!("main_{}", index)
                 };
                 labels.push((label_name, vec![start_id]));
+            }
+        }
+
+        // Discover labels from Goto / CreateThread targets only
+        // (Listener targets are nested sub-labels, not top-level entries)
+        let mut discovered: HashSet<String> =
+            labels.iter().map(|(n, _)| n.clone()).collect();
+        for node in self.graph.nodes.values() {
+            let target_label = match node.node_type {
+                NodeType::Goto => node
+                    .params
+                    .get("label")
+                    .and_then(|v| match v {
+                        ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                        _ => None,
+                    }),
+                NodeType::CreateThread => node
+                    .params
+                    .get("labelName")
+                    .and_then(|v| match v {
+                        ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                        _ => None,
+                    }),
+                _ => None,
+            };
+            if let Some(t) = target_label {
+                if !discovered.contains(&t) {
+                    discovered.insert(t.clone());
+                    labels.push((t, Vec::new()));
+                }
             }
         }
 

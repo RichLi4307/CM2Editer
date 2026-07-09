@@ -1,7 +1,13 @@
 var_main_thread = CreateThread("main")
+var_blind_thread = CreateThread("blind")
+var_walk_thread = CreateThread("walk")
 main:
 	var_node_ct_main_out_thread = CreateThread(labelName="main")
 	var_node_ct_walk_out_thread = CreateThread(labelName="walk")
 	var_node_ct_blind_out_thread = CreateThread(labelName="blind")
 	Log(output="threads started")
+	_result = null
+blind:
+	_result = null
+walk:
 	_result = null
