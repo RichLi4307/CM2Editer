@@ -153,6 +153,10 @@ CM2Editer 是我自己独立维护的社区工具，给 **Secret Flasher Manaka*
 
 ---
 
+## 致谢
+
+- **夕拾酒** — 解释了 `.code` 的本质是类 Python 语言，阐明了 CM2 模组的工作流程（Thread/Listener/Goto 状态机模型），为本项目的代码生成器重构提供了关键指导。
+
 ## 许可证
 
 本项目采用 [MIT License](LICENSE) 开源。
