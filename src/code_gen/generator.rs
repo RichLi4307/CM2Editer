@@ -371,6 +371,9 @@ impl<'a> CodeGenerator<'a> {
                 let v = self.resolve_param_opt(node, "value")?;
                 Some(v.trim_matches('"').to_string())
             }
+            NodeType::StringConstant => {
+                self.resolve_param_opt(node, "value")
+            }
             NodeType::CheckCondition => {
                 let cond = self.resolve_param_opt(node, "cond")?;
                 Some(format!("{cond}.Check()"))

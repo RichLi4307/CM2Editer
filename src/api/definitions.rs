@@ -2323,6 +2323,9 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         NodeDefinition::new(NodeType::CheckCosplay, "Game Functions: Items", "检查服装", "是否穿着指定服装", GAME_COLOR)
             .with_outputs(vec![out_data("out_value", PortType::Boolean, "结果")])
             .with_params(vec![p_req("cosplayKey", "服装键", ParamType::String)]),
+        NodeDefinition::new(NodeType::StringConstant, "Math", "字符串常量", "输出字符串常量", MATH_COLOR)
+            .with_outputs(vec![out_data("out_value", PortType::String, "字符串")])
+            .with_params(vec![p_req("value", "值", ParamType::String)]),
         NodeDefinition::new(NodeType::ForeachNode, "Flow", "Foreach", "遍历列表，每元素调用标签", WAIT_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![out_flow()])
@@ -2337,7 +2340,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 158);
+        assert_eq!(all.len(), 159);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2346,7 +2349,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 158);
+        assert_eq!(seen.len(), 159);
     }
 
     #[test]

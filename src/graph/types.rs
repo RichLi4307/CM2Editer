@@ -351,6 +351,8 @@ pub enum NodeType {
     CheckEquipment,
     /// 检查服装
     CheckCosplay,
+    /// 字符串常量
+    StringConstant,
 }
 
 /// 端口数据类型，用于节点上的 flow 端口和 data 端口
@@ -598,8 +600,9 @@ mod tests {
             NodeType::CheckCondition,
             NodeType::CheckEquipment,
             NodeType::CheckCosplay,
+            NodeType::StringConstant,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 158);
+        assert_eq!(variants.len(), 159);
     }
 }

@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use super::{graph::Graph, types::PortType};
+use super::{graph::Graph, node::ParamValue, types::PortType};
 use crate::error::{FlowError, Result};
 
 /// 图验证器，负责检查图的结构合法性
@@ -276,11 +276,22 @@ impl GraphValidator {
                     // Data-only 节点（零 Flow 端口）不需要接入 Start，跳过
                     let has_flow = n.inputs.iter().any(|p| p.port_type == PortType::Flow)
                         || n.outputs.iter().any(|p| p.port_type == PortType::Flow);
-                    // 独立标签内的入口节点（Label 节点在非 main 标签中）不需要接 Start
+                    // 独立标签内的入口节点不需要接 Start：
+                    //   a) 节点 ID 在非 main 标签的 node_ids 列表中
+                    //   b) 或者是 Label 节点且 name 参数匹配某个非 main 标签名
                     let in_sub_label = graph
                         .labels
                         .iter()
-                        .any(|(name, ids)| !name.starts_with("main") && ids.contains(*id));
+                        .any(|(lbl_name, ids)| !lbl_name.starts_with("main")
+                            && (ids.contains(*id)
+                                || (n.node_type == NodeType::Label
+                                    && n.params.get("name").and_then(|v| {
+                                        if let ParamValue::Literal(val) = v {
+                                            val.as_str()
+                                        } else {
+                                            None
+                                        }
+                                    }).is_some_and(|x| x == *lbl_name))));
                     has_flow && !in_sub_label
                 } else {
                     false
