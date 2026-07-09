@@ -75,7 +75,7 @@
 
 ### 数据节点使用模式
 
-```
+```text
 [GetStateNumber(Ecstasy)] ──Data──→ [CompareNumbers.a]
 [NumberConstant(90)]     ──Data──→ [CompareNumbers.b]
                                         │ Boolean
@@ -106,7 +106,7 @@ If/While 的 `condition` 参数编辑区提供 ComboBox 30+ 预设模板：
 | 角色状态 | `_state.Futanari`, `_state.Sitting`, `_state.Orgasm`... |
 | 环境 | `_state.InLight`, `_state.NearNPC`, `_state.IsDayTime`... |
 | 装备/拘束 | `_state.Blindfolded`, `_state.Invisible`, `_state.AdultToys.Handcuff != null`... |
-| 数值比较 | `_state.Ecstasy >= `, `_state.Detection >= `, `_state.Stamina >= `... |
+| 数值比较 | `_state.Ecstasy >=`, `_state.Detection >=`, `_state.Stamina >=`... |
 
 > Data 端口连线后模板自动隐藏，只显示 🔗 源引用。
 

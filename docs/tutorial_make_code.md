@@ -117,6 +117,7 @@ main:
 | 7 | If 后面不再连回 CreateListener——监听器每帧从头执行，自然循环 | |
 
 工作方式：
+
 - `main:` 标签 → CreateListener 启动 `check_loop`
 - `check_loop:` 标签 → Label 节点（入口）→ If → Log → `_result = null`
 - 每帧 CM2 调用 `check_loop:` 一次，执行整个标签体

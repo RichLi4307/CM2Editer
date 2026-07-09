@@ -29,6 +29,7 @@
 ### 修复（`fb1adf3`）
 
 `collect_labels()` 新增自动发现：
+
 - 扫描所有 Goto / CreateThread 节点的 target label 名
 - 不在 `graph.labels` 中的，自动创建空标签（只有 `_result = null`）
 - CreateListener 目标**排除**（它们是嵌套子标签，定义在父标签内部）
