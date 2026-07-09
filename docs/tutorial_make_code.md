@@ -60,21 +60,31 @@ main:
 
 ## 第三步：加条件判断
 
-> 目标：根据快感值判断是否触发
+> 目标：如果快感值 >= 90，输出"高"，否则输出"低"
+
+If 节点需要接在 Flow 链上——用它替换第二步的 Log，Data 管线并行输入：
+
+```
+Start ──Flow──→ [If] ──Flow(true)──→ Log("高")
+                  │   ──Flow(false)─→ Log("低")
+                  │ (Data 输入)
+                  └── CompareNumbers.out_result
+```
 
 | 步骤 | 操作 | 需要的节点 |
 |------|------|-----------|
-| 1 | 从 Control 拖 **If** 到画布 | `If` |
-| 2 | 从 Game Functions: Player 拖 **GetStateNumber** 到画布 | `GetStateNumber` |
-| 3 | 从 Math 拖 **NumberConstant** 到画布，设值为 90 | `NumberConstant` |
-| 4 | 从 Math 拖 **CompareNumbers** 到画布 | `CompareNumbers` |
-| 5 | 连线：`GetStateNumber.out_value` → `CompareNumbers.a` | Data 边 |
-| 6 | 连线：`NumberConstant.out_value` → `CompareNumbers.b` | Data 边 |
-| 7 | 选择 CompareNumbers → 属性面板 `operator` 设为 `>=` | |
-| 8 | 连线：`CompareNumbers.out_result` → `If.condition` | Data 边 |
-| 9 | 从 General Functions 拖两个 **Log** 到画布（一个输出"高"，一个输出"低"）| |
-| 10 | 连接 If.`out_true` → Log("高").`in_flow` | Flow 边 |
-| 11 | 连接 If.`out_false` → Log("低").`in_flow` | Flow 边 |
+| 1 | 删除或断开 Step 2 的 Log | |
+| 2 | 从 Control 拖 **If** 到画布 | `If` |
+| 3 | 连接 Start.`out_flow` → If.`in_flow` | Flow 边 |
+| 4 | 从 General Functions 拖两个新 **Log**，分别填 `"高"` 和 `"低"` | `Log` ×2 |
+| 5 | 连接 If.`out_true` → Log("高").`in_flow` | Flow 边 |
+| 6 | 连接 If.`out_false` → Log("低").`in_flow` | Flow 边 |
+| 7 | 从 Game Functions: Player 拖 **GetStateNumber** 到画布，选 `Ecstasy` | `GetStateNumber` |
+| 8 | 从 Math 拖 **NumberConstant** 到画布，设值 90 | `NumberConstant` |
+| 9 | 从 Math 拖 **CompareNumbers** 到画布，`operator` 设 `>=` | `CompareNumbers` |
+| 10 | 连线：`GetStateNumber.out_value` → `CompareNumbers.a` | Data 边 |
+| 11 | 连线：`NumberConstant.out_value` → `CompareNumbers.b` | Data 边 |
+| 12 | 连线：`CompareNumbers.out_result` → `If.condition` | Data 边 |
 
 生成结果：
 ```code
@@ -92,30 +102,21 @@ main:
 
 ## 第四步：加监听器（每帧检查）
 
-> 目标：每帧检查状态，而不是只检查一次
+> 目标：每帧都检查状态，而不是只检查一次
 
 | 步骤 | 操作 | 需要的节点 |
 |------|------|-----------|
 | 1 | 从 Objects 拖 **CreateListener** 到画布 | `CreateListener` |
 | 2 | 属性面板 `labelName` 填 `check_loop` → 回车 | |
-| 3 | 连接 Start.`out_flow` → CreateListener.`in_flow` | |
-| 4 | CreateListener.`out_flow` → Log("started").`in_flow` | |
-| 5 | 在 Log("started") 之后串一个 **Goto** 节点（标靶设为空字符串或不要 Goto）| |
+| 3 | 将 Start → If 的 Flow 改为：Start.`out_flow` → CreateListener.`in_flow` | |
+| 4 | 删除 Start → If 的旧边 | |
+| 5 | 左栏标签管理器 → 点击 `check_loop` 选中该标签下的节点 | |
+| 6 | 把第三步的 If+CompareNumbers+GetStateNumber+Log 整套挪进 `check_loop` 标签 | |
+| 7 | If.`in_flow` 无需连 Flow——监听器标签体内部节点顺序执行，If 直接作为第一个节点 | |
 
-> 监听器 label `check_loop` 会自动注册到标签管理器（左栏可见）。
-> 监听器内容是 If+CompareNumbers 组合——每帧跑一遍条件判断。
+`check_loop` 是 CreateListener 的回调标签，**每帧自动执行一次**。标签体内不需要 Start——它本身就是入口。If 直接作为第一个节点——监听器调用该标签时，从标签内的首节点开始执行。
 
-**简化的正确模式**：
-
-```code
-main: 标签
-  CreateListener("check")  → 启动每帧轮询
-  _result = null
-
-check: 标签（自动创建）
-  [GetStateNumber] → [CompareNumbers] → [If]
-  _result = null
-```
+> `check_loop` 标签会自动注册到左栏标签管理器。监听器结束后无需 Goto——每帧重新进入标签体从头执行。
 
 ---
 
@@ -123,24 +124,15 @@ check: 标签（自动创建）
 
 > 目标：条件触发后跳转到下一步，不再轮询
 
-```code
-check: 标签
-    if _state.Ecstasy >= 90        ← 条件满足
-        thread.Goto("step2")       ← 跳到 step2
-
-    step2: 标签（自动注册）
-        Log("triggered!")
-        _result = null
-```
-
 | 步骤 | 操作 | 需要的节点 |
 |------|------|-----------|
-| 1 | 从 Flow 拖 **Goto** 到画布 | `Goto` |
-| 2 | 属性面板 `label` 填 `step2` → 回车 | |
-| 3 | 连接 If.`out_true` → Goto.`in_flow` | |
-| 4 | `step2` 标签自动出现在左栏标签管理器中 | |
-| 5 | 在画布上拖一个 **Log** → 填 `"triggered!"` | |
-| 6 | **无需连 Flow 边**——Goto 是终点，step2 是独立入口 | |
+| 1 | 从 Control 拖 **Goto** 到画布，属性面板 `label` 填 `step2` → 回车 | `Goto` |
+| 2 | 连接 If.`out_true` → Goto.`in_flow`（替换原来连到 Log("高") 的 Flow 边） | |
+| 3 | `step2` 标签自动出现在左栏标签管理器中 | |
+
+Goto 之后当前线程结束执行。`step2` 标签体代码生成器会自动创建（含 `_result = null`）。要向 `step2` 添加内容，请将节点连入 `step2` 的 Flow 链。
+
+> **当前限制**：新标签默认只有 `_result = null`。要编辑标签体内容，需手动通过左栏标签管理器将节点 ID 添加到对应标签。
 
 ---
 
