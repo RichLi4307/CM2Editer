@@ -1,27 +1,45 @@
 use crate::graph::node::ParamValue;
+use std::collections::HashMap;
+
+/// 持久编辑缓冲区：在失焦/回车时才提交文本到 ParamValue。
+pub type EditBuffers = HashMap<String, String>;
 
 /// 属性面板统一文本输入组件。
 ///
-/// 接受任意文本输入，非 JSON 类型原样存为字符串；
-/// Object / List / Array 类型在下行显示校验错误，不吞字。
+/// - 传入持久缓冲区 `buffers`，文本框始终从中读写
+/// - 缓冲区未初始化时从 `ParamValue` 取值
+/// - 失焦 / 按回车 → 提交校验 → 成功则写入 ParamValue 并清空缓冲区
+/// - 校验失败 → 文本保留在缓冲区，红色错误提示，不吞字
 pub struct ParamTextEdit;
 
 impl ParamTextEdit {
     pub fn show(
         ui: &mut egui::Ui,
-        key: &str,
-        value: &ParamValue,
+        buf_key: &str,       // 缓冲区 key（如 "{node_id}.{param_name}"）
+        value: &ParamValue,  // 当前值（仅用于初始化缓冲区）
+        buffers: &mut EditBuffers,
         placeholder: &str,
     ) -> Option<(String, ParamValue)> {
-        let mut text = val_to_str(value);
+        // 初始化或读取缓冲区
+        let buf = buffers
+            .entry(buf_key.to_string())
+            .or_insert_with(|| val_to_str(value));
+
+        let mut text = buf.clone();
         let widget = egui::TextEdit::singleline(&mut text)
             .hint_text(placeholder)
             .desired_width(ui.available_width().max(60.0));
         let resp = ui.add(widget);
 
-        // 校验：仅对 Object / List 类型的原始值做 JSON 合法性检查，
-        // 不合法的在下行报错但**不阻止文本输入**。
+        // 判断是否需要校验的类型
         let needs_json = matches!(value, ParamValue::Literal(v) if v.is_object() || v.is_array());
+
+        // 实时更新缓冲区（不校验，不吞字）
+        if resp.changed() {
+            *buf = text.clone();
+        }
+
+        // 校验 + 错误提示
         let mut json_ok = true;
         if needs_json && !text.is_empty() {
             if serde_json::from_str::<serde_json::Value>(&text).is_err() {
@@ -36,8 +54,13 @@ impl ParamTextEdit {
             );
         }
 
-        if resp.changed() && (json_ok || !needs_json) {
-            Some((key.to_string(), str_to_param(&text, value, json_ok)))
+        // 提交条件：失焦 或 回车 且 (不需要 JSON 或 JSON 合法)
+        let committed = resp.lost_focus()
+            || ui.input(|i| i.key_pressed(egui::Key::Enter) && resp.has_focus());
+
+        if committed && (json_ok || !needs_json) {
+            buffers.remove(buf_key);
+            Some((buf_key.split('.').last().unwrap_or(buf_key).to_string(), str_to_param(&text, value, json_ok)))
         } else {
             None
         }
@@ -53,8 +76,6 @@ fn val_to_str(value: &ParamValue) -> String {
     }
 }
 
-/// Boolean 和 Number 保形解析；其他类型直接存字符串文本；
-/// Object / List 类型仅在 JSON 合法时才存为原类型，否则存字符串。
 fn str_to_param(text: &str, original: &ParamValue, json_valid: bool) -> ParamValue {
     if let ParamValue::Literal(v) = original {
         if v.is_boolean() {
@@ -70,12 +91,10 @@ fn str_to_param(text: &str, original: &ParamValue, json_valid: bool) -> ParamVal
             }
         }
     }
-    // JSON 有效 → 保形
     if json_valid && !text.is_empty() {
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(text) {
             return ParamValue::Literal(v);
         }
     }
-    // 回退：字符串
     ParamValue::Literal(serde_json::json!(text))
 }

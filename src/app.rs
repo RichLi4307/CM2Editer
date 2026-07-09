@@ -26,6 +26,7 @@ use crate::ui::node_renderer::{NodeRenderer, PortGeometry};
 use crate::ui::panels::{
     code_editor::CodeEditorPanel,
     coordinate_picker::{CoordinatePicker, CoordinatePickerState},
+    param_text_edit::EditBuffers,
     data_menu::DataMenuPanel,
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
@@ -201,6 +202,7 @@ pub struct App {
     /// 坐标选择器窗口状态。
     pub coordinate_picker: Option<CoordinatePickerState>,
     pub dragged_node: Option<NodeType>,
+    pub edit_buffers: EditBuffers,
     pub show_error_detail: bool,
     /// 命名空间添加表单
     pub ns_add_key: String,
@@ -251,6 +253,7 @@ impl App {
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
             dragged_node: None,
+            edit_buffers: EditBuffers::new(),
             show_error_detail: false,
             ns_add_key: String::new(),
             ns_add_name: String::new(),
@@ -1290,6 +1293,7 @@ impl eframe::App for App {
                             &mut self.namespace_picker,
                             &self.coordinate_registry,
                             &mut self.coordinate_picker,
+                            &mut self.edit_buffers,
                         ) {
                             if let Some(n) = self.graph.nodes.get(&node_id) {
                                 let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);

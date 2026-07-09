@@ -7,7 +7,7 @@ use crate::graph::types::{NodeType, PortType};
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::api::definitions::ParamType;
-use crate::ui::panels::param_text_edit::ParamTextEdit;
+use crate::ui::panels::param_text_edit::{EditBuffers, ParamTextEdit};
 
 /// 属性面板。
 pub struct PropertiesPanel;
@@ -22,6 +22,7 @@ impl PropertiesPanel {
         picker: &mut Option<NamespacePickerState>,
         coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
+        edit_bufs: &mut EditBuffers,
     ) -> Option<(String, ParamValue)> {
         // 节点标题 + 简介
         if let Some(def) = get_definition(node.node_type) {
@@ -45,7 +46,7 @@ impl PropertiesPanel {
             ui.vertical(|ui| {
                 ui.label(format!("{} {}", key, type_hint));
                 if let Some((new_key, new_value)) =
-                    Self::param_editor(ui, node, graph, registry, picker, coord, coord_picker, key, value)
+                    Self::param_editor(ui, node, graph, registry, picker, coord, coord_picker, edit_bufs, key, value)
                 {
                     changed = Some((new_key, new_value));
                 }
@@ -81,6 +82,7 @@ impl PropertiesPanel {
         picker: &mut Option<NamespacePickerState>,
         _coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
+        edit_bufs: &mut EditBuffers,
         key: &str,
         value: &ParamValue,
     ) -> Option<(String, ParamValue)> {
@@ -140,7 +142,7 @@ impl PropertiesPanel {
         }
 
         // 否则使用数据源选择器 + 字面量编辑器。
-        Self::source_editor(ui, node, graph, key, value)
+        Self::source_editor(ui, node, graph, key, value, edit_bufs)
     }
 
     /// 枚举参数下拉框编辑器。
@@ -177,6 +179,7 @@ impl PropertiesPanel {
         graph: &Graph,
         key: &str,
         value: &ParamValue,
+        edit_bufs: &mut EditBuffers,
     ) -> Option<(String, ParamValue)> {
         // 收集可选数据源：所有兼容类型的非 Flow 输出端口。
         let options = available_data_sources(graph, node, key);
@@ -224,7 +227,7 @@ impl PropertiesPanel {
         // 当选择“字面量”时，显示对应的原生编辑器。
         match value {
             ParamValue::Ref { .. } => None,
-            _ => Self::literal_editor(ui, key, value),
+            _ => Self::literal_editor(ui, key, value, &node.id, edit_bufs),
         }
     }
 
@@ -233,6 +236,8 @@ impl PropertiesPanel {
         ui: &mut egui::Ui,
         key: &str,
         value: &ParamValue,
+        node_id: &str,
+        edit_bufs: &mut EditBuffers,
     ) -> Option<(String, ParamValue)> {
         match value {
             ParamValue::Literal(v) if v.is_boolean() => {
@@ -266,7 +271,7 @@ impl PropertiesPanel {
                 } else {
                     ""
                 };
-                ParamTextEdit::show(ui, key, value, hint)
+                ParamTextEdit::show(ui, &format!("{node_id}.{key}"), value, edit_bufs, hint)
             }
         }
     }
