@@ -1,3 +1,4 @@
+var_main_thread = CreateThread("main")
 main:
 	var_node_ct_out_thread = CreateThread(labelName="main")
 	var_node_cond_out_condition = CreateCondition(condition="[Exposed_All]", id="exposed")

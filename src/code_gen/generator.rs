@@ -58,6 +58,17 @@ impl<'a> CodeGenerator<'a> {
     /// 执行代码生成
     pub fn run(&mut self) -> Result<()> {
         let labels = self.collect_labels();
+
+        // Top-level: CreateThread only for entry labels (main*)
+        for (label_name, _) in &labels {
+            if label_name.starts_with("main") {
+                let var = format!("var_{}_thread", label_name);
+                self.formatter
+                    .write_line(&format!("{var} = CreateThread(\"{label_name}\")"));
+            }
+        }
+
+        // Label bodies
         for (label_name, node_ids) in labels {
             if let Some(first_id) = node_ids.first() {
                 self.formatter.write_line(&format!("{label_name}:"));

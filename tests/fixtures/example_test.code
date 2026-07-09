@@ -1,3 +1,4 @@
+var_main_thread = CreateThread("main")
 main:
 	var_node_ct_out_thread = CreateThread(labelName="testmission")
 	Log(output="mission started")

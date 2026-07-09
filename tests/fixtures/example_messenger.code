@@ -1,3 +1,4 @@
+var_main_thread = CreateThread("main")
 main:
 	var_node_chat_out_chat = CreateMessengerChat(title="Messenger Example")
 	Goto("step1")

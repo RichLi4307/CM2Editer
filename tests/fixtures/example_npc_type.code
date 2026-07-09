@@ -1,3 +1,4 @@
+var_main_thread = CreateThread("main")
 main:
 	var_node_ct_main_out_thread = CreateThread(labelName="main")
 	var_node_ct_walk_out_thread = CreateThread(labelName="walk")
