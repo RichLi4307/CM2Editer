@@ -1,9 +1,9 @@
 # CM2Editer release packaging script
 # Usage: powershell -File package.ps1
-# Output: dist/CM2Editer_v0.1.1.zip
+# Output: dist/CM2Editer_v0.2.1.zip
 
 $ErrorActionPreference = "Stop"
-$version = "0.1.1"
+$version = "0.2.1"
 $root = $PSScriptRoot
 $distDir = Join-Path $root "dist\CM2Editer_v$version"
 $exe = Join-Path $root "target\release\CM2Editer.exe"

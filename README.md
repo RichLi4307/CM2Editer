@@ -4,7 +4,7 @@
 ![Rust](https://img.shields.io/badge/rust-2024_dea584?logo=rust&logoColor=white)
 ![egui](https://img.shields.io/badge/egui-0.31-amber)
 ![Tests](https://img.shields.io/badge/tests-109%20passed-brightgreen)
-![Version](https://img.shields.io/badge/version-0.2.0-blue)
+![Version](https://img.shields.io/badge/version-0.2.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 CM2Editer 是给游戏 **Secret Flasher Manaka** 做自定义任务的一个节点式可视化编辑器。如果你给这个游戏制作 Custom Missions 2 的任务Mod，可以直接在画布上拖节点、连端口、填参数，最后导出成 `.code` 文件，让 Custom Missions 2 加载器读取。
@@ -13,7 +13,7 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
 
 ## 当前版本
 
-**v0.1.1** — DataFlow 布尔管道（7 个监测/Condition 节点）、坐标预设系统（3 节点 + 选择器）、命名空间管理（二级分类 + 中文翻译）、静态检查与错误详情、底栏三列可拖拽布局、egui ID 冲突修复、109 项测试通过。Release ~6.7 MB。
+**v0.2.1** — DataFlow 布尔管道（11 节点）、坐标预设系统、命名空间管理（二级分类 + 中文翻译 188 项）、标签管理（增删改）、159 个节点类型、110 项测试通过。
 
 ## 这个工具是什么
 

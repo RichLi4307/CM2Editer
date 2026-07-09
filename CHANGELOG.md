@@ -4,6 +4,73 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [0.2.1] — 2026-07-10
+
+### 新增
+- `Label` 节点名称变化时自动注册到标签管理器
+- `CreateThread`/`CreateListener`/`CreateListenerLocal` 新增 `out_name` 端口（String 输出标签名）
+- `StringConstant` 节点：输出字面量 String 值
+- `NumberConstant` 节点：输出字面量 Number 值
+- `CheckCondition` 节点：条件 Object → Boolean（`cond.Check()`）
+- `CheckEquipment` 节点：检查装备（`_state.AdultToys.{type} != null`）
+- `CheckCosplay` 节点：检查服装（`Cosplay_{key}`），接入命名空间选择器
+- `CompareNumbers` a/b 参数支持属性面板手动填写常量（数据端口优先）
+- 节点库拖拽到画布落点创建（带拖拽虚影跟随）
+- `ParamTextEdit` 统一文本组件——持久缓冲区，回车/失焦提交，不吞字
+- 属性面板参数纵向布局 + 节点介绍标题
+- 标签管理面板：删除/重命名按钮（非 main 标签）
+
+### 修复
+- 全局热键门控：文本框焦点时 Ctrl+Z/Y/C/V/Delete/Space 全不对画布生效
+- Ctrl+V 粘贴事件双保险（consume_key + Event::Paste 两套机制）
+- `Object`/`List` 类型参数跳过 ComboBox 直通文本框
+- `warn_unreachable_nodes` 跳过数据节点和独立标签入口节点
+- `CompareNumbers` 4 端口→2 端口（删除从 `with_inputs` 产生的重复端口）
+- `CreateListener` 缺失 `with_params` 导致属性面板无法编辑
+- 欢迎页修复 + 窗口自适应屏幕大小
+- 多热键文档 `docs/hotkey_management.md`
+
+### 文档
+- `docs/node_types.md` 重写：159 个实际实现的节点清单
+- `docs/tutorial_make_code.md`：6 步实战教程（Flow/Data/Listener/Goto/CheckCondition 全流程）
+- `docs/if_condition_design.md` 按设计文档验收
+- `docs/test_checklist.md` 70 项测试清单
+- `docs/test_flow_diagram.md` 流程设计图
+
+### 测试
+- NodeType 变体：158 → 159
+- `cargo test --lib`：93 项通过
+- `cargo clippy`：仅 4 个 pre-existing 警告
+
+---
+
+## [0.2.0] — 2026-07-09
+
+### 新增
+- 代码生成重构：`CreateThread` 顶层生成、`_result=null` 标签收尾、`thread.Goto` 语法
+- GoTo/CreateThread 目标标签自动发现与注册
+- If/While 条件模板下拉框（30+ 预设表达式）
+- `evaluate_data_output()` Data 边递归解析链
+- 7 个 Boolean 管道节点（Boolean/GetStateBool/GetStateNumber/CompareNumbers/LogicAnd/LogicOr/LogicNot）
+- 3 个坐标节点（GetPosition/MakeVector/BreakVector）+ 选择器 + 16 预设
+- cosplay 命名空间二级分类 + 中文翻译 188 项（EMBEDDED_COSPLAY_LIB）
+- 三标签左栏（工程/命名空间/坐标）
+- If 条件模板下拉
+
+### 修复
+- `.code` 语法对齐：`If(true) [`→`if true`、`While→while`、`For→for in`、`Break→break`
+- Bodypaint 类型 Boolean→Number 修正
+- JSON 加载必填参数默认值补填
+- egui ID 冲突：7 个 ScrollArea + 1 CollapsingHeader `id_salt`
+- 底栏三合一 + ScrollArea 防溢出
+- 字体 110MB→32MB
+
+### 文档
+- `docs/code_api_reference.md`：基于英文官方文档 + 80+ .code 反推的 DSL 权威参考
+- `docs/code_pseudocode_map.md`：112 个 .code 文件的 Python 伪代码映射表
+
+---
+
 ## [0.1.1] — 2026-07-09
 
 ### 新增（Phase 6：Monitor→Condition 管道）
