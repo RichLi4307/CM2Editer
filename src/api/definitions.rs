@@ -2234,10 +2234,6 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "比较两个数值（>=、==、!=、>、<、<=）",
             MATH_COLOR,
         )
-        .with_inputs(vec![
-            PortDefinition::new("a", PortType::Number, "数值A").required(true),
-            PortDefinition::new("b", PortType::Number, "数值B").required(true),
-        ])
         .with_outputs(vec![out_data(
             "out_result",
             PortType::Boolean,
