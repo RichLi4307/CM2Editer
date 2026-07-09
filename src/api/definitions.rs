@@ -2243,11 +2243,11 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             PortType::Boolean,
             "比较结果",
         )])
-        .with_params(vec![e(
-            "operator",
-            "操作符",
-            &[">=", "==", "!=", ">", "<", "<="],
-        )]),
+        .with_params(vec![
+            p_req("a", "数值A", ParamType::Number),
+            p_req("b", "数值B", ParamType::Number),
+            e("operator", "操作符", &[">=", "==", "!=", ">", "<", "<="]),
+        ]),
         NodeDefinition::new(
             NodeType::LogicAnd,
             "Math",
@@ -2303,6 +2303,15 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             .with_inputs(vec![PortDefinition::new("x", PortType::Number, "X").required(true), PortDefinition::new("y", PortType::Number, "Y").required(true), PortDefinition::new("z", PortType::Number, "Z").required(true)])
             .with_outputs(vec![out_data("out_vec", PortType::List, "向量")])
             .with_params(vec![p_req("x", "X", ParamType::Number), p_req("y", "Y", ParamType::Number), p_req("z", "Z", ParamType::Number)]),
+        NodeDefinition::new(
+            NodeType::NumberConstant,
+            "Math",
+            "数值常量",
+            "输出一个数值常量（如 0, 1, 90）",
+            MATH_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Number, "数值")])
+        .with_params(vec![p_req("value", "值", ParamType::Number)]),
         NodeDefinition::new(NodeType::BreakVector, "Math: Vector", "拆分向量", "Vector → x,y,z", MATH_COLOR)
             .with_inputs(vec![PortDefinition::new("in_vec", PortType::List, "向量").required(true)])
             .with_outputs(vec![out_data("x", PortType::Number, "X"), out_data("y", PortType::Number, "Y"), out_data("z", PortType::Number, "Z")]),
@@ -2320,7 +2329,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 154);
+        assert_eq!(all.len(), 155);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2329,7 +2338,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 154);
+        assert_eq!(seen.len(), 155);
     }
 
     #[test]

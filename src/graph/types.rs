@@ -343,6 +343,8 @@ pub enum NodeType {
     GetPosition,
     MakeVector,
     BreakVector,
+    /// 数值常量
+    NumberConstant,
 }
 
 /// 端口数据类型，用于节点上的 flow 端口和 data 端口
@@ -586,8 +588,9 @@ mod tests {
             NodeType::GetPosition,
             NodeType::MakeVector,
             NodeType::BreakVector,
+            NodeType::NumberConstant,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 154);
+        assert_eq!(variants.len(), 155);
     }
 }

@@ -367,6 +367,10 @@ impl<'a> CodeGenerator<'a> {
                 let v = self.resolve_param_opt(node, "value")?;
                 Some(v.trim_matches('"').to_string())
             }
+            NodeType::NumberConstant => {
+                let v = self.resolve_param_opt(node, "value")?;
+                Some(v.trim_matches('"').to_string())
+            }
             NodeType::GetStateBool => {
                 let key = self.resolve_param_opt(node, "stateKey")?;
                 let key = key.trim_matches('"');
