@@ -59,7 +59,6 @@ impl ParamTextEdit {
             || ui.input(|i| i.key_pressed(egui::Key::Enter) && resp.has_focus());
 
         if committed && (json_ok || !needs_json) {
-            buffers.remove(buf_key);
             Some((buf_key.split('.').last().unwrap_or(buf_key).to_string(), str_to_param(&text, value, json_ok)))
         } else {
             None
