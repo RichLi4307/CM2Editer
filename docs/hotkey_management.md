@@ -8,23 +8,30 @@
 
 ## 实现
 
+Ctrl+C/V 需要**双重保护**，因为 eframe 在不同平台上的行为不同：
+- 部分平台（Windows 7/10 旧版 winit）Ctrl+C/V 作为 `Key::C`/`Key::V` 事件
+- 部分平台（Wayland/Windows 11）Ctrl+C/V 被 eframe 转为 `Event::Copy`/`Event::Paste`
+
+因此两层都要门控：
+
 ```rust
-// 在 update() 最开头，所有热键处理之前
 let keyboard_active = ctx.wants_keyboard_input();
 
-// 每个全局热键必须加 !keyboard_active 门控
-if !keyboard_active && consume_key(CTRL, Z) { undo(); }
-if !keyboard_active && consume_key(CTRL, Y) { redo(); }
+// 层 1：consume_key（Key 事件平台）
 if !keyboard_active && consume_key(CTRL, C) { copy_selected(); }
 if !keyboard_active && consume_key(CTRL, V) { paste_at(); }
-if !keyboard_active && consume_key(NONE, Delete) { delete_selected(); }
-if !keyboard_active && consume_key(NONE, Space) { toggle_search(); }
 
-// Ctrl+S 不加门控——用户打字时应能保存
-if consume_key(CTRL, S) { save(); }
-
-// Event 级 Copy/Paste 同样加门控
-if search_open || keyboard_active { return true; /* 让 TextEdit 处理 */ }
+// 层 2：Event::Copy/Paste（Event 平台）
+ctx.input_mut(|i| {
+    i.events.retain(|event| {
+        if search_open || keyboard_active { return true; }
+        match event {
+            Event::Copy => { copy_selected(); false }
+            Event::Paste => { paste_at(); false }
+            _ => true,
+        }
+    });
+});
 ```
 
 ## 热键清单
