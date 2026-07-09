@@ -34,9 +34,23 @@ impl ParamTextEdit {
         // 判断是否需要校验的类型
         let needs_json = matches!(value, ParamValue::Literal(v) if v.is_object() || v.is_array());
 
-        // 实时更新缓冲区（不校验，不吞字）
+        // 实时更新缓冲区：不校验，不吞字
         if resp.changed() {
             *buf = text.clone();
+        }
+
+        // 手动 Ctrl+V 粘贴（备用，egui TextEdit 通常内置但部分平台失效）
+        if resp.has_focus()
+            && ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::V))
+        {
+            // 通过 events 查找剪贴板数据
+            ui.ctx().input(|i| {
+                for event in &i.events {
+                    if let egui::Event::Paste(clip) = event {
+                        *buf = text.clone() + clip;
+                    }
+                }
+            });
         }
 
         // 校验 + 错误提示
