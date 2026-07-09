@@ -345,6 +345,12 @@ pub enum NodeType {
     BreakVector,
     /// 数值常量
     NumberConstant,
+    /// CheckCondition: Object → Boolean
+    CheckCondition,
+    /// 检查装备/玩具
+    CheckEquipment,
+    /// 检查服装
+    CheckCosplay,
 }
 
 /// 端口数据类型，用于节点上的 flow 端口和 data 端口
@@ -589,8 +595,11 @@ mod tests {
             NodeType::MakeVector,
             NodeType::BreakVector,
             NodeType::NumberConstant,
+            NodeType::CheckCondition,
+            NodeType::CheckEquipment,
+            NodeType::CheckCosplay,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 155);
+        assert_eq!(variants.len(), 158);
     }
 }

@@ -2315,6 +2315,15 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         NodeDefinition::new(NodeType::BreakVector, "Math: Vector", "拆分向量", "Vector → x,y,z", MATH_COLOR)
             .with_inputs(vec![PortDefinition::new("in_vec", PortType::List, "向量").required(true)])
             .with_outputs(vec![out_data("x", PortType::Number, "X"), out_data("y", PortType::Number, "Y"), out_data("z", PortType::Number, "Z")]),
+        NodeDefinition::new(NodeType::CheckCondition, "Math", "检查条件", "条件对象→布尔值", MATH_COLOR)
+            .with_inputs(vec![PortDefinition::new("cond", PortType::Object, "条件对象").required(true)])
+            .with_outputs(vec![out_data("out_result", PortType::Boolean, "结果")]),
+        NodeDefinition::new(NodeType::CheckEquipment, "Game Functions: Items", "检查装备", "是否装备指定玩具", GAME_COLOR)
+            .with_outputs(vec![out_data("out_value", PortType::Boolean, "结果")])
+            .with_params(vec![e("equipType", "装备类型", &["Handcuff","KeyHandcuff","TimerHandcuff","Vibrator","EyeMask","TitRotor","KuriRotor","PistonAnal","PistonPussy","AnalPlug"])]),
+        NodeDefinition::new(NodeType::CheckCosplay, "Game Functions: Items", "检查服装", "是否穿着指定服装", GAME_COLOR)
+            .with_outputs(vec![out_data("out_value", PortType::Boolean, "结果")])
+            .with_params(vec![p_req("cosplayKey", "服装键", ParamType::String)]),
         NodeDefinition::new(NodeType::ForeachNode, "Flow", "Foreach", "遍历列表，每元素调用标签", WAIT_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![out_flow()])
@@ -2329,7 +2338,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 155);
+        assert_eq!(all.len(), 158);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2338,7 +2347,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 155);
+        assert_eq!(seen.len(), 158);
     }
 
     #[test]

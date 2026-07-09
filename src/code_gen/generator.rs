@@ -371,6 +371,20 @@ impl<'a> CodeGenerator<'a> {
                 let v = self.resolve_param_opt(node, "value")?;
                 Some(v.trim_matches('"').to_string())
             }
+            NodeType::CheckCondition => {
+                let cond = self.resolve_param_opt(node, "cond")?;
+                Some(format!("{cond}.Check()"))
+            }
+            NodeType::CheckEquipment => {
+                let t = self.resolve_param_opt(node, "equipType")?;
+                let t = t.trim_matches('"');
+                Some(format!("_state.AdultToys.{t} != null"))
+            }
+            NodeType::CheckCosplay => {
+                let k = self.resolve_param_opt(node, "cosplayKey")?;
+                let k = k.trim_matches('"');
+                Some(format!("Cosplay_{k}"))
+            }
             NodeType::GetStateBool => {
                 let key = self.resolve_param_opt(node, "stateKey")?;
                 let key = key.trim_matches('"');
