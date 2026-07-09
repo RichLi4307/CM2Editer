@@ -386,6 +386,7 @@ fn namespace_for_param(node_type: NodeType, param_name: &str) -> Option<(&'stati
         }
         (NodeType::CreateNPC, "avatarType") => Some(("avatar_type", false)),
         (NodeType::SetPlayerData, "dataName") => Some(("player_data", false)),
+        (NodeType::CheckCosplay, "cosplayKey") => Some(("cosplay", false)),
         _ => None,
     }
 }
