@@ -1872,6 +1872,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![
             out_flow(),
             out_data("out_thread", PortType::Object, "线程"),
+            out_data("out_name", PortType::String, "标签名"),
         ])
         .with_params(vec![
             p_req("labelName", "标签名", ParamType::String),
@@ -1888,10 +1889,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![
             out_flow(),
             out_data("out_listener", PortType::Object, "监听器"),
-        ])
-        .with_params(vec![
-            p_req("labelName", "标签名", ParamType::String),
-            p_opt("params", "参数", ParamType::Object),
+            out_data("out_name", PortType::String, "标签名"),
         ]),
         NodeDefinition::new(
             NodeType::CreateListenerLocal,
@@ -1901,12 +1899,13 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             WAIT_COLOR,
         )
         .with_inputs(vec![in_flow()])
-        .with_outputs(vec![
-            out_flow(),
-            out_data("out_listener", PortType::Object, "监听器"),
-        ])
-        .with_params(vec![
-            p_req("labelName", "标签名", ParamType::String),
+         .with_outputs(vec![
+                out_flow(),
+                out_data("out_listener", PortType::Object, "监听器"),
+                out_data("out_name", PortType::String, "标签名"),
+            ])
+            .with_params(vec![
+                p_req("labelName", "标签名", ParamType::String),
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(

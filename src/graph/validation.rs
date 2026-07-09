@@ -276,7 +276,12 @@ impl GraphValidator {
                     // Data-only 节点（零 Flow 端口）不需要接入 Start，跳过
                     let has_flow = n.inputs.iter().any(|p| p.port_type == PortType::Flow)
                         || n.outputs.iter().any(|p| p.port_type == PortType::Flow);
-                    has_flow
+                    // 独立标签内的入口节点（Label 节点在非 main 标签中）不需要接 Start
+                    let in_sub_label = graph
+                        .labels
+                        .iter()
+                        .any(|(name, ids)| !name.starts_with("main") && ids.contains(*id));
+                    has_flow && !in_sub_label
                 } else {
                     false
                 }
