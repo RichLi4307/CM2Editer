@@ -10,7 +10,7 @@ impl ParamTextEdit {
         placeholder: &str,
     ) -> Option<(String, ParamValue)> {
         let mut text = val_to_str(value);
-        let mut widget = egui::TextEdit::singleline(&mut text)
+        let widget = egui::TextEdit::singleline(&mut text)
             .hint_text(placeholder)
             .desired_width(ui.available_width().max(60.0));
         if ui.add(widget).changed() {
