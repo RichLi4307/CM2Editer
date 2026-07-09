@@ -7,7 +7,8 @@
 ## 前置知识
 
 **.code 运行模型**：
-```
+
+```text
 模块加载时（顶层，所有 .code 合并）：
   var_main = CreateThread("main")     ← 触发 main: 标签执行一次
 
@@ -63,15 +64,15 @@ main:
 
 | 步骤 | 操作 | 需要的节点 |
 |------|------|-----------|
-| 1 | 从 Math 拖 **If** 到画布 | `If` |
+| 1 | 从 Control 拖 **If** 到画布 | `If` |
 | 2 | 从 Game Functions: Player 拖 **GetStateNumber** 到画布 | `GetStateNumber` |
-| 3 | 从 Game Functions: Player 拖 **NumberConstant** 到画布，设值为 90 | `NumberConstant` |
+| 3 | 从 Math 拖 **NumberConstant** 到画布，设值为 90 | `NumberConstant` |
 | 4 | 从 Math 拖 **CompareNumbers** 到画布 | `CompareNumbers` |
 | 5 | 连线：`GetStateNumber.out_value` → `CompareNumbers.a` | Data 边 |
 | 6 | 连线：`NumberConstant.out_value` → `CompareNumbers.b` | Data 边 |
 | 7 | 选择 CompareNumbers → 属性面板 `operator` 设为 `>=` | |
 | 8 | 连线：`CompareNumbers.out_result` → `If.condition` | Data 边 |
-| 9 | 从 General Functions 拖两个 **Log** 到画布（一个输出"高"，一个输出"低"） |
+| 9 | 从 General Functions 拖两个 **Log** 到画布（一个输出"高"，一个输出"低"）| |
 | 10 | 连接 If.`out_true` → Log("高").`in_flow` | Flow 边 |
 | 11 | 连接 If.`out_false` → Log("低").`in_flow` | Flow 边 |
 
@@ -97,7 +98,7 @@ main:
 |------|------|-----------|
 | 1 | 从 Objects 拖 **CreateListener** 到画布 | `CreateListener` |
 | 2 | 属性面板 `labelName` 填 `check_loop` → 回车 | |
-| 3 | 连接 Start.`out_flow` → CreateListener.`in_flow` | | 
+| 3 | 连接 Start.`out_flow` → CreateListener.`in_flow` | |
 | 4 | CreateListener.`out_flow` → Log("started").`in_flow` | |
 | 5 | 在 Log("started") 之后串一个 **Goto** 节点（标靶设为空字符串或不要 Goto）| |
 
@@ -106,7 +107,7 @@ main:
 
 **简化的正确模式**：
 
-```
+```code
 main: 标签
   CreateListener("check")  → 启动每帧轮询
   _result = null
@@ -122,7 +123,7 @@ check: 标签（自动创建）
 
 > 目标：条件触发后跳转到下一步，不再轮询
 
-```
+```code
 check: 标签
     if _state.Ecstasy >= 90        ← 条件满足
         thread.Goto("step2")       ← 跳到 step2
@@ -187,7 +188,7 @@ if var_node_cond_out_condition.Check()
 
 ## 保存后的目录结构
 
-```
+```text
 MyMission/
   ├── meta.json          ← 任务元信息
   ├── main.code          ← 生成的 .code 文件（可用文本编辑器查看）
