@@ -285,6 +285,35 @@ pub struct ParamDefinition {
 
 ---
 
+## 常用 UI 组件速查
+
+### ParamTextEdit（参数文本输入）
+
+文件 `src/ui/panels/param_text_edit.rs` 是统一的文本编辑组件。**禁止裸 `ui.text_edit_singleline`**——它在 `source_editor` 的 `ComboBox` 之后会失去键盘焦点。
+
+```rust
+// ✅ 用 ParamTextEdit
+ParamTextEdit::show(ui, key, value, "占位提示")
+// 返回 Option<(String, ParamValue)>
+```
+
+组件内置：`val_to_str`（ParamValue→String）、`str_to_param`（String→ParamValue）、`hint_text` 占位提示、`desired_width` 自适应。
+
+### 其他可复用模式
+
+| 场景 | 实现位置 |
+|------|---------|
+| 枚举下拉 | `properties.rs:enum_editor` — ComboBox with id_salt |
+| 布尔勾选 | `properties.rs:literal_editor` — `ui.checkbox` |
+| 数值拖拽 | `properties.rs:literal_editor` — `egui::DragValue` |
+| Vector/xyz | `properties.rs:vector_editor` — 三字段 DragValue |
+| 命名空间选择 | `namespace_picker.rs` — NavigatorPicker 窗口 |
+| 坐标选择 | `coordinate_picker.rs` — CoordinatePicker 窗口 |
+| 条件模板 | `properties.rs:condition_template_editor` |
+| 文本输入 | **必须用 `param_text_edit.rs:ParamTextEdit::show()`** |
+
+---
+
 ## 七、常见陷阱（避免踩坑）
 
 1. **不要假设节点有固定数量端口** — 某些节点（如 `Format`）支持可变参数，端口定义需由 `api::definitions` 动态生成
