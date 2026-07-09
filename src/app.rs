@@ -926,6 +926,36 @@ impl eframe::App for App {
                             self.add_node_at(node_type, pos);
                         }
                         ui.separator();
+                        // 标签管理
+                        let label_title = format!("标签  ({} 个)", self.graph.labels.len());
+                        egui::CollapsingHeader::new(label_title)
+                            .id_salt("label_manager")
+                            .show(ui, |ui| {
+                                if self.graph.labels.is_empty() {
+                                    ui.label("暂无标签");
+                                } else {
+                                    for (name, ids) in self.graph.labels.clone() {
+                                        ui.horizontal(|ui| {
+                                            if ui.button(&name).clicked() {
+                                                self.selected_nodes.clear();
+                                                for id in &ids {
+                                                    self.selected_nodes.insert(id.clone());
+                                                }
+                                                self.selected_edges.clear();
+                                                self.status_message =
+                                                    format!("已选中标签 {name} ({} 个节点)", ids.len());
+                                            }
+                                            ui.label(format!("({} 节点)", ids.len()));
+                                        });
+                                    }
+                                }
+                                if ui.button("+ 新建标签").clicked() {
+                                    self.graph.labels.entry("new_label".to_string()).or_default();
+                                    self.graph_version += 1;
+                                    self.status_message = "已创建标签 new_label".into();
+                                }
+                            });
+                        ui.separator();
                         // 工程文件树
                         left_action = ProjectTreePanel::show(ui, self.project.as_mut());
                     }
@@ -1248,7 +1278,7 @@ impl eframe::App for App {
                 } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
                     edited_node_id = Some(node_id.clone());
                     if let Some(node) = self.graph.nodes.get(&node_id).cloned() {
-                        if let Some((key, value)) = PropertiesPanel::show(
+                            if let Some((key, value)) = PropertiesPanel::show(
                             ui,
                             &node,
                             &self.graph,
@@ -1259,6 +1289,23 @@ impl eframe::App for App {
                         ) {
                             if let Some(n) = self.graph.nodes.get(&node_id) {
                                 let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
+                                let label_to_register = match &value {
+                                    ParamValue::Literal(v) => v.as_str().map(|s| s.to_string()),
+                                    _ => None,
+                                };
+                                if let Some(lbl) = label_to_register {
+                                    let needs_label = match n.node_type {
+                                        NodeType::Goto => key == "label",
+                                        NodeType::CreateThread
+                                        | NodeType::CreateListener
+                                        | NodeType::CreateListenerLocal => key == "labelName",
+                                        _ => false,
+                                    };
+                                    if needs_label {
+                                        self.graph.labels.entry(lbl).or_default();
+                                        self.graph_version += 1;
+                                    }
+                                }
                                 self.push_command(Command::SetParam {
                                     node_id: node_id.clone(),
                                     key,
