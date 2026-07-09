@@ -1,7 +1,9 @@
 var_main_thread = CreateThread("main")
+var_step1_thread = CreateThread("step1")
 main:
 	var_node_chat_out_chat = CreateMessengerChat(title="Messenger Example")
-	Goto("step1")
+	thread.Goto("step1")
+	_result = null
 step1:
 	Log(output="chat ready")
 	var_node_listener_out_listener = CreateListener(labelName="waitforbutton")

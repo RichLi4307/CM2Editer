@@ -38,6 +38,8 @@ pub struct CodeGenerator<'a> {
     registry: &'a HashMap<NodeType, NodeDefinition>,
     formatter: &'a mut CodeFormatter,
     visited: HashSet<String>,
+    /// True if the current label already wrote `_result = ...`
+    result_written: bool,
 }
 
 impl<'a> CodeGenerator<'a> {
@@ -52,6 +54,7 @@ impl<'a> CodeGenerator<'a> {
             registry,
             formatter,
             visited: HashSet::new(),
+            result_written: false,
         }
     }
 
@@ -59,21 +62,23 @@ impl<'a> CodeGenerator<'a> {
     pub fn run(&mut self) -> Result<()> {
         let labels = self.collect_labels();
 
-        // Top-level: CreateThread only for entry labels (main*)
+        // Top-level: CreateThread for every label (triggers execution on mod load)
         for (label_name, _) in &labels {
-            if label_name.starts_with("main") {
-                let var = format!("var_{}_thread", label_name);
-                self.formatter
-                    .write_line(&format!("{var} = CreateThread(\"{label_name}\")"));
-            }
+            let var = format!("var_{}_thread", label_name);
+            self.formatter
+                .write_line(&format!("{var} = CreateThread(\"{label_name}\")"));
         }
 
-        // Label bodies
+        // Label bodies with flow code + _result = null tail
         for (label_name, node_ids) in labels {
             if let Some(first_id) = node_ids.first() {
+                self.result_written = false;
                 self.formatter.write_line(&format!("{label_name}:"));
                 self.formatter.indent();
                 self.generate_sequence(first_id, None)?;
+                if !self.result_written {
+                    self.formatter.write_line("_result = null");
+                }
                 self.formatter.dedent();
             }
         }
@@ -106,7 +111,7 @@ impl<'a> CodeGenerator<'a> {
             }
             NodeType::Goto => {
                 let label = self.require_param(node, "label")?;
-                self.formatter.write_line(&format!("Goto({label})"));
+                self.formatter.write_line(&format!("thread.Goto({label})"));
             }
             NodeType::If => self.generate_if(node_id, stop_at)?,
             NodeType::While => self.generate_while(node_id, stop_at)?,
@@ -119,6 +124,7 @@ impl<'a> CodeGenerator<'a> {
                     .resolve_param(node, "value")
                     .unwrap_or_else(|_| "null".to_string());
                 self.formatter.write_line(&format!("_result = {value}"));
+                self.result_written = true;
             }
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal => {
                 self.generate_node_call(node)?;
@@ -672,7 +678,7 @@ mod tests {
         add_flow_edge(&mut graph, "start", "out_flow", "goto", "in_flow");
 
         let code = generate_code(&graph)?;
-        assert!(code.contains("Goto(\"target\")"));
+        assert!(code.contains("thread.Goto(\"target\")"));
         assert!(code.contains("target:"));
         assert!(code.contains("Log(output=\"reached\")"));
         Ok(())
