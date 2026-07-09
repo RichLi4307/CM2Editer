@@ -337,6 +337,8 @@ pub enum NodeType {
     LogicOr,
     /// 逻辑非（!）
     LogicNot,
+    /// Foreach 遍历
+    ForeachNode,
     // Phase 7: 坐标系统
     GetPosition,
     MakeVector,
@@ -579,12 +581,13 @@ mod tests {
             NodeType::LogicAnd,
             NodeType::LogicOr,
             NodeType::LogicNot,
+            NodeType::ForeachNode,
             // Phase 7: 坐标系统
             NodeType::GetPosition,
             NodeType::MakeVector,
             NodeType::BreakVector,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 153);
+        assert_eq!(variants.len(), 154);
     }
 }

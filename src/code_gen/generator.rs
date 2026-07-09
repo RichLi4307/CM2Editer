@@ -111,7 +111,13 @@ impl<'a> CodeGenerator<'a> {
             }
             NodeType::Goto => {
                 let label = self.require_param(node, "label")?;
-                self.formatter.write_line(&format!("thread.Goto({label})"));
+                let mut line = format!("thread.Goto({label})");
+                if let Some(args) = self.resolve_param_opt(node, "args") {
+                    if args != "null" && args != "[]" && !args.is_empty() {
+                        line.push_str(&format!(", {args}"));
+                    }
+                }
+                self.formatter.write_line(&line);
             }
             NodeType::If => self.generate_if(node_id, stop_at)?,
             NodeType::While => self.generate_while(node_id, stop_at)?,
@@ -125,6 +131,26 @@ impl<'a> CodeGenerator<'a> {
                     .unwrap_or_else(|_| "null".to_string());
                 self.formatter.write_line(&format!("_result = {value}"));
                 self.result_written = true;
+            }
+            NodeType::CallFunction => {
+                let func = self.require_param(node, "function")?;
+                let mut line = format!("{func}(");
+                if let Some(args) = self.resolve_param_opt(node, "params") {
+                    if args != "null" && args != "[]" && !args.is_empty() {
+                        line.push_str(&args);
+                    }
+                }
+                line.push(')');
+                self.formatter.write_line(&line);
+                self.follow_flow(node_id, "out_flow", stop_at)?;
+            }
+            NodeType::ForeachNode => {
+                let list = self.require_param(node, "list")?;
+                let thread = self.require_param(node, "threadVar")?;
+                let var = format!("var_{node_id}_idx");
+                self.formatter
+                    .write_line(&format!("{var} = Foreach({list}, {thread})"));
+                self.follow_flow(node_id, "out_flow", stop_at)?;
             }
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal => {
                 self.generate_node_call(node)?;
