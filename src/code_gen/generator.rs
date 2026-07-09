@@ -147,6 +147,7 @@ impl<'a> CodeGenerator<'a> {
             NodeType::ForeachNode => {
                 let list = self.require_param(node, "list")?;
                 let thread = self.require_param(node, "threadVar")?;
+                let list = list.trim_matches('"');
                 let var = format!("var_{node_id}_idx");
                 self.formatter
                     .write_line(&format!("{var} = Foreach({list}, {thread})"));
@@ -401,10 +402,18 @@ impl<'a> CodeGenerator<'a> {
                 Some(format!("!({a})"))
             }
             NodeType::GetPosition => {
-                let x = self.resolve_param_opt(node, "x")?;
-                let y = self.resolve_param_opt(node, "y")?;
-                let z = self.resolve_param_opt(node, "z")?;
-                Some(format!("[{x}, {y}, {z}]"))
+                if port_name == "out_stage" {
+                    let stage = self.resolve_param_opt(node, "stage")?;
+                    Some(stage.trim_matches('"').to_string())
+                } else {
+                    let x = self.resolve_param_opt(node, "x")?;
+                    let y = self.resolve_param_opt(node, "y")?;
+                    let z = self.resolve_param_opt(node, "z")?;
+                    let x = x.trim_matches('"');
+                    let y = y.trim_matches('"');
+                    let z = z.trim_matches('"');
+                    Some(format!("[{x}, {y}, {z}]"))
+                }
             }
             NodeType::MakeVector => {
                 let x = self.resolve_param_opt(node, "x")?;
