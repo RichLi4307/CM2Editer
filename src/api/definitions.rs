@@ -1890,6 +1890,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_flow(),
             out_data("out_listener", PortType::Object, "监听器"),
             out_data("out_name", PortType::String, "标签名"),
+        ])
+        .with_params(vec![
+            p_req("labelName", "标签名", ParamType::String),
+            p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
             NodeType::CreateListenerLocal,
