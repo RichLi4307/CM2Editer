@@ -1,0 +1,143 @@
+{
+  "version": "1.3",
+  "meta": {
+    "title": { "En": "Auto Ecstasy Alert", "Zh": "自动快感提醒" }
+  },
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "Start",
+      "position": { "x": 0, "y": 0 },
+      "ports": {
+        "inputs": [],
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "开始" }]
+      }
+    },
+    {
+      "id": "node_listener",
+      "type": "CreateListener",
+      "position": { "x": 120, "y": 0 },
+      "params": { "labelName": "check_loop" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "输入" }],
+        "outputs": [
+          { "id": "out_flow", "type": "Flow", "label": "完成" },
+          { "id": "out_listener", "type": "Object", "label": "监听器" }
+        ]
+      }
+    },
+    {
+      "id": "node_log_start",
+      "type": "Log",
+      "position": { "x": 240, "y": 0 },
+      "params": { "output": "listener started" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "输入" }],
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "完成" }]
+      }
+    },
+    {
+      "id": "node_ecstasy",
+      "type": "GetStateNumber",
+      "position": { "x": 0, "y": 100 },
+      "params": { "stateKey": "Ecstasy" },
+      "ports": {
+        "inputs": [],
+        "outputs": [{ "id": "out_value", "type": "Number", "label": "状态值" }]
+      }
+    },
+    {
+      "id": "node_compare",
+      "type": "CompareNumbers",
+      "position": { "x": 120, "y": 100 },
+      "params": { "operator": ">=", "b": 90 },
+      "ports": {
+        "inputs": [
+          { "id": "a", "type": "Number", "label": "数值A" },
+          { "id": "b", "type": "Number", "label": "数值B" }
+        ],
+        "outputs": [{ "id": "out_result", "type": "Boolean", "label": "比较结果" }]
+      }
+    },
+    {
+      "id": "node_if",
+      "type": "If",
+      "position": { "x": 0, "y": 240 },
+      "params": { "condition": true },
+      "ports": {
+        "inputs": [
+          { "id": "in_flow", "type": "Flow", "label": "输入" },
+          { "id": "condition", "type": "Boolean", "label": "条件" }
+        ],
+        "outputs": [
+          { "id": "out_true", "type": "Flow", "label": "是" },
+          { "id": "out_false", "type": "Flow", "label": "否" }
+        ]
+      }
+    },
+    {
+      "id": "node_log_alert",
+      "type": "Log",
+      "position": { "x": 120, "y": 300 },
+      "params": { "output": "Ecstasy >= 90!" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "输入" }],
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "完成" }]
+      }
+    },
+    {
+      "id": "node_log_normal",
+      "type": "Log",
+      "position": { "x": 120, "y": 360 },
+      "params": { "output": "Ecstasy < 90, normal" },
+      "ports": {
+        "inputs": [{ "id": "in_flow", "type": "Flow", "label": "输入" }],
+        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "完成" }]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_start_listener",
+      "from": { "node": "node_start", "port": "out_flow" },
+      "to": { "node": "node_listener", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e_listener_log",
+      "from": { "node": "node_listener", "port": "out_flow" },
+      "to": { "node": "node_log_start", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e_ecstasy_compare",
+      "from": { "node": "node_ecstasy", "port": "out_value" },
+      "to": { "node": "node_compare", "port": "a" },
+      "type": "Number"
+    },
+    {
+      "id": "e_compare_if",
+      "from": { "node": "node_compare", "port": "out_result" },
+      "to": { "node": "node_if", "port": "condition" },
+      "type": "Boolean"
+    },
+    {
+      "id": "e_if_true_log",
+      "from": { "node": "node_if", "port": "out_true" },
+      "to": { "node": "node_log_alert", "port": "in_flow" },
+      "type": "Flow"
+    },
+    {
+      "id": "e_if_false_log",
+      "from": { "node": "node_if", "port": "out_false" },
+      "to": { "node": "node_log_normal", "port": "in_flow" },
+      "type": "Flow"
+    }
+  ],
+  "labels": {
+    "main": ["node_start", "node_listener", "node_log_start"],
+    "check_loop": ["node_if", "node_log_alert", "node_log_normal"]
+  },
+  "threads": [{ "id": "thread_main", "entry_label": "main" }],
+  "viewport": { "x": 0, "y": 0, "zoom": 1.0 }
+}

@@ -52,3 +52,27 @@ fn generated_code_preserves_semantic_elements() -> Result<()> {
     assert!(code.contains("_result = null"));
     Ok(())
 }
+
+#[test]
+fn audit_auto_ecstasy_json() -> Result<()> {
+    let json = fs::read_to_string("tests/fixtures/auto_ecstasy.json")
+        .map_err(|e| CM2Editer::error::FlowError::Io(e.to_string()))?;
+    let doc = match deserialize_graph(&json) {
+        Ok(d) => d,
+        Err(e) => {
+            println!("Deserialize error: {e:?}");
+            return Err(e);
+        }
+    };
+    let code = generate_code(&doc.graph)?;
+    println!("=== Generated .code ===\n{}", code);
+
+    assert!(code.contains("var_main_thread"));
+    assert!(code.contains("var_check_loop_thread"));
+    assert!(code.contains("main:"));
+    assert!(code.contains("check_loop:"));
+    assert!(code.contains("CreateListener(labelName=\"check_loop\")"));
+    assert!(code.contains("_state.Ecstasy"));
+    assert!(code.contains("_result = null"));
+    Ok(())
+}

@@ -364,21 +364,26 @@ impl<'a> CodeGenerator<'a> {
         match node.node_type {
             NodeType::Boolean => {
                 let v = self.resolve_param_opt(node, "value")?;
-                Some(format_literal_string(&v))
+                Some(v.trim_matches('"').to_string())
             }
             NodeType::GetStateBool => {
                 let key = self.resolve_param_opt(node, "stateKey")?;
+                let key = key.trim_matches('"');
                 Some(format!("_state.{key}"))
             }
             NodeType::GetStateNumber => {
                 let key = self.resolve_param_opt(node, "stateKey")?;
+                let key = key.trim_matches('"');
                 Some(format!("_state.{key}"))
             }
             NodeType::CompareNumbers => {
                 let a = self.resolve_param_opt(node, "a")?;
+                let a = a.trim_matches('"');
                 let b = self.resolve_param_opt(node, "b")?;
+                let b = b.trim_matches('"');
                 let op = self.resolve_param_opt(node, "operator")
                     .unwrap_or_else(|| ">=".to_string());
+                let op = op.trim_matches('"');
                 Some(format!("{a} {op} {b}"))
             }
             NodeType::LogicAnd => {
