@@ -39,20 +39,6 @@ impl ParamTextEdit {
             *buf = text.clone();
         }
 
-        // 手动 Ctrl+V 粘贴（备用，egui TextEdit 通常内置但部分平台失效）
-        if resp.has_focus()
-            && ui.input(|i| i.modifiers.ctrl && i.key_pressed(egui::Key::V))
-        {
-            // 通过 events 查找剪贴板数据
-            ui.ctx().input(|i| {
-                for event in &i.events {
-                    if let egui::Event::Paste(clip) = event {
-                        *buf = text.clone() + clip;
-                    }
-                }
-            });
-        }
-
         // 校验 + 错误提示
         let mut json_ok = true;
         if needs_json && !text.is_empty() {

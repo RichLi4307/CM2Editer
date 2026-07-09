@@ -788,16 +788,16 @@ impl eframe::App for App {
             self.delete_selected();
         }
 
-        // 全局剪贴板快捷键：eframe 将 Ctrl+C/V 转换为 Event::Copy/Paste，
-        // 而不是 Key::C/V。搜索窗口打开时让 TextEdit 保留原行为。
+        // 全局剪贴板快捷键。文本框获得焦点时，Copy/Paste 交给文本框处理。
         let paste_pos = self.hover_world_pos(ctx, self.canvas_rect(ctx));
+        let keyboard_active = ctx.wants_keyboard_input();
         let search_open = self.search_window_open;
         ctx.input_mut(|i| {
             let mut copied = false;
             let mut pasted = false;
             i.events.retain(|event| {
-                if search_open {
-                    return true;
+                if search_open || keyboard_active {
+                    return true; // 让 TextEdit 自行处理
                 }
                 match event {
                     egui::Event::Copy if !copied => {
