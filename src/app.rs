@@ -763,28 +763,29 @@ impl App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // 全局快捷键（在 UI 绘制之前处理，防止被控件消费）
-        // Space 仅在画布未捕获键盘输入时触发搜索，避免在文本框中输入空格时打开搜索窗口
-        if !ctx.wants_keyboard_input()
+        // 全局快捷键。文本框有焦点时仅保留 Ctrl+S 保存，其余直通文本框。
+        let keyboard_active = ctx.wants_keyboard_input();
+        // Space 仅在画布未捕获键盘输入时触发搜索
+        if !keyboard_active
             && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space))
         {
             self.search_window_open = !self.search_window_open;
         }
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Z)) {
+        if !keyboard_active && ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Z)) {
             self.undo();
         }
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Y)) {
+        if !keyboard_active && ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::Y)) {
             self.redo();
         }
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::C)) {
+        if !keyboard_active && ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::C)) {
             self.copy_selected();
         }
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::V)) {
+        if !keyboard_active && ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::V)) {
             if let Some(pos) = self.hover_world_pos(ctx, self.canvas_rect(ctx)) {
                 self.paste_at(Vec2::new(pos.x, pos.y));
             }
         }
-        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete)) {
+        if !keyboard_active && ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete)) {
             self.delete_selected();
         }
 
