@@ -2126,8 +2126,8 @@ fn setup_fonts(ctx: &egui::Context) {
 
     // 1. 优先加载仓库内置的思源黑体 Regular
     let bundled_regular =
-        r"assets\fonts\思源黑体\OTF\SimplifiedChinese\SourceHanSansSC-Regular.otf";
-    let bundled_bold = r"assets\fonts\思源黑体\OTF\SimplifiedChinese\SourceHanSansSC-Bold.otf";
+        r"assets\fonts\思源黑体\OTF\SimplifiedChinese\CM2Editer-Regular.otf";
+    let bundled_bold = r"assets\fonts\思源黑体\OTF\SimplifiedChinese\CM2Editer-Bold.otf";
 
     if let Ok(bytes) = std::fs::read(bundled_regular) {
         fonts

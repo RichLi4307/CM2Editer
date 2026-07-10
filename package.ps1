@@ -27,7 +27,7 @@ Copy-Item (Join-Path $root "assets\coordinates") -Destination (Join-Path $distDi
 # Copy fonts (Regular + Bold only)
 $fontDst = Join-Path $distDir "assets\fonts"
 $null = New-Item -ItemType Directory -Path $fontDst -Force
-$fontFiles = Get-ChildItem (Join-Path $root "assets\fonts") -Recurse -Filter "SourceHanSansSC-*.otf"
+$fontFiles = Get-ChildItem (Join-Path $root "assets\fonts") -Recurse -Filter "CM2Editer-*.otf"
 foreach ($f in $fontFiles) {
     Copy-Item $f.FullName -Destination $fontDst
 }
