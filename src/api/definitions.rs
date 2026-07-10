@@ -2328,7 +2328,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             .with_params(vec![p_req("value", "值", ParamType::String)]),
         NodeDefinition::new(NodeType::ForeachNode, "Flow", "Foreach", "遍历列表，每元素调用标签", WAIT_COLOR)
             .with_inputs(vec![in_flow()])
-            .with_outputs(vec![out_flow()])
+        .with_outputs(vec![out_flow(), out_data("out_label", PortType::String, "标签名")])
             .with_params(vec![p_req("list", "列表", ParamType::String), p_req("threadVar", "标签名", ParamType::String)]),
     ]
 }
