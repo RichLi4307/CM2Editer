@@ -340,7 +340,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             CONTROL_COLOR,
         )
         .with_inputs(vec![in_flow()])
-        .with_outputs(vec![out_flow()])
+        .with_outputs(vec![out_flow(), out_data("out_label", PortType::String, "标签名")])
         .with_params(vec![
             p_req("label", "标签", ParamType::String),
             p_opt("params", "参数", ParamType::Object),
