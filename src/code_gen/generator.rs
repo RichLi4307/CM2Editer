@@ -512,7 +512,7 @@ impl<'a> CodeGenerator<'a> {
             }
         }
 
-        // Discover labels from Goto / CreateThread targets only
+        // Discover labels from Goto / CreateThread targets AND Label nodes
         // (Listener targets are nested sub-labels, not top-level entries)
         let mut discovered: HashSet<String> =
             labels.iter().map(|(n, _)| n.clone()).collect();
@@ -532,10 +532,25 @@ impl<'a> CodeGenerator<'a> {
                         ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
                         _ => None,
                     }),
+                NodeType::Label => {
+                    // Resolve name via Data edge first, then param
+                    self.resolve_param_opt(node, "name")
+                        .map(|s| s.trim_matches('"').to_string())
+                }
                 _ => None,
             };
             if let Some(t) = target_label {
-                if !discovered.contains(&t) {
+                if node.node_type == NodeType::Label {
+                    // Label node IS the entry point for this label
+                    if let Some(idx) = labels.iter().position(|(n, _)| *n == t) {
+                        if !labels[idx].1.contains(&node.id) {
+                            labels[idx].1.push(node.id.clone());
+                        }
+                    } else {
+                        labels.push((t.clone(), vec![node.id.clone()]));
+                        discovered.insert(t.clone());
+                    }
+                } else if !discovered.contains(&t) {
                     discovered.insert(t.clone());
                     labels.push((t, Vec::new()));
                 }
