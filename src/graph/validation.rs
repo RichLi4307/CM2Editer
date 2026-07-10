@@ -263,6 +263,23 @@ impl GraphValidator {
             }
         }
 
+        // 源 3：Label 节点自身（name 参数匹配标签名但未注册到 labels 列表的）
+        for node in graph.nodes.values() {
+            if node.node_type == NodeType::Label {
+                if let Some(label_name) = node.params.get("name").and_then(|v| match v {
+                    crate::graph::node::ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                    _ => None,
+                }) {
+                    if !label_name.starts_with("main")
+                        && graph.labels.contains_key(&label_name)
+                        && reachable.insert(node.id.clone())
+                    {
+                        queue.push_back(node.id.clone());
+                    }
+                }
+            }
+        }
+
         // BFS 沿 Flow 边
         while let Some(current) = queue.pop_front() {
             for edge in graph.edges.values() {
