@@ -115,13 +115,25 @@ pub const SOUND_EFFECTS: &[&str] = &[
 
 /// 条件类型（CreateCondition / Condition 对象）
 pub const CONDITION_TYPES: &[&str] = &[
+    // 衣装
     "CoatDropped", "CoatFrontClosed", "CoatFrontOpen1", "CoatFrontOpen2", "CoatBackClosed",
-    "CoatBackOpen", "Blindfolded", "NoHandcuffs", "HandcuffsBack", "HandcuffsObject",
-    "NormalHandcuffs", "KeyedHandcuffs", "TimedHandcuffs", "Moving", "Crouching", "Peeing",
-    "InLight", "Sitting", "Dashing", "Orgasm", "Futanari", "Invisible", "InOpenToilet",
-    "Bukkake", "NearNPC", "Watched", "ShowingOff", "VibrationOff", "VibrationLow",
-    "VibrationHigh", "VibrationRandom", "PistonOff", "PistonLow", "PistonMedium", "PistonHigh",
-    "PistonRandom", "IsDayTime", "NPCArea", "Bodypaint", "FPCamera", "GameOver",
+    "CoatBackOpen",
+    // 正面
+    "Blindfolded",
+    // 手铐
+    "NoHandcuffs", "HandcuffsBack", "HandcuffsObject", "NormalHandcuffs", "KeyedHandcuffs", "TimedHandcuffs",
+    // 身体
+    "Moving", "Crouching", "Peeing", "InLight", "Sitting", "Dashing", "Orgasm", "Futanari",
+    "Invisible", "InOpenToilet", "Bukkake", "NearNPC", "Watched", "ShowingOff", "Bodypaint",
+    "FPCamera", "GameOver",
+    // 暴露状态
+    "Exposed_None", "Exposed_Front", "Exposed_Upper", "Exposed_HipCrouch", "Exposed_Hip", "Exposed_All",
+    // 振动器
+    "VibrationOff", "VibrationLow", "VibrationHigh", "VibrationRandom",
+    // 活塞
+    "PistonOff", "PistonLow", "PistonMedium", "PistonHigh", "PistonRandom",
+    // 环境
+    "IsDayTime", "NPCArea",
 ];
 
 /// 将字符串切片转换为 `Vec<String>`。
