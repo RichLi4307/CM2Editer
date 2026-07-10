@@ -1464,6 +1464,7 @@ impl eframe::App for App {
         }
 
         egui::TopBottomPanel::bottom("bottom_main")
+            .resizable(true)
             .default_height(260.0)
             .min_height(140.0)
             .show(ctx, |ui| {
