@@ -62,9 +62,16 @@ impl<'a> CodeGenerator<'a> {
     pub fn run(&mut self) -> Result<()> {
         let (labels, skip_top_level) = self.collect_labels();
 
-        // Top-level: CreateThread only for entry-point labels (explicit CreateThread / main / Label nodes)
+        // 发现 Listener 子标签：BFS 找出每个标签可达的节点，匹配 CreateListener/CreateListenerLocal 目标
+        let child_map = compute_child_labels(self.graph, &labels, &skip_top_level);
+        let child_names: HashSet<String> = child_map
+            .values()
+            .flat_map(|v| v.iter().map(|(n, _)| n.clone()))
+            .collect();
+
+        // Top-level: CreateThread only for entry-point labels
         for (label_name, _) in &labels {
-            if skip_top_level.contains(label_name) {
+            if skip_top_level.contains(label_name) || child_names.contains(label_name) {
                 continue;
             }
             let var = format!("var_{}_thread", label_name);
@@ -72,14 +79,34 @@ impl<'a> CodeGenerator<'a> {
                 .write_line(&format!("{var} = CreateThread(\"{label_name}\")"));
         }
 
-        // Label bodies with flow code + _result = null tail
+        // Label bodies: 父标签内嵌子标签
         for (label_name, node_ids) in labels {
+            if child_names.contains(&label_name) {
+                continue;
+            }
             self.result_written = false;
             self.formatter.write_line(&format!("{label_name}:"));
             self.formatter.indent();
             if let Some(first_id) = node_ids.first() {
                 self.generate_sequence(first_id, None)?;
             }
+            // 在 _result = null 前内嵌子标签
+            let parent_result = self.result_written;
+            if let Some(kids) = child_map.get(&label_name) {
+                for (child_name, child_ids) in kids {
+                    self.result_written = false;
+                    self.formatter.write_line(&format!("{child_name}:"));
+                    self.formatter.indent();
+                    if let Some(first_id) = child_ids.first() {
+                        self.generate_sequence(first_id, None)?;
+                    }
+                    if !self.result_written {
+                        self.formatter.write_line("_result = null");
+                    }
+                    self.formatter.dedent();
+                }
+            }
+            self.result_written = parent_result;
             if !self.result_written {
                 self.formatter.write_line("_result = null");
             }
@@ -623,20 +650,19 @@ impl<'a> CodeGenerator<'a> {
             }
         }
 
-        // Skip top-level CreateThread for labels that are ONLY Goto/Listener targets.
-        // Labels with Label node IDs or explicit CreateThread references keep CreateThread.
+        // Top-level CreateThread only for labels explicitly created by CreateThread
+        // (or "main"). Listener targets and Goto targets never need it.
         let skip_top_level: HashSet<String> = labels
             .iter()
-            .filter(|(name, node_ids)| {
-                if name != "main" && node_ids.is_empty() {
-                    !self.graph.nodes.values().any(|n| matches!(n.node_type, NodeType::CreateThread)
-                        && match n.params.get("labelName") {
-                            Some(ParamValue::Literal(val)) => val.as_str() == Some(name.as_str()),
-                            _ => false,
-                        })
-                } else {
-                    false
+            .filter(|(name, _)| {
+                if name == "main" {
+                    return false;
                 }
+                !self.graph.nodes.values().any(|n| matches!(n.node_type, NodeType::CreateThread)
+                    && match n.params.get("labelName") {
+                        Some(ParamValue::Literal(val)) => val.as_str() == Some(name.as_str()),
+                        _ => false,
+                    })
             })
             .map(|(name, _)| name.clone())
             .collect();
@@ -652,6 +678,80 @@ impl<'a> CodeGenerator<'a> {
         });
         (labels, skip_top_level)
     }
+}
+
+/// BFS 可达节点集合：从 start_id 出发沿所有 Flow 边可达的节点 ID
+fn flow_reachable(graph: &Graph, start_id: &str) -> HashSet<String> {
+    let mut visited = HashSet::new();
+    let mut queue = VecDeque::new();
+    queue.push_back(start_id.to_string());
+    while let Some(current) = queue.pop_front() {
+        if !visited.insert(current.clone()) {
+            continue;
+        }
+        for edge in graph.outgoing_edges(&current) {
+            if edge.edge_type == PortType::Flow {
+                queue.push_back(edge.to.node_id.clone());
+            }
+        }
+    }
+    visited
+}
+
+/// 识别 Listener 创建的子标签：返回 parent → [(child_name, child_node_ids)]
+fn compute_child_labels(
+    graph: &Graph,
+    labels: &[(String, Vec<String>)],
+    skip_top_level: &HashSet<String>,
+) -> HashMap<String, Vec<(String, Vec<String>)>> {
+    let mut child_map: HashMap<String, Vec<(String, Vec<String>)>> = HashMap::new();
+
+    // 计算每个标签从入口点 BFS 可达的节点集合
+    let label_reachable: HashMap<String, HashSet<String>> = labels
+        .iter()
+        .map(|(name, entry_ids)| {
+            let mut reachable = HashSet::new();
+            for id in entry_ids {
+                reachable.extend(flow_reachable(graph, id));
+            }
+            (name.clone(), reachable)
+        })
+        .collect();
+
+    for node in graph.nodes.values() {
+        if !matches!(
+            node.node_type,
+            NodeType::CreateListener | NodeType::CreateListenerLocal
+        ) {
+            continue;
+        }
+        let target = node
+            .params
+            .get("labelName")
+            .and_then(|v| match v {
+                ParamValue::Literal(val) => val.as_str(),
+                _ => None,
+            })
+            .unwrap_or("");
+        if target.is_empty() || !skip_top_level.contains(target) {
+            continue;
+        }
+        for (parent_name, reachable) in &label_reachable {
+            if reachable.contains(&node.id) {
+                let target_ids = labels
+                    .iter()
+                    .find(|(n, _)| n == target)
+                    .map(|(_, ids)| ids.clone())
+                    .unwrap_or_default();
+                child_map
+                    .entry(parent_name.clone())
+                    .or_default()
+                    .push((target.to_string(), target_ids));
+                break;
+            }
+        }
+    }
+    child_map
 }
 
 /// 将 JSON 字面量格式化为 `.code` 可识别的字符串

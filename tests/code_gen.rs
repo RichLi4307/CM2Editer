@@ -68,7 +68,6 @@ fn audit_auto_ecstasy_json() -> Result<()> {
     println!("=== Generated .code ===\n{}", code);
 
     assert!(code.contains("var_main_thread"));
-    assert!(code.contains("var_check_loop_thread"));
     assert!(code.contains("main:"));
     assert!(code.contains("check_loop:"));
     assert!(code.contains("CreateListener(\"check_loop\")"));
