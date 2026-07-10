@@ -454,7 +454,17 @@ impl<'a> CodeGenerator<'a> {
                     _ => Some(format!("{v}[0]")),
                 }
             }
-            // 其他 Data 节点：回退到变量引用
+            // Goto / CreateThread / CreateListener 的 out_label/out_name 端口映射到参数值
+            NodeType::Goto if port_name == "out_label" => {
+                let label = self.resolve_param_opt(node, "label")?;
+                Some(label.trim_matches('"').to_string())
+            }
+            NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
+                if port_name == "out_name" =>
+            {
+                let name = self.resolve_param_opt(node, "labelName")?;
+                Some(name.trim_matches('"').to_string())
+            }
             _ => Some(format!("var_{node_id}_{port_name}")),
         }
     }
