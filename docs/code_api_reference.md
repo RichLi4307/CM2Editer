@@ -292,14 +292,18 @@ gallery = CreateGallery(condition=cond, area=area)
 
 ## 6. 代码生成对照
 
-### 生成对齐（必须修正）
+### 生成格式
 
 | 节点 | 当前 CM2Editer 生成 | 正确 DSL 语法 | 对齐状态 |
 |------|--------------------|--------------|---------|
-| If | `If(true) [` | `if condition` (无括号, 无大写, 无方括号) | ❌ 需修正 |
-| While | `While(true) [` | `while condition` | ❌ 需修正 |
-| For | 未实现 | `for i in Range(a, b)` | ❌ 未实现 |
-| Break | 未实现 | `break` | ❌ 未实现 |
+| If | `if {condition}` (小写 if + 缩进) | `if condition` | ✅ 已对齐 |
+| While | `while {condition}` (小写 + 缩进) | `while condition` | ✅ 已对齐 |
+| For | `for i in {iterable}` | `for i in Range(a, b)` | ⚠️ 仅支持列表遍历，Range 未实现 |
+| Break | `break` | `break` | ✅ 已对齐 |
+| Data 变量 | `var_{node_id}_{port}` | `var_{node_id}_{port}` | ✅ 已对齐 |
+| Data 值引用 | 递归解析：`evaluate_data_output` | 内联表达式 | ✅ 已对齐 |
+| 标签 | `var_X_thread = CreateThread("X")` (顶层) | `var = CreateThread("X")` | ✅ 已对齐 |
+| _result 收尾 | 自动追加，Return 已有时跳过 | `_result = null` | ✅ 已对齐 |
 
 ### 表达式生成规则
 

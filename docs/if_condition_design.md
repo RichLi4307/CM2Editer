@@ -50,7 +50,7 @@
 | 分类 | Game Functions: Player |
 | Inputs | 无 |
 | Outputs | `out_value: Boolean` |
-| Params | `stateKey: Enum` — 20+ 布尔状态名（从 `_state.*` 列出） |
+| Params | `stateKey: Enum` — 18 个布尔状态名（从 `_state.*` 列出） |
 | code_gen 值 | `_state.{key}` 如 `_state.Futanari` |
 
 **关键设计**：Enum 选项按三级分类呈现（可用命名空间选择器式窗口）：
@@ -76,10 +76,9 @@ Dashing     │                   │  ShowingOff
 | 分类 | Game Functions: Player |
 | Inputs | 无 |
 | Outputs | `out_value: Number` |
-| Params | `stateKey: Enum` — 7 个数值状态名 |
-| code_gen 值 | `_state.{key}` 如 `_state.Ecstasy` |
+| Params | `stateKey: Enum` — 8 个数值状态名 |
 
-选项：`Ecstasy`, `Detection`, `Rank`, `HeartRate`, `Stamina`, `StaminaMax`, `Moisture`
+选项：`Ecstasy`, `Detection`, `Rank`, `HeartRate`, `Stamina`, `StaminaMax`, `Moisture`, `Bodypaint`
 
 #### M4. GetPosition —— 读取坐标
 
@@ -88,8 +87,8 @@ Dashing     │                   │  ShowingOff
 | NodeType | `GetPosition` |
 | 分类 | Game Functions: Player |
 | Inputs | 无 |
-| Outputs | `out_stage: String`, `out_x: Number`, `out_y: Number`, `out_z: Number` |
-| code_gen 值 | `_state.Position.stage`, `_state.Position.x`, `.y`, `.z` |
+| Outputs | `out_position: List`, `out_stage: String` |
+| code_gen 值 | `[{x}, {y}, {z}]`, `_state.Position.stage` |
 
 #### M5. CheckEquipment —— 检查装备/玩具
 

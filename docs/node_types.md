@@ -1,4 +1,4 @@
-# CM2Editer 节点手册（v0.2.1 实际实现）
+# CM2Editer 节点手册（v0.2.2 实际实现）
 
 > 本文档描述 CM2Editer **实际支持的** 159 个节点类型及其用法。
 > 代码生成语法以 `docs/code_api_reference.md` 为准。

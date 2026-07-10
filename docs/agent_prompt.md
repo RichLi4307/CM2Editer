@@ -230,7 +230,7 @@ MyMission/
 
 每个节点类型必须有以下元数据。完整节点清单见 [node_types.md](node_types.md)。
 
-> **NodeType 计数规则**：当前 `NodeType` 枚举包含 **143 个变体**，覆盖控制流、通用函数、游戏函数、数学/字符串/文件函数、对象构造函数，以及 `Meta` / `Comment` / `Group` 特殊节点。`node_types.md` 中列出的对象方法（如 `Area.Inside`、`NPC.Warp`）不单独作为枚举变体，运行时通过 `(ObjectType, MethodName)` 组合或 `CallMethod` 节点表示。
+> **NodeType 计数规则**：当前 `NodeType` 枚举包含 **159 个变体**，覆盖控制流、通用函数、游戏函数、Boolean 管道（8 节点）、条件检查（3 节点）、坐标系统（3 节点）、数学/字符串/文件函数、对象构造函数，以及 `Meta` / `Comment` / `Group` 特殊节点。
 
 ```rust
 pub struct NodeDefinition {
