@@ -353,7 +353,8 @@ ParamTextEdit::show(ui, key, value, "占位提示")
 重大重构前后，将旧版文件归档到 `docs/archive/`，命名格式 `{文件名}_{YYYYMMDD}_v{序号}.{ext}`。
 
 示例：
-```
+
+```text
 docs/archive/TODO_20260708_v5.md
 docs/archive/agent_prompt_v1_full.md
 ```
