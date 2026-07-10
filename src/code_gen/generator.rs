@@ -40,6 +40,8 @@ pub struct CodeGenerator<'a> {
     visited: HashSet<String>,
     /// True if the current label already wrote `_result = ...`
     result_written: bool,
+    /// 子标签入口节点的 ID 集合，generate_sequence 遇到它们停止跟随 flow
+    child_label_node_ids: HashSet<String>,
 }
 
 impl<'a> CodeGenerator<'a> {
@@ -55,6 +57,7 @@ impl<'a> CodeGenerator<'a> {
             formatter,
             visited: HashSet::new(),
             result_written: false,
+            child_label_node_ids: HashSet::new(),
         }
     }
 
@@ -67,6 +70,13 @@ impl<'a> CodeGenerator<'a> {
         let child_names: HashSet<String> = child_map
             .values()
             .flat_map(|v| v.iter().map(|(n, _)| n.clone()))
+            .collect();
+
+        // 子标签入口的 Label 节点 ID：generate_sequence 遇到它们停止跟随 flow
+        self.child_label_node_ids = labels
+            .iter()
+            .filter(|(name, _)| child_names.contains(name))
+            .flat_map(|(_, ids)| ids.iter().cloned())
             .collect();
 
         // Top-level: CreateThread only for entry-point labels
@@ -133,7 +143,13 @@ impl<'a> CodeGenerator<'a> {
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
 
         match node.node_type {
-            NodeType::Start | NodeType::Label => {
+            NodeType::Start => {
+                self.follow_flow(node_id, "out_flow", stop_at)?;
+            }
+            NodeType::Label => {
+                if self.child_label_node_ids.contains(node_id) {
+                    return Ok(()); // 子标签入口：停止跟随，由 run() 单独缩进生成
+                }
                 self.follow_flow(node_id, "out_flow", stop_at)?;
             }
             NodeType::Comment | NodeType::Meta | NodeType::Group => {

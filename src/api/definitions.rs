@@ -329,7 +329,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "标签定义，可作为 Goto 目标",
             CONTROL_COLOR,
         )
-        .with_inputs(vec![in_flow()])
+        .with_inputs(vec![PortDefinition::new("in_flow", PortType::Flow, "缩进位置").required(true)])
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("name", "名称", ParamType::String)]),
         NodeDefinition::new(
