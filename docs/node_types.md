@@ -1,7 +1,46 @@
-# CM2Editer 节点手册（v0.2.0 实际实现）
+# CM2Editer 节点手册（v0.2.1 实际实现）
 
-> 本文档描述 CM2Editer **实际支持的** 158 个节点类型及其用法。
+> 本文档描述 CM2Editer **实际支持的** 159 个节点类型及其用法。
 > 代码生成语法以 `docs/code_api_reference.md` 为准。
+
+---
+
+## 代码生成兼容性 ⚠️ 必读
+
+新增/修改节点时必须对照下表。节点分为三类：
+
+### A 类：自定义代码生成（`generate_sequence` 显式 match 臂）
+
+| 节点 | 代码生成 |
+|------|---------|
+| `Start`, `Label`, `Comment`, `Meta`, `Group` | 贯通：`follow_flow` 继续 Flow 链 |
+| `Goto` | `thread.Goto(label)`，Data 端口需手动生成 var 赋值 |
+| `If` | `generate_if()`：分支 Flow + Data condition |
+| `While` | `generate_while()`：循环 Flow |
+| `For` | `generate_for()`：`for i in list` |
+| `Break` | `break` |
+| `Return` | `_result = {value}` |
+| `CallFunction` | `funcName(args)`，Data 端口需手动生成 |
+| `ForeachNode` | `var = Foreach(list, thread)` |
+
+**规则**：向 A 类节点新增 Data 输出端口，必须在 match 臂中手动写 `var_{id}_{port} = ...`。参照 Goto `out_label` 实现。
+
+### B 类：通用代码生成（`generate_node_call`）
+
+| 节点 | 代码生成 |
+|------|---------|
+| `CreateThread`, `CreateListener`, `CreateListenerLocal` | 显式匹配到 `generate_node_call` |
+| 其他所有带 Flow 端口的节点 | `_` 默认走 `generate_node_call` |
+
+`generate_node_call` 自动为**所有 Data 输出端口**生成 `var_{id}_{port} = Func(params)`。**新增 Data 输出端口无需改代码生成器**。
+
+### C 类：纯 Data 节点（无 Flow 端口）
+
+| 节点 |
+|------|
+| `Boolean`, `NumberConstant`, `StringConstant`, `GetStateBool`, `GetStateNumber`, `CompareNumbers`, `LogicAnd`, `LogicOr`, `LogicNot`, `CheckCondition`, `CheckEquipment`, `CheckCosplay`, `GetPosition`, `MakeVector`, `BreakVector` |
+
+处理位置：`evaluate_data_output()`——仅在其他节点通过 Data 边引用时才被递归解析。**不在 Flow 链中遍历**。新增参数或输出端口需在 `evaluate_data_output` 中添加对应分支。
 
 ---
 
