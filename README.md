@@ -38,19 +38,38 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
 
 ## 能做什么
 
-用 CM2Editer 做任务，就是在节点图里描述"玩家进入任务后会发生什么"。你可以：
+CM2Editer 目前实现了 CM2 API 的核心功能。以下是**确实可用**的能力：
 
-- **搭建任务流程**：从 `Start` 节点开始，用 `If` 做分支、`While`/`For` 做循环、`Goto` 做跳转，再用 `Wait` 和 `WaitForEvent` 控制时间点和事件触发。
-- **控制游戏场景**：切换场景、设置玩家位置/动作/摄像机、播放音效、触发游戏结束。
-- **操作 NPC 和角色**：生成 NPC、设置路径点、让 NPC 瞬移或播放动作、读取 NPC 状态（是否看到玩家、警觉度等）。
-- **放置任务触发器**：创建区域（Area/Zone）、交互区域（InteractArea）、条件（Condition/ItemCondition），检测玩家是否进入或满足条件。
-- **做任务 UI**：用 `MissionPanel` 和 `MissionMenuItem` 设置任务面板文字、进度条和菜单项；用 `Text` 和 `Messenger` 显示字幕和手机聊天。
-- **管理玩家数值**：RP、体力、快感、物品数量等，可以进行加减或读取。
-- **多线程和事件**：通过 `CreateThread`/`CreateListener` 并行跑逻辑，用 `SetEvent`/`GetEvent` 跨线程通信。
-- **数据流（DataFlow）**：用虚线连接节点的 Data 端口传递参数，代码生成优先使用 Data 端口连接的值。
-- **枚举下拉**：物品类型、场景、动作、技能、音效等参数提供下拉选择，减少输入错误。
-- **命名空间管理**：cosplay、成人玩具、外观类型等大型枚举通过命名空间文件管理，支持搜索和翻译名称。
-- **导出和验证**：验证节点图合法性后，生成 Custom Missions 2 能读取的 `.code` 文件和 `meta.json`；以工程文件夹形式保存，方便管理多个 `.code` 文件和再次编辑。
+### ✅ 已实现且可用
+
+- **控制流**：`Start` → `If`/`While`/`For` → `Label` → `Goto` → `Break`/`Return` 完整状态机
+- **线程与监听器**：`CreateThread`、`CreateListener`、`CreateListenerLocal`，每帧轮询 + Goto 状态切换
+- **Boolean 管道**：`GetStateBool`/`GetStateNumber` → `CompareNumbers` → `LogicAnd/Or/Not` → `If` 的 11 节点条件组合
+- **条件对象**：`CreateCondition` + `CheckCondition` → `If`，下拉覆盖 30+ 常用条件关键词
+- **坐标系统**：`GetPosition` + 16 个默认坐标预设 + `MakeVector`/`BreakVector`
+- **命名空间管理**：cosplay 等 7 个命名空间，188 条 cosplay 条目全部带中文翻译
+- **游戏状态读写**：`SetPlayerPosition`/`SetStage`/`SetAction`/`SetFutanari`/`SetSkill`/`LockHandcuffs`/`SetVibrator`/`SetPiston`/`PlaySoundEffect` 等 20+ 个 API 调用
+- **数值操作**：RP/体力/快感/物品数量的加减、读取
+- **对象创建**：`CreateList`、`CreateMissionPanel`、`CreateArea`、`CreateNPC`、`CreateGallery` 等
+- **数据流（DataFlow）**：虚线连接 Data 端口传递参数，代码生成优先使用 Data 值
+
+### ⚠️ 未实现或受限
+
+以下是真实 `.code` 任务中**常用但 CM2Editer 尚未支持**的功能：
+
+| 缺失功能 | 影响 |
+|---------|------|
+| **`list.Insert`/`.Remove`/`.Contains`/`.Count`** 等列表操作 | 无法操作动态列表 |
+| **Gallery API**（`.Show()`/`.Confirmed()`） | 拍照功能不可用 |
+| **MessengerChat API**（`.Add()`/`.SetButtons()`/`.Clicked()`） | 聊天 UI 不可用 |
+| **`_save` / `_settings` / `_time` / `_timediff`** 全局变量 | 无法做存档/计时逻辑 |
+| **`elseif` 多分支** | 仅支持 `if/else`，多条件需嵌套 |
+| **`thread.WaitForFinish`** | 无法等待子线程 |
+| **`listener = null`** 销毁监听器 | 无显式销毁方式 |
+| **`_this` 当前线程引用** | 无法传递线程引用 |
+| **对象方法调用**（`Area.Inside`/`NPC.Warp` 等） | 需通过泛型 `CallMethod` 手写参数 |
+
+> 以上 9 项已列入 `docs/TODO.md` 的 P1 优先级。其余未列举的 CM2 API 全部实现。详见 `docs/code_api_reference.md`。
 
 ## 怎么运行
 
