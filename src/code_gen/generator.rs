@@ -620,8 +620,36 @@ impl<'a> CodeGenerator<'a> {
                         _ => None,
                     }),
                 NodeType::Label => {
-                    self.resolve_param_opt(node, "name")
-                        .map(|s| s.trim_matches('"').to_string())
+                    // 优先解析 Data 边（out_name / out_label → name）
+                    self.graph
+                        .edges
+                        .values()
+                        .find(|e| {
+                            e.to.node_id == node.id
+                                && e.to.port_id == "name"
+                                && e.edge_type != PortType::Flow
+                        })
+                        .and_then(|edge| {
+                            let source = self.graph.nodes.get(&edge.from.node_id)?;
+                            match source.node_type {
+                                NodeType::CreateThread
+                                | NodeType::CreateListener
+                                | NodeType::CreateListenerLocal => source
+                                    .params
+                                    .get("labelName")
+                                    .and_then(|v| match v {
+                                        ParamValue::Literal(val) => {
+                                            val.as_str().map(|s| s.to_string())
+                                        }
+                                        _ => None,
+                                    }),
+                                _ => None,
+                            }
+                        })
+                        .or_else(|| {
+                            self.resolve_param_opt(node, "name")
+                                .map(|s| s.trim_matches('"').to_string())
+                        })
                 }
                 _ => None,
             };
