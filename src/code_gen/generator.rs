@@ -571,8 +571,7 @@ impl<'a> CodeGenerator<'a> {
             }
         }
 
-        // Pass 2: discover labels from Listener targets — only if not already known
-        let mut listener_only: HashSet<String> = HashSet::new();
+        // Pass 2: discover labels from Listener targets — any not already known
         for node in self.graph.nodes.values() {
             if !matches!(node.node_type, NodeType::CreateListener | NodeType::CreateListenerLocal) {
                 continue;
@@ -589,10 +588,40 @@ impl<'a> CodeGenerator<'a> {
                     continue;
                 }
                 discovered.insert(t.clone());
-                labels.push((t.clone(), Vec::new()));
-                listener_only.insert(t);
+                labels.push((t, Vec::new()));
             }
         }
+
+        // Determine listener-only labels: referenced ONLY by Listener nodes
+        // (no Label node IDs, no Goto/CreateThread targets)
+        let listener_only: HashSet<String> = labels
+            .iter()
+            .filter(|(name, node_ids)| {
+                if !node_ids.is_empty() {
+                    return false; // has at least one Label node
+                }
+                !self.graph.nodes.values().any(|n| match n.node_type {
+                    NodeType::Goto => n
+                        .params
+                        .get("label")
+                        .and_then(|v| match v {
+                            ParamValue::Literal(val) => val.as_str(),
+                            _ => None,
+                        })
+                        == Some(name.as_str()),
+                    NodeType::CreateThread => n
+                        .params
+                        .get("labelName")
+                        .and_then(|v| match v {
+                            ParamValue::Literal(val) => val.as_str(),
+                            _ => None,
+                        })
+                        == Some(name.as_str()),
+                    _ => false,
+                })
+            })
+            .map(|(name, _)| name.clone())
+            .collect();
 
         labels.sort_by(|a, b| {
             if a.0 == "main" {

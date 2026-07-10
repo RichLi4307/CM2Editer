@@ -1366,22 +1366,53 @@ impl eframe::App for App {
                                         _ => false,
                                     };
                                     if needs_label {
-                                        // 清理旧的标签归属（Label 改名或 Goto 改目标）
+                                        // 清理旧的标签归属（Label 改名或 Goto/Thread/Listener 改目标）
                                         if n.node_type == NodeType::Label {
-                                            // 从所有旧标签中移除该节点的 ID
                                             for (old_name, ids) in self.graph.labels.iter_mut() {
                                                 if *old_name != lbl {
                                                     ids.retain(|id| id != &node_id);
                                                 }
                                             }
-                                            // 清理空标签
-                                            let empty: Vec<String> = self.graph.labels.iter()
-                                                .filter(|(_, ids)| ids.is_empty())
-                                                .map(|(n, _)| n.clone())
-                                                .collect();
-                                            for name in empty {
-                                                self.graph.labels.remove(&name);
+                                        }
+                                        // Goto/Thread/Listener: 旧标签不再被任何节点引用则清理
+                                        if n.node_type != NodeType::Label {
+                                            let old_label = match &from {
+                                                ParamValue::Literal(v) => v.as_str().map(|s| s.to_string()),
+                                                _ => None,
+                                            };
+                                            if let Some(old) = old_label {
+                                                if old != lbl && !old.is_empty() {
+                                                    let still_referenced = self.graph.nodes.values().any(|other| {
+                                                        if other.id == node_id { return false; }
+                                                        match other.node_type {
+                                                            NodeType::Goto => other.params.get("label")
+                                                                .and_then(|v| match v {
+                                                                    ParamValue::Literal(val) => val.as_str(),
+                                                                    _ => None,
+                                                                }) == Some(&old),
+                                                            NodeType::CreateThread
+                                                            | NodeType::CreateListener
+                                                            | NodeType::CreateListenerLocal => other.params.get("labelName")
+                                                                .and_then(|v| match v {
+                                                                    ParamValue::Literal(val) => val.as_str(),
+                                                                    _ => None,
+                                                                }) == Some(&old),
+                                                            _ => false,
+                                                        }
+                                                    });
+                                                    if !still_referenced {
+                                                        self.graph.labels.remove(&old);
+                                                    }
+                                                }
                                             }
+                                        }
+                                        // 清理空标签
+                                        let empty: Vec<String> = self.graph.labels.iter()
+                                            .filter(|(_, ids)| ids.is_empty())
+                                            .map(|(n, _)| n.clone())
+                                            .collect();
+                                        for name in empty {
+                                            self.graph.labels.remove(&name);
                                         }
                                         let entry = self.graph.labels.entry(lbl).or_default();
                                         // Label 节点本身是该标签的入口节点
