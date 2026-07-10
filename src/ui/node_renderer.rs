@@ -165,7 +165,7 @@ impl NodeRenderer {
         let canvas_rect = ui.available_rect_before_wrap();
         let rect = self.screen_rect(canvas, node, canvas_rect);
         let ports = self.port_positions(node, rect);
-        self.render_with_data(ui, node, definition, rect, &ports, is_selected, has_errors);
+        self.render_with_data(ui, node, definition, rect, &ports, is_selected, has_errors, None);
         NodeRenderResponse { rect, ports }
     }
 
@@ -181,6 +181,7 @@ impl NodeRenderer {
         ports: &[PortGeometry],
         is_selected: bool,
         has_errors: bool,
+        graph: Option<&crate::graph::graph::Graph>,
     ) {
         let category = if node.category.is_empty() {
             &definition.category
@@ -249,7 +250,7 @@ impl NodeRenderer {
 
         // 绘制参数预览（如果未折叠）
         if !node.collapsed {
-            self.paint_param_preview(ui, node, rect);
+            self.paint_param_preview(ui, node, rect, graph);
         }
     }
 
@@ -297,9 +298,8 @@ impl NodeRenderer {
         );
     }
 
-    /// 在节点主体中绘制参数预览。
-    fn paint_param_preview(&self, ui: &egui::Ui, node: &Node, rect: Rect) {
-        // 参数预览放在所有端口下方，避免与端口标签重叠
+    /// 在节点主体中绘制参数预览。若 Data 端口被连线，优先级高于字面量值。
+    fn paint_param_preview(&self, ui: &egui::Ui, node: &Node, rect: Rect, graph: Option<&crate::graph::graph::Graph>) {
         let port_count = node.inputs.len().max(node.outputs.len()) as f32;
         let body_top = rect.min.y + self.header_height;
         let params_x = rect.min.x + self.port_radius * 2.0 + 4.0;
@@ -313,7 +313,18 @@ impl NodeRenderer {
             if params_y > rect.max.y - self.port_padding {
                 break;
             }
-            let text = format!("{}: {}", name, param_preview(value));
+            let has_data = graph.map_or(false, |g| {
+                g.edges.values().any(|e| {
+                    e.to.node_id == node.id
+                        && e.to.port_id == *name
+                        && e.edge_type != crate::graph::types::PortType::Flow
+                })
+            });
+            let text = if has_data {
+                format!("{}: 🔗", name)
+            } else {
+                format!("{}: {}", name, param_preview(value))
+            };
             ui.painter().text(
                 Pos2::new(params_x, params_y),
                 Align2::LEFT_CENTER,

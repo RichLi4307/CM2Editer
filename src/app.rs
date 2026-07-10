@@ -1891,12 +1891,12 @@ impl App {
 
         // 第三遍：渲染非选中节点（下层）
         for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| !d.4) {
-            node_renderer.render_with_data(ui, node, definition, *rect, ports, false, *has_errors);
+            node_renderer.render_with_data(ui, node, definition, *rect, ports, false, *has_errors, Some(&self.graph));
         }
 
         // 第四遍：渲染选中节点（上层 / 置顶）
         for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| d.4) {
-            node_renderer.render_with_data(ui, node, definition, *rect, ports, true, *has_errors);
+            node_renderer.render_with_data(ui, node, definition, *rect, ports, true, *has_errors, Some(&self.graph));
         }
 
         // 绘制临时拖线及目标端口状态填充
