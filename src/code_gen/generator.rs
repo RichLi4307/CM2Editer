@@ -786,6 +786,7 @@ mod tests {
 
         let code = generate_code(&graph)?;
         assert!(code.contains("thread.Goto(\"target\")"));
+        assert!(code.contains("var_goto_out_label = \"target\""));
         assert!(code.contains("target:"));
         assert!(code.contains("Log(output=\"reached\")"));
         Ok(())

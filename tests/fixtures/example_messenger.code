@@ -3,6 +3,7 @@ var_step1_thread = CreateThread("step1")
 main:
 	var_node_chat_out_chat = CreateMessengerChat(title="Messenger Example")
 	thread.Goto("step1")
+	var_node_goto_out_label = "step1"
 	_result = null
 step1:
 	Log(output="chat ready")
