@@ -26,16 +26,21 @@
 
 | 任务 | 来源 | 说明 |
 |------|------|------|
-| Goto 节点无法自动生成标签 | 📋 已记录 | 手动填写标签可行，自动注册待修复。`graph.labels` 不因 Goto 标签创建而自动添加 id |
+| Goto 节点无法自动生成标签 | 📋 已记录 | 手动填写标签可行，自动注册待修复 |
 
-### P1：重要
+### P1：重要（缺失的 .code 特性）
 
-| 任务 | 说明 |
-|------|------|
-| **Goto 参数传递语法** | `thread.Goto("x", key=value)` → key 成为目标标签的局部变量。当前 `Goto.args` 为 Object 类型，需验证 end-to-end |
-| **线程作用域** | 同一线程内标签共享变量；Goto 清除旧上下文。需在代码生成时保留线程局部变量 |
-| **Listener 作用域** | `CreateListenerLocal("x")` vs `CreateListener("x")`——Local 保留调用者变量 |
-| **`_save` 持久数据节点** | 读/写跨会话存档变量 |
+| 任务 | 说明 | 影响 |
+|------|------|------|
+| **数据结构和列表操作** | `list.Insert`、`list.Remove`、`list.Contains`、`list.Count`、`list.Clear`、`list.GetKeys`、队列/栈方法 等 11+ 个缺失 | 无法操作动态列表，常见模式无法实现 |
+| **Gallery API** | `.Show()`、`.Confirmed()`、`.GetSelection()` 无节点 | 拍照功能无法使用 |
+| **MessengerChat API** | `.Add()`、`.SetButtons()`、`.Clicked()` 无节点 | 聊天 UI 无法使用 |
+| **_save / _settings / _timediff / _time** | 持久数据、帧时间、设置读取 等 6 个全局变量缺失 | 无法做计时器/存档逻辑 |
+| **elseif 多分支** | 仅支持 `if/else`，无 `elseif` 链 | 多条件分支需嵌套 |
+| **For + Range 集成** | `Range` 节点无法直连 `For.iterable` | 用户需手写 `Range(0,10)` |
+| **thread.WaitForFinish** | 无节点等待子线程结束 | 多线程依赖实现不完整 |
+| **listener = null** | 销毁监听器无显式节点 | 需手动死循环控制 |
+| **_this 引用** | 当前线程引用无数据节点 | 无法传递线程引用 |
 
 ### P2：UI 打磨
 
