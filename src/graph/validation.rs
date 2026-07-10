@@ -297,10 +297,17 @@ impl GraphValidator {
             .iter()
             .filter(|(id, n)| {
                 if !reachable.contains(*id) {
-                    // Data-only 节点（零 Flow 端口）不需要接入，跳过
                     let has_flow = n.inputs.iter().any(|p| p.port_type == PortType::Flow)
                         || n.outputs.iter().any(|p| p.port_type == PortType::Flow);
-                    has_flow
+                    // Data-only 节点跳过
+                    if !has_flow {
+                        return false;
+                    }
+                    // 子标签内的节点：在任意非 main 标签的 node_ids 列表中 → 视为可达
+                    let in_label = graph.labels.iter().any(|(name, ids)| {
+                        !name.starts_with("main") && ids.contains(*id)
+                    });
+                    !in_label
                 } else {
                     false
                 }
