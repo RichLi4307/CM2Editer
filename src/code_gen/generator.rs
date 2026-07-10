@@ -118,6 +118,9 @@ impl<'a> CodeGenerator<'a> {
                     }
                 }
                 self.formatter.write_line(&line);
+                // 输出 out_label Data 端口值，供其他节点引用
+                self.formatter
+                    .write_line(&format!("var_{node_id}_out_label = {label}"));
             }
             NodeType::If => self.generate_if(node_id, stop_at)?,
             NodeType::While => self.generate_while(node_id, stop_at)?,
