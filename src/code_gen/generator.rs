@@ -143,13 +143,7 @@ impl<'a> CodeGenerator<'a> {
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
 
         match node.node_type {
-            NodeType::Start => {
-                self.follow_flow(node_id, "out_flow", stop_at)?;
-            }
-            NodeType::Label => {
-                if self.child_label_node_ids.contains(node_id) {
-                    return Ok(()); // 子标签入口：停止跟随，由 run() 单独缩进生成
-                }
+            NodeType::Start | NodeType::Label => {
                 self.follow_flow(node_id, "out_flow", stop_at)?;
             }
             NodeType::Comment | NodeType::Meta | NodeType::Group => {
@@ -385,6 +379,10 @@ impl<'a> CodeGenerator<'a> {
     /// 沿指定 Flow 输出端口继续生成
     fn follow_flow(&mut self, node_id: &str, port_id: &str, stop_at: Option<&str>) -> Result<()> {
         if let Some(target) = self.flow_target(node_id, port_id)? {
+            // 子标签入口节点：停止跟随，由 run() 单独缩进生成
+            if self.child_label_node_ids.contains(&target) {
+                return Ok(());
+            }
             self.generate_sequence(&target, stop_at)?;
         }
         Ok(())
