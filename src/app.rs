@@ -960,9 +960,12 @@ impl eframe::App for App {
                                     let is_main = name.starts_with("main");
                                     let is_renaming = self.label_renaming.as_deref() == Some(&name);
                                     if is_renaming {
+                                        let buf_key = format!("label_rename.{name}");
+                                        self.edit_buffers.entry(buf_key.clone()).or_insert_with(|| name.clone());
+                                        let mut new_name = self.edit_buffers.get(&buf_key).cloned().unwrap_or_else(|| name.clone());
                                         ui.horizontal(|ui| {
-                                            let mut new_name = name.clone();
                                             ui.text_edit_singleline(&mut new_name);
+                                            self.edit_buffers.insert(buf_key.clone(), new_name.clone());
                                             if ui.button("✔").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
                                                 if !new_name.is_empty() && new_name != name {
                                                     let ids_clone = ids.clone();
@@ -972,9 +975,11 @@ impl eframe::App for App {
                                                     self.status_message = format!("已重命名 {name} → {new_name}");
                                                 }
                                                 self.label_renaming = None;
+                                                self.edit_buffers.remove(&buf_key);
                                             }
                                             if ui.button("✘").clicked() {
                                                 self.label_renaming = None;
+                                                self.edit_buffers.remove(&buf_key);
                                             }
                                         });
                                     } else {
