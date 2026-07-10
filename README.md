@@ -4,7 +4,7 @@
 ![Rust](https://img.shields.io/badge/rust-2024_dea584?logo=rust&logoColor=white)
 ![egui](https://img.shields.io/badge/egui-0.31-amber)
 ![Tests](https://img.shields.io/badge/tests-109%20passed-brightgreen)
-![Version](https://img.shields.io/badge/version-0.2.1-blue)
+![Version](https://img.shields.io/badge/version-0.2.2-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 CM2Editer 是给游戏 **Secret Flasher Manaka** 做自定义任务的一个节点式可视化编辑器。如果你给这个游戏制作 Custom Missions 2 的任务Mod，可以直接在画布上拖节点、连端口、填参数，最后导出成 `.code` 文件，让 Custom Missions 2 加载器读取。
@@ -13,7 +13,7 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
 
 ## 当前版本
 
-**v0.2.1** —— 自 0.1.1 以来改动/新增共 52 个节点类型（143→159），重构了代码生成器以正确输出 CM2 加载器兼容的任务文件。现已支持完整的状态机逻辑（Thread/Listener/Goto）、条件系统（CreateCondition→CheckCondition 管道）、坐标预设与命名空间管理。底部面板三列可拖拽布局，文本框持久缓冲区无吞字，全局热键门控确保画布/属性面板互不干扰。110 项测试通过。
+**v0.2.2** — 补齐 Data 端口链路（Goto/CreateListener `out_label`/`out_name` 完整可用）、Label 节点支持 Data 边自动获取名称、节点预览显示 🔗 连接状态、CreateCondition 下拉补全 6 个 `Exposed_*` 暴露条件、验证器 BFS 重构消除子标签误报。110 项测试通过。
 
 ## 这个工具是什么
 

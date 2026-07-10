@@ -4,6 +4,38 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [0.2.2] — 2026-07-10
+
+### 修复（Data 端口链路）
+- **Goto `out_label` 端口**完整可用：节点定义 + 代码生成器 + `evaluate_data_output` 三级配合，输出实际 label 值而非变量名 `var_xxx`。
+- **CreateListener/CreateThread `out_name` 端口**同样修复：`evaluate_data_output` 新增映射，`out_name` → `labelName` 参数值。
+- **Label 节点 Data 边自动获取名称**：`collect_labels` 扫描 Label 节点并通过 `resolve_param_opt` 解析 `name` 参数（Data 边值优先于文本框输入）。
+- **节点预览**：连接到 Data 边的参数在画布节点上显示 `🔗` 链接状态，不再顽固显示空默认值。
+
+### 修复（代码生成与验证器）
+- **验证器 BFS 重构**：不可达检查同时从 Start 节点和各子标签入口节点出发，子标签（如 `check_loop`）内的 Flow 链不再误报"未连接 Start"。
+- **CreateCondition.id / CreateItemCondition.id** 从 required 改为 optional，不填时不输出 `id=""`。
+- **CONDITION_TYPES** 下拉补全 6 个 `Exposed_*` 暴露条件（`Exposed_None`, `Front`, `Upper`, `HipCrouch`, `Hip`, `All`）。
+
+### 改进
+- **节点库拖拽**：从左侧面板拖出节点到画布，带蓝色虚影跟随。
+- **全局热键门控**：文本框焦点时所有画布热键（Ctrl+Z/Y/C/V/Delete/Space）全部屏蔽，只对文本框生效。
+- **Ctrl+V 事件双保险**：`consume_key` + `Event::Paste` 两套机制同时门控。
+- **窗口初始化优化**：`eframe wgpu` 后端 + `desired_maximum_frame_latency=1` + `opt-level=1` debug profile，减少闪烁。
+- **ParamTextEdit 持久缓冲区**：跨帧保形，回车/失焦才提交，不吞字、不闪烁。
+
+### 文档
+- `agent_prompt.md` 新增 A/B/C 三类节点修改规则 + `evaluate_data_output` 分支要求
+- `node_types.md` 新增代码生成兼容性章节
+- `docs/hotkey_management.md` 热键管理规范
+- `docs/test_checklist.md` 70 项测试清单
+
+### 测试
+- `cargo test --lib` : 93 项通过
+- `cargo clippy` : 仅 4 个 pre-existing 警告
+
+---
+
 ## [0.2.1] — 2026-07-10
 
 ### 新增
