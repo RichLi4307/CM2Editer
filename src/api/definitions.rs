@@ -1984,7 +1984,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![
             e("condition", "条件", CONDITION_TYPES),
-            p_req("id", "ID", ParamType::String),
+            p_opt("id", "ID", ParamType::String),
         ]),
         NodeDefinition::new(
             NodeType::CreateItemCondition,
@@ -2002,7 +2002,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             e("itemtype", "物品类型", DROP_ITEM_TYPES),
             p_opt("zone", "地带", ParamType::Object),
             p_opt("area", "区域", ParamType::Object),
-            p_req("id", "ID", ParamType::String),
+            p_opt("id", "ID", ParamType::String),
         ]),
         NodeDefinition::new(
             NodeType::CreateInteractArea,
