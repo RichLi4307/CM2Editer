@@ -25,6 +25,8 @@
 
 **规则**：向 A 类节点新增 Data 输出端口，必须在 match 臂中手动写 `var_{id}_{port} = ...`。参照 Goto `out_label` 实现。
 
+⚠️ **同时**：A 类 Flow 节点的 Data 输出端口值需被其他节点通过 Data 边引用时，还必须在 `evaluate_data_output` 中添加对应分支，将端口名映射到实际参数值。否则回退到 `var_{id}_{port}`（变量名引用而非变量值）。参见 `Goto.out_label` 和 `CreateListener.out_name` 的实现（`generator.rs:458-473`）。
+
 ### B 类：通用代码生成（`generate_node_call`）
 
 | 节点 | 代码生成 |
