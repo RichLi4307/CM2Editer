@@ -22,4 +22,10 @@ all = { level = "warn", priority = -1 }
 unwrap_used = "deny"
 expect_used = "deny"
 redundant_clone = "warn"
+
+[profile.dev]
+opt-level = 1
+
+[profile.test]
+opt-level = 0
 needless_pass_by_value = "warn"
