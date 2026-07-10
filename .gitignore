@@ -6,5 +6,6 @@ CM2Editer_export.json
 CM2Editer.code
 *.log
 docs/从老大那偷来的，嘻嘻.html
+docs/archive/*.md
 tests/testnode/
 tests/testproject/
