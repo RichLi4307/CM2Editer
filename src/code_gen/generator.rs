@@ -73,11 +73,30 @@ impl<'a> CodeGenerator<'a> {
             .collect();
 
         // 子标签入口的 Label 节点 ID：generate_sequence 遇到它们停止跟随 flow
+        // 包括 listener 子标签，和从 Thread/Listener out_flow 连接到 Label 入口的节点
         self.child_label_node_ids = labels
             .iter()
             .filter(|(name, _)| child_names.contains(name))
             .flat_map(|(_, ids)| ids.iter().cloned())
             .collect();
+        for edge in self.graph.edges.values() {
+            if edge.edge_type != PortType::Flow || edge.to.port_id != "in_flow" {
+                continue;
+            }
+            let source_is_thread_or_listener = matches!(
+                self.graph.nodes.get(&edge.from.node_id).map(|n| &n.node_type),
+                Some(NodeType::CreateThread)
+                    | Some(NodeType::CreateListener)
+                    | Some(NodeType::CreateListenerLocal)
+            );
+            if source_is_thread_or_listener {
+                if let Some(target_node) = self.graph.nodes.get(&edge.to.node_id) {
+                    if target_node.node_type == NodeType::Label {
+                        self.child_label_node_ids.insert(edge.to.node_id.clone());
+                    }
+                }
+            }
+        }
 
         // Top-level: CreateThread only for entry-point labels
         for (label_name, _) in &labels {
@@ -97,6 +116,7 @@ impl<'a> CodeGenerator<'a> {
             self.result_written = false;
             self.formatter.write_line(&format!("{label_name}:"));
             self.formatter.indent();
+            self.visited.clear();
             if let Some(first_id) = node_ids.first() {
                 self.generate_sequence(first_id, None)?;
             }
@@ -107,6 +127,7 @@ impl<'a> CodeGenerator<'a> {
                     self.result_written = false;
                     self.formatter.write_line(&format!("{child_name}:"));
                     self.formatter.indent();
+                    self.visited.clear();
                     if let Some(first_id) = child_ids.first() {
                         self.generate_sequence(first_id, None)?;
                     }
