@@ -600,24 +600,6 @@ impl<'a> CodeGenerator<'a> {
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
 
-        if labels.is_empty() {
-            let start_nodes: Vec<String> = self
-                .graph
-                .nodes
-                .values()
-                .filter(|n| n.node_type == NodeType::Start)
-                .map(|n| n.id.clone())
-                .collect();
-            for (index, start_id) in start_nodes.into_iter().enumerate() {
-                let label_name = if index == 0 {
-                    "main".to_string()
-                } else {
-                    format!("main_{}", index)
-                };
-                labels.push((label_name, vec![start_id]));
-            }
-        }
-
         let mut discovered: HashSet<String> =
             labels.iter().map(|(n, _)| n.clone()).collect();
 
@@ -1129,13 +1111,15 @@ fn test_generate_create_listener() -> Result<()> {
         graph.add_node(log1);
         graph.add_node(start2);
         graph.add_node(log2);
+        graph.add_label("a", vec!["start1".to_string(), "log1".to_string()]);
+        graph.add_label("b", vec!["start2".to_string(), "log2".to_string()]);
 
         add_flow_edge(&mut graph, "start1", "out_flow", "log1", "in_flow");
         add_flow_edge(&mut graph, "start2", "out_flow", "log2", "in_flow");
 
         let code = generate_code(&graph)?;
-        assert!(code.contains("main:"));
-        assert!(code.contains("main_1:"));
+        assert!(code.contains("a:"));
+        assert!(code.contains("b:"));
         assert!(code.contains("Log(output=\"a\")"));
         assert!(code.contains("Log(output=\"b\")"));
         Ok(())
