@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "CM2Editer"
-version = "0.2.2"
+version = "0.2.1"
 dependencies = [
  "eframe",
  "egui",
@@ -896,7 +896,6 @@ dependencies = [
  "objc2-foundation 0.2.2",
  "parking_lot",
  "percent-encoding",
- "pollster",
  "profiling",
  "raw-window-handle",
  "static_assertions",
@@ -904,7 +903,6 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "wgpu",
  "winapi",
  "windows-sys 0.59.0",
  "winit",
@@ -3520,7 +3518,6 @@ dependencies = [
  "document-features",
  "js-sys",
  "log",
- "naga",
  "parking_lot",
  "profiling",
  "raw-window-handle",
@@ -3569,7 +3566,6 @@ dependencies = [
  "arrayvec",
  "ash",
  "bitflags 2.13.0",
- "block",
  "bytemuck",
  "cfg_aliases",
  "core-graphics-types",

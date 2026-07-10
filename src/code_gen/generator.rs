@@ -771,7 +771,7 @@ mod tests {
     fn test_generate_goto() -> Result<()> {
         let mut graph = build_graph();
         let start = make_node("start", NodeType::Start);
-        let mut goto = make_node("goto", NodeType::Goto);
+        let mut goto = make_node("node_goto", NodeType::Goto);
         goto.set_param("label", ParamValue::Literal(json!("target")));
         let mut target = make_node("target", NodeType::Log);
         target.set_param("output", ParamValue::Literal(json!("reached")));
@@ -779,14 +779,14 @@ mod tests {
         graph.add_node(start);
         graph.add_node(goto);
         graph.add_node(target);
-        graph.add_label("main", vec!["start".to_string(), "goto".to_string()]);
+        graph.add_label("main", vec!["start".to_string(), "node_goto".to_string()]);
         graph.add_label("target", vec!["target".to_string()]);
 
-        add_flow_edge(&mut graph, "start", "out_flow", "goto", "in_flow");
+        add_flow_edge(&mut graph, "start", "out_flow", "node_goto", "in_flow");
 
         let code = generate_code(&graph)?;
         assert!(code.contains("thread.Goto(\"target\")"));
-        assert!(code.contains("var_goto_out_label = \"target\""));
+        assert!(code.contains("var_node_goto_out_label = \"target\""));
         assert!(code.contains("target:"));
         assert!(code.contains("Log(output=\"reached\")"));
         Ok(())
