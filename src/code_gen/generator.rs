@@ -60,10 +60,13 @@ impl<'a> CodeGenerator<'a> {
 
     /// 执行代码生成
     pub fn run(&mut self) -> Result<()> {
-        let labels = self.collect_labels();
+        let (labels, listener_only) = self.collect_labels();
 
-        // Top-level: CreateThread for every label (triggers execution on mod load)
+        // Top-level: CreateThread for every non-listener label
         for (label_name, _) in &labels {
+            if listener_only.contains(label_name) {
+                continue;
+            }
             let var = format!("var_{}_thread", label_name);
             self.formatter
                 .write_line(&format!("{var} = CreateThread(\"{label_name}\")"));
@@ -494,9 +497,8 @@ impl<'a> CodeGenerator<'a> {
         }
     }
 
-    /// 收集标签。如果图没有显式标签，则自动为每个 Start 节点生成独立标签，
-    /// 避免多 Start 流程被合并到单一 `main` 下。
-    fn collect_labels(&self) -> Vec<(String, Vec<String>)> {
+    /// 收集标签 + 标记仅由 Listener 引用的标签（不应有顶层 CreateThread）。
+    fn collect_labels(&self) -> (Vec<(String, Vec<String>)>, HashSet<String>) {
         let mut labels: Vec<(String, Vec<String>)> = self
             .graph
             .labels
@@ -522,10 +524,10 @@ impl<'a> CodeGenerator<'a> {
             }
         }
 
-        // Discover labels from Goto / CreateThread targets AND Label nodes
-        // (Listener targets are nested sub-labels, not top-level entries)
         let mut discovered: HashSet<String> =
             labels.iter().map(|(n, _)| n.clone()).collect();
+
+        // Pass 1: discover labels from non-listener sources (Label / Goto / CreateThread)
         for node in self.graph.nodes.values() {
             let target_label = match node.node_type {
                 NodeType::Goto => node
@@ -543,7 +545,6 @@ impl<'a> CodeGenerator<'a> {
                         _ => None,
                     }),
                 NodeType::Label => {
-                    // Resolve name via Data edge first, then param
                     self.resolve_param_opt(node, "name")
                         .map(|s| s.trim_matches('"').to_string())
                 }
@@ -551,7 +552,6 @@ impl<'a> CodeGenerator<'a> {
             };
             if let Some(t) = target_label {
                 if node.node_type == NodeType::Label {
-                    // Label node IS the entry point for this label
                     if let Some(idx) = labels.iter().position(|(n, _)| *n == t) {
                         if !labels[idx].1.contains(&node.id) {
                             labels[idx].1.push(node.id.clone());
@@ -567,6 +567,28 @@ impl<'a> CodeGenerator<'a> {
             }
         }
 
+        // Pass 2: discover labels from Listener targets — only if not already known
+        let mut listener_only: HashSet<String> = HashSet::new();
+        for node in self.graph.nodes.values() {
+            if !matches!(node.node_type, NodeType::CreateListener | NodeType::CreateListenerLocal) {
+                continue;
+            }
+            let target_label = node
+                .params
+                .get("labelName")
+                .and_then(|v| match v {
+                    ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                    _ => None,
+                });
+            if let Some(t) = target_label {
+                if !discovered.contains(&t) {
+                    discovered.insert(t.clone());
+                    labels.push((t.clone(), Vec::new()));
+                    listener_only.insert(t);
+                }
+            }
+        }
+
         labels.sort_by(|a, b| {
             if a.0 == "main" {
                 return std::cmp::Ordering::Less;
@@ -576,7 +598,7 @@ impl<'a> CodeGenerator<'a> {
             }
             a.0.cmp(&b.0)
         });
-        labels
+        (labels, listener_only)
     }
 }
 
