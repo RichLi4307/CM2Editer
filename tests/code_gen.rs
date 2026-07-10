@@ -71,7 +71,7 @@ fn audit_auto_ecstasy_json() -> Result<()> {
     assert!(code.contains("var_check_loop_thread"));
     assert!(code.contains("main:"));
     assert!(code.contains("check_loop:"));
-    assert!(code.contains("CreateListener(labelName=\"check_loop\")"));
+    assert!(code.contains("CreateListener(\"check_loop\")"));
     assert!(code.contains("_state.Ecstasy"));
     assert!(code.contains("_result = null"));
     Ok(())

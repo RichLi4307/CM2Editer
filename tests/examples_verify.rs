@@ -81,8 +81,8 @@ fn example_test_code_generation_matches_expected() -> Result<()> {
     let code = assert_code_matches("example_test.json", "example_test.code")?;
     assert!(code.contains("main:"));
     assert!(code.contains("testmission:"));
-    assert!(code.contains("CreateThread(labelName=\"testmission\")"));
-    assert!(code.contains("CreateListener(labelName=\"reset\")"));
+    assert!(code.contains("CreateThread(\"testmission\")"));
+    assert!(code.contains("CreateListener(\"reset\")"));
     Ok(())
 }
 
@@ -97,9 +97,9 @@ fn example_npc_type_serialization_roundtrip() -> Result<()> {
 #[test]
 fn example_npc_type_code_generation_matches_expected() -> Result<()> {
     let code = assert_code_matches("example_npc_type.json", "example_npc_type.code")?;
-    assert!(code.contains("CreateThread(labelName=\"main\")"));
-    assert!(code.contains("CreateThread(labelName=\"walk\")"));
-    assert!(code.contains("CreateThread(labelName=\"blind\")"));
+    assert!(code.contains("CreateThread(\"main\")"));
+    assert!(code.contains("CreateThread(\"walk\")"));
+    assert!(code.contains("CreateThread(\"blind\")"));
     Ok(())
 }
 

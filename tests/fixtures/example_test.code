@@ -1,12 +1,12 @@
 var_main_thread = CreateThread("main")
 var_testmission_thread = CreateThread("testmission")
 main:
-	var_node_ct_out_thread = CreateThread(labelName="testmission")
+	var_node_ct_out_thread = CreateThread("testmission")
 	Log(output="mission started")
 	_result = null
 reset:
 	_result = null
 testmission:
-	var_node_listener_out_listener = CreateListener(labelName="reset")
+	var_node_listener_out_listener = CreateListener("reset")
 	Log(output="thread ready")
 	_result = null

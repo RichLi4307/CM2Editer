@@ -60,11 +60,11 @@ impl<'a> CodeGenerator<'a> {
 
     /// 执行代码生成
     pub fn run(&mut self) -> Result<()> {
-        let (labels, listener_only) = self.collect_labels();
+        let (labels, skip_top_level) = self.collect_labels();
 
-        // Top-level: CreateThread for every non-listener label
+        // Top-level: CreateThread only for entry-point labels (explicit CreateThread / main / Label nodes)
         for (label_name, _) in &labels {
-            if listener_only.contains(label_name) {
+            if skip_top_level.contains(label_name) {
                 continue;
             }
             let var = format!("var_{}_thread", label_name);
@@ -260,18 +260,49 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// 生成普通函数调用节点
+    /// Thread/Listener 节点头一个参数（labelName）按位置参数输出，params Object 解包为独立命名参数。
     fn generate_node_call(&mut self, node: &Node) -> Result<()> {
         let def = self
             .registry
             .get(&node.node_type)
             .ok_or_else(|| FlowError::UnknownNodeType(format!("{:?}", node.node_type)))?;
 
-        let mut params = Vec::new();
+        let is_thread_or_listener = matches!(
+            node.node_type,
+            NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
+        );
+
+        let mut params: Vec<String> = Vec::new();
         for param in &def.params {
+            if is_thread_or_listener && param.name == "labelName" {
+                let value = match self.resolve_param_opt(node, &param.name) {
+                    Some(v) => v,
+                    None if param.required => "\"\"".to_string(),
+                    None => continue,
+                };
+                // position 参数不加参数名前缀
+                params.push(value);
+                continue;
+            }
+            if is_thread_or_listener && param.name == "params" {
+                // 解包 Object 为独立命名参数
+                if let Some(ParamValue::Literal(obj)) = node.params.get("params") {
+                    if obj.is_object() {
+                        if let Some(map) = obj.as_object() {
+                            for (key, value) in map {
+                                params.push(format!("{}={}", key, format_literal(value)));
+                            }
+                        }
+                    } else if !obj.is_null() {
+                        // 非 Object 引用：直接作为额外参数
+                        params.push(format_literal(obj));
+                    }
+                }
+                continue;
+            }
             let value = match self.resolve_param_opt(node, &param.name) {
                 Some(v) => v,
                 None if param.required => {
-                    // 缺失的必填参数使用默认值，避免导出失败
                     match param.default_value() {
                         ParamValue::Ref {
                             node: ref_node,
@@ -592,33 +623,20 @@ impl<'a> CodeGenerator<'a> {
             }
         }
 
-        // Determine listener-only labels: referenced ONLY by Listener nodes
-        // (no Label node IDs, no Goto/CreateThread targets)
-        let listener_only: HashSet<String> = labels
+        // Skip top-level CreateThread for labels that are ONLY Goto/Listener targets.
+        // Labels with Label node IDs or explicit CreateThread references keep CreateThread.
+        let skip_top_level: HashSet<String> = labels
             .iter()
             .filter(|(name, node_ids)| {
-                if !node_ids.is_empty() {
-                    return false; // has at least one Label node
+                if name != "main" && node_ids.is_empty() {
+                    !self.graph.nodes.values().any(|n| matches!(n.node_type, NodeType::CreateThread)
+                        && match n.params.get("labelName") {
+                            Some(ParamValue::Literal(val)) => val.as_str() == Some(name.as_str()),
+                            _ => false,
+                        })
+                } else {
+                    false
                 }
-                !self.graph.nodes.values().any(|n| match n.node_type {
-                    NodeType::Goto => n
-                        .params
-                        .get("label")
-                        .and_then(|v| match v {
-                            ParamValue::Literal(val) => val.as_str(),
-                            _ => None,
-                        })
-                        == Some(name.as_str()),
-                    NodeType::CreateThread => n
-                        .params
-                        .get("labelName")
-                        .and_then(|v| match v {
-                            ParamValue::Literal(val) => val.as_str(),
-                            _ => None,
-                        })
-                        == Some(name.as_str()),
-                    _ => false,
-                })
             })
             .map(|(name, _)| name.clone())
             .collect();
@@ -632,7 +650,7 @@ impl<'a> CodeGenerator<'a> {
             }
             a.0.cmp(&b.0)
         });
-        (labels, listener_only)
+        (labels, skip_top_level)
     }
 }
 
@@ -900,7 +918,7 @@ mod tests {
 
         let code = generate_code(&graph)?;
         assert!(code.contains("main:"));
-        assert!(code.contains("CreateThread(labelName=\"m1\")"));
+        assert!(code.contains("CreateThread(\"m1\")"));
         assert!(code.contains("Log(output=\"done\")"));
         Ok(())
     }

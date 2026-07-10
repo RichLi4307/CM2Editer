@@ -1366,12 +1366,20 @@ impl eframe::App for App {
                                         _ => false,
                                     };
                                     if needs_label {
-                                        // 清理旧的标签归属（Label 改名或 Goto/Thread/Listener 改目标）
+                                        // 清理旧的标签归属（Label 改名）
                                         if n.node_type == NodeType::Label {
                                             for (old_name, ids) in self.graph.labels.iter_mut() {
                                                 if *old_name != lbl {
                                                     ids.retain(|id| id != &node_id);
                                                 }
+                                            }
+                                            // 清理因移除节点 ID 变成空的标签
+                                            let empty: Vec<String> = self.graph.labels.iter()
+                                                .filter(|(_, ids)| ids.is_empty())
+                                                .map(|(n, _)| n.clone())
+                                                .collect();
+                                            for name in empty {
+                                                self.graph.labels.remove(&name);
                                             }
                                         }
                                         // Goto/Thread/Listener: 旧标签不再被任何节点引用则清理
@@ -1405,14 +1413,6 @@ impl eframe::App for App {
                                                     }
                                                 }
                                             }
-                                        }
-                                        // 清理空标签
-                                        let empty: Vec<String> = self.graph.labels.iter()
-                                            .filter(|(_, ids)| ids.is_empty())
-                                            .map(|(n, _)| n.clone())
-                                            .collect();
-                                        for name in empty {
-                                            self.graph.labels.remove(&name);
                                         }
                                         let entry = self.graph.labels.entry(lbl).or_default();
                                         // Label 节点本身是该标签的入口节点
