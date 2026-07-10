@@ -98,9 +98,66 @@ impl Command {
             }
             Self::AddEdge { edge } => {
                 let _ = graph.add_edge(edge.clone());
+                // Data 边连接 Label.name 时，从源节点解析标签名并注册
+                if edge.edge_type != PortType::Flow
+                    && edge.to.port_id == "name"
+                {
+                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
+                        if target_node.node_type == NodeType::Label {
+                            if let Some(source_node) = graph.nodes.get(&edge.from.node_id) {
+                                let lbl = match source_node.node_type {
+                                    NodeType::CreateThread
+                                    | NodeType::CreateListener
+                                    | NodeType::CreateListenerLocal => source_node
+                                        .params
+                                        .get("labelName")
+                                        .and_then(|v| match v {
+                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                                            _ => None,
+                                        }),
+                                    NodeType::Goto => source_node
+                                        .params
+                                        .get("label")
+                                        .and_then(|v| match v {
+                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                                            _ => None,
+                                        }),
+                                    _ => None,
+                                };
+                                if let Some(lbl) = lbl {
+                                    if !lbl.is_empty() {
+                                        let entry = graph.labels.entry(lbl).or_default();
+                                        if !entry.contains(&edge.to.node_id) {
+                                            entry.push(edge.to.node_id.clone());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             Self::RemoveEdge { edge } => {
                 let _ = graph.remove_edge(&edge.id);
+                // 删除时清理 Label.name Data 边对应的标签注册
+                if edge.edge_type != PortType::Flow
+                    && edge.to.port_id == "name"
+                {
+                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
+                        if target_node.node_type == NodeType::Label {
+                            for ids in graph.labels.values_mut() {
+                                ids.retain(|id| id != &edge.to.node_id);
+                            }
+                            let empty: Vec<String> = graph.labels.iter()
+                                .filter(|(_, ids)| ids.is_empty())
+                                .map(|(n, _)| n.clone())
+                                .collect();
+                            for name in empty {
+                                graph.labels.remove(&name);
+                            }
+                        }
+                    }
+                }
             }
             Self::SetParam {
                 node_id, key, to, ..
@@ -137,9 +194,66 @@ impl Command {
             }
             Self::AddEdge { edge } => {
                 let _ = graph.remove_edge(&edge.id);
+                // 撤销时清理 Label.name Data 边对应的标签注册
+                if edge.edge_type != PortType::Flow
+                    && edge.to.port_id == "name"
+                {
+                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
+                        if target_node.node_type == NodeType::Label {
+                            for ids in graph.labels.values_mut() {
+                                ids.retain(|id| id != &edge.to.node_id);
+                            }
+                            let empty: Vec<String> = graph.labels.iter()
+                                .filter(|(_, ids)| ids.is_empty())
+                                .map(|(n, _)| n.clone())
+                                .collect();
+                            for name in empty {
+                                graph.labels.remove(&name);
+                            }
+                        }
+                    }
+                }
             }
             Self::RemoveEdge { edge } => {
                 let _ = graph.add_edge(edge.clone());
+                // 撤销删除时重新注册 Label.name 的标签
+                if edge.edge_type != PortType::Flow
+                    && edge.to.port_id == "name"
+                {
+                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
+                        if target_node.node_type == NodeType::Label {
+                            if let Some(source_node) = graph.nodes.get(&edge.from.node_id) {
+                                let lbl = match source_node.node_type {
+                                    NodeType::CreateThread
+                                    | NodeType::CreateListener
+                                    | NodeType::CreateListenerLocal => source_node
+                                        .params
+                                        .get("labelName")
+                                        .and_then(|v| match v {
+                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                                            _ => None,
+                                        }),
+                                    NodeType::Goto => source_node
+                                        .params
+                                        .get("label")
+                                        .and_then(|v| match v {
+                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
+                                            _ => None,
+                                        }),
+                                    _ => None,
+                                };
+                                if let Some(lbl) = lbl {
+                                    if !lbl.is_empty() {
+                                        let entry = graph.labels.entry(lbl).or_default();
+                                        if !entry.contains(&edge.to.node_id) {
+                                            entry.push(edge.to.node_id.clone());
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             Self::SetParam {
                 node_id, key, from, ..
