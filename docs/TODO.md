@@ -28,19 +28,21 @@
 |------|------|------|
 | Goto 节点无法自动生成标签 | 📋 已记录 | 手动填写标签可行，自动注册待修复 |
 
-### P1：重要（缺失的 .code 特性）
+### P1：重要（缺失的 .code 特性）—— 按实现难度排序
 
-| 任务 | 说明 | 影响 |
-|------|------|------|
-| **数据结构和列表操作** | `list.Insert`、`list.Remove`、`list.Contains`、`list.Count`、`list.Clear`、`list.GetKeys`、队列/栈方法 等 11+ 个缺失 | 无法操作动态列表，常见模式无法实现 |
-| **Gallery API** | `.Show()`、`.Confirmed()`、`.GetSelection()` 无节点 | 拍照功能无法使用 |
-| **MessengerChat API** | `.Add()`、`.SetButtons()`、`.Clicked()` 无节点 | 聊天 UI 无法使用 |
-| **_save / _settings / _timediff / _time** | 持久数据、帧时间、设置读取 等 6 个全局变量缺失 | 无法做计时器/存档逻辑 |
-| **elseif 多分支** | 仅支持 `if/else`，无 `elseif` 链 | 多条件分支需嵌套 |
-| **For + Range 集成** | `Range` 节点无法直连 `For.iterable` | 用户需手写 `Range(0,10)` |
-| **thread.WaitForFinish** | 无节点等待子线程结束 | 多线程依赖实现不完整 |
-| **listener = null** | 销毁监听器无显式节点 | 需手动死循环控制 |
-| **_this 引用** | 当前线程引用无数据节点 | 无法传递线程引用 |
+| 难度 | 任务 | 说明 | 工作量 |
+|------|------|------|--------|
+| 🟢 低 | **`listener = null`** | 销毁监听器的显式节点 | 1 个 B 类节点 + 1 行 code gen |
+| 🟢 低 | **`_this` 当前线程引用** | `GetCurrentThread` 数据节点 | 1 个 C 类节点 |
+| 🟢 低 | **`thread.WaitForFinish`** | 等待子线程结束 | 1 个 B 类节点 |
+| 🟢 低 | **For + Range 直连** | `Range.out_range → For.iterable` 自动生成 `for i in Range(0,10)` | evaluate_data_output 分支 |
+| 🟢 低 | **_save / _time / _timediff / _settings** | 6 个 C 类纯数据节点，复用现有模式 | 6 个 NodeType + 定义 |
+| 🟡 中 | **Gallery API** | `.Show()` `.Confirmed()` `.GetSelection()` 3 个对象方法 | 3 个 A 类节点 |
+| 🟡 中 | **list.Insert/Remove/Contains/Count/Clear/GetKeys** | 7 个列表操作方法 | 7 个 B 类节点 |
+| 🟡 中 | **MessengerChat API** | `.Add()` `.SetButtons()` `.Clicked()` | 3 个 A 类节点（Add 参数复杂） |
+| 🔴 高 | **`elseif` 多分支** | If 节点体系重构：多条件链 + UI | 架构级改动 |
+
+> **预估总量**：5 个低难度 + 3 个中难度 + 1 个高难度。低/中难度部分约 2-3 个工作日。
 
 ### P2：UI 打磨
 
