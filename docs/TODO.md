@@ -1,9 +1,8 @@
 # CM2Editer 项目进度清单
 
-> 用途：单人项目管理 + Agent 任务追踪
-> 更新规则：每次 Agent 交付后，由用户（或 Agent）更新对应条目状态
-> 文件位置：`docs/TODO.md`
-> 更新时间：2026-07-08 20:34
+> 版本：v0.2.2
+> 更新时间：2026-07-10 12:10
+> 归档：旧版本见 `docs/archive/TODO_20260710_v7.md`
 
 ---
 
@@ -11,109 +10,50 @@
 
 | 阶段 | 状态 | 备注 |
 |------|------|------|
-| Phase 0：项目初始化 | ✅ 完成 | 2026-07-05 |
-| Phase 1：数据层 | ✅ 完成 | 2026-07-05 |
-| Phase 2：序列化与代码生成 | ✅ 完成 | 2026-07-06 |
-| Phase 3：UI 层 | ✅ 完成 | 2026-07-07 |
-| Phase 3 三轮修复 | ✅ 完成 | 2026-07-08 |
-| Phase 4：集成测试与打磨 | ✅ 完成 | 2026-07-08 |
-| Phase 4.5：工程/项目管理 | ✅ 完成 | 2026-07-08 |
-| Phase 5：新功能与发布 | 🔄 5.1~5.4 已大部分完成 | DataFlow / 枚举参数 / 命名空间 / 静态检查 / 错误面板 / 底栏重构 / ID 冲突修复 |
-| Phase 6：Monitor→Condition 管道 | ✅ Phase 1 完成 | 7 个新 Boolean/Condition 节点 + If 条件模板 + Data 递归解析 + code_gen 对齐 CM2 DSL |
+| Phase 0–4.5：基础建设 | ✅ 完成 | 数据层 / 序列化 / 代码生成 / UI / 集成 / 工程管理 |
+| Phase 5：新功能 | ✅ 完成 | DataFlow / 枚举参数 / 命名空间 / 静态检查 / 错误面板 / 底栏 / 热键 / ID 冲突 |
+| Phase 6：Boolean 管道 | ✅ 完成 | 8 个纯数据节点 + If 条件模板 + evaluate_data_output 递归解析 |
+| Phase 7：坐标/条件系统 | ⚡ 已大部分实现 | GetPosition/MakeVector/BreakVector + CheckCondition/Equipment/Cosplay |
+| **P0 代码生成器重构** | ✅ 完成 | 顶层 CreateThread、if/while/for/break 语法对齐、标签生命周期、Goto out_label、Labels 自动发现 |
+| **验证器 BFS 重构** | ✅ 完成 | 同时从 Start + 子标签入口出发，消除误报 |
+| **Data 端口链路** | ✅ 完成 | A 类节点 + evaluate_data_output 三级配合，out_label/out_name 正确解析 |
 
 ---
 
-## Phase 5：新功能与发布（Backlog）
+## 待办队列
 
-### 5.1 高复杂度
+### P0：必须修
 
-| 任务 | 优先级 | 状态 | 说明 |
-|------|--------|------|------|
-| 5.1.1 **DataFlow 重构** | P0 | ✅ | 参数 Data 端口、虚线、属性面板数据源、Data 边选中渲染，108 tests |
-| 5.1.2 **参数类型重构** | P1 | ✅ | `ParamType::Enum`；20+ 参数下拉选择；参考文档已切换到 `docs/documentation.html`（英文原版） |
-| 5.1.3 **命名空间管理** | P1 | ✅ | 7 个 namespace JSON；悬浮搜索选择器 |
-| 5.1.4 **坐标"语言糖"** | P2 | 📋 | 预制坐标/视角变量；需评估与数学节点语义冲突 |
+| 任务 | 来源 | 说明 |
+|------|------|------|
+| Goto 节点无法自动生成标签 | 📋 已记录 | 手动填写标签可行，自动注册待修复。`graph.labels` 不因 Goto 标签创建而自动添加 id |
 
-### 5.2 中复杂度
-
-| 任务 | 优先级 | 状态 | 说明 |
-|------|--------|------|------|
-| 5.2.1 **左栏二级菜单** | P2 | ✅ | 三个一级标签：工程（合并节点库）、命名空间、坐标 |
-| 5.2.2 **静态检查** | P3 | ✅ | 多 Start 警告、不可达节点 |
-| 5.2.3 **Start 多路连接警告** | P3 | ✅ | 菱形依赖检测 |
-| 5.2.4 **错误详情面板** | P3 | ✅ | 点击状态栏错误数弹出详情窗口 |
-| 5.2.5 **画布状态机 Debug 显示** | P3 | 📋 | 开发者模式覆盖层 |
-
-### 5.3 低复杂度
-
-| 任务 | 优先级 | 状态 | 说明 |
-|------|--------|------|------|
-| 5.3.1 **底部面板可调高度** | P3 | ✅ | 三合一底栏（代码┃JSON┃DataFlow），双拖拽分隔线，ScrollArea 防溢出 |
-| 5.3.2 **端口吸附环** | P3 | 📋 | |
-| 5.3.3 **左栏拖出节点** | P3 | 📋 | |
-| 5.3.4 **节点大小可调整** | P3 | 📋 | |
-| 5.3.5 **电路连接线风格** | P3 | 📋 | |
-
-### 5.4 快速修复
-
-| 任务 | 优先级 | 状态 | 说明 |
-|------|--------|------|------|
-| 5.4.1 **必填参数 null 错误** | P2 | ✅ | JSON 加载时补填缺失 required 参数默认值 |
-| 5.4.2 **egui ID 冲突** | P2 | ✅ | 7 个 ScrollArea + 1 个 CollapsingHeader 加 `id_salt` |
-| 5.4.3 **底栏弹回/自缩** | P2 | ✅ | 三合一面板 + `BottomMain` 统一控制 |
-| 5.4.4 **`.code` 生成语法对齐** | P2 | ✅ | `If(true) [`→`if true`；`While()->`while`；`For()->`for i in`；`Break->`break` |
-
----
-
-## Phase 6：Monitor→Condition 管道（Boolean 节点系统）
-
-> 架构文档：`docs/if_condition_design.md`；API 参考：`docs/code_api_reference.md`
-
-### 6.1 新节点（Phase 1 完成）
-
-| 节点 | 分类 | 输出 | 作用 |
-|------|------|------|------|
-| Boolean | Math | Boolean 常量 | true/false |
-| GetStateBool | Game Functions | Boolean | 读 `_state.*` 布尔（18 项） |
-| GetStateNumber | Game Functions | Number | 读 `_state.*` 数值（8 项含 Bodypaint） |
-| CompareNumbers | Math | Boolean | a op b（6 种比较符） |
-| LogicAnd | Math | Boolean | `(a) && (b)` |
-| LogicOr | Math | Boolean | `(a) \|\| (b)` |
-| LogicNot | Math | Boolean | `!(a)` |
-
-### 6.2 代码生成
-
-| 特性 | 状态 |
-|------|------|
-| `evaluate_data_output()` 递归解析 Data 边链 | ✅ |
-| Boolean→If 生成 `if true` / `if false` | ✅ |
-| GetStateBool→If 生成 `if _state.Futanari` | ✅ |
-| CompareNumbers→If 生成 `if _state.Ecstasy >= 50` | ✅ |
-| LogicAnd/Or/Not 组合解析 | ✅ |
-
-### 6.3 If 条件模板下拉
-
-| 特性 | 状态 |
-|------|------|
-| 30+ 预设表达式 ComboBox | ✅ |
-| 分类：字面量 / 角色状态 / 环境 / 装备拘束 / 数值比较 | ✅ |
-| Data 连线时模板自动隐藏 | ✅ |
-
----
-
-## Phase 7：后续规划（v0.2+）
+### P1：重要
 
 | 任务 | 说明 |
 |------|------|
-| 7.1 `_save` 持久数据节点 | 读/写跨会话存档变量 |
-| 7.2 `GetPosition` 节点 | 输出 `_state.Position.*` 各字段 |
-| 7.3 `CheckEquipment` 节点 | `_state.AdultToys[key] != null` |
-| 7.4 `CheckCosplay` 节点 | 命名空间选择器 → `Cosplay_{key}` 条件 |
-| 7.5 条件选择窗口 | 类似命名空间选择器的分类浏览窗口 |
-| 7.6 `CreateCondition` Data 节点 | 输出 Condition Object → 连 Gallery/Area |
-| 7.7 代码预览语法高亮 | TextEdit 升级为 `.code` 语法着色 |
-| 7.8 Foreach 节点 | 生成 `Foreach(list, thread)` |
-| 7.9 跨文件 Goto 标签 | 多 `.code` 间标签引用 |
+| **Goto 参数传递语法** | `thread.Goto("x", key=value)` → key 成为目标标签的局部变量。当前 `Goto.args` 为 Object 类型，需验证 end-to-end |
+| **线程作用域** | 同一线程内标签共享变量；Goto 清除旧上下文。需在代码生成时保留线程局部变量 |
+| **Listener 作用域** | `CreateListenerLocal("x")` vs `CreateListener("x")`——Local 保留调用者变量 |
+| **`_save` 持久数据节点** | 读/写跨会话存档变量 |
+
+### P2：UI 打磨
+
+| 任务 | 说明 |
+|------|------|
+| 端口吸附环 | 鼠标靠近端口时放大，方便连线 |
+| 电路连接线风格 | 用折线替代贝塞尔曲线 |
+| 画布状态机 Debug 覆盖层 | 开发者模式显示节点执行序 |
+| 节点大小可调节 | Resize handle |
+| 代码预览语法高亮 | TextEdit 升级为 `.code` 语法着色 |
+| 跨文件 Goto 标签 | 多 `.code` 间标签引用 |
+| 条件选择窗口 | 类似命名空间选择器的分类浏览窗口 |
+
+---
+
+## 用户备注区
+
+<!-- 在此处留下你的笔记、发现或待办。Agent 不会覆盖本区域 -->
 
 ---
 
@@ -137,6 +77,10 @@
 | 2026-07-08 | API 文档 | `docs/code_api_reference.md`（基于官方英文 doc + 80+ 例反推） | ✅ |
 | 2026-07-08 | Phase 6 | 7 个 Boolean/Condition 节点 + If 模板 + `evaluate_data_output`；108 tests | ✅ |
 | 2026-07-08 | Bodypaint 修复 | 从 GetStateBool（Boolean）→ GetStateNumber（Number） | ✅ |
-| 2026-07-08 | Break 修复 | 已存在 Break 节点，code_gen `Break`→`break` | ✅ |
-| 2026-07-08 | Release | `cargo build --release` 产物 6.5 MB；字体瘦身 110→32 MB | ✅ |
-| 2026-07-08 | 文档更新 | README v0.1.0、CHANGELOG v0.1.0、TODO 重构 | ✅ |
+| 2026-07-08 | Break 修复 + Release | code_gen 对齐；v0.1.1 release；字体瘦身 | ✅ |
+| 2026-07-09 | P0 代码生成器重构 | 顶层 CreateThread、`_result=null`、`thread.Goto`、标签自动发现 | ✅ |
+| 2026-07-09 | Phase 6 扩展 | CheckCondition/Equipment/Cosplay 节点；StringConstant | ✅ |
+| 2026-07-09 | Label 管理 | 标签增删改、左栏面板、Label 节点 Data 边注册 | ✅ |
+| 2026-07-09 | 验证器 BFS 重构 | 子标签入口节点可达性；Goto out_label 端口修复 | ✅ |
+| 2026-07-09 | 文档审计 | code_api_reference 修复、NodeType 159、版本同步、旧文档归档 | ✅ |
+| 2026-07-10 | v0.2.2 release + CI 修复 | 夹具同步、tag 重打、文档归档 | ✅ |
