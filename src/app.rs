@@ -206,6 +206,7 @@ pub struct App {
     pub show_error_detail: bool,
     /// 命名空间添加表单
     pub ns_add_key: String,
+    pub label_renaming: Option<String>,
     pub ns_add_name: String,
     pub ns_add_target: String,
     /// 坐标添加表单
@@ -256,6 +257,7 @@ impl App {
             edit_buffers: EditBuffers::new(),
             show_error_detail: false,
             ns_add_key: String::new(),
+            label_renaming: None,
             ns_add_name: String::new(),
             ns_add_target: String::new(),
             coord_add_id: String::new(),
@@ -408,6 +410,18 @@ impl App {
 
         self.selected_nodes.clear();
         self.selected_edges.clear();
+
+        // 清理孤立的 graph.labels 条目（所有节点已被删除）
+        let mut orphan_labels = Vec::new();
+        for (name, ids) in &self.graph.labels {
+            if ids.iter().all(|id| !self.graph.nodes.contains_key(id)) {
+                orphan_labels.push(name.clone());
+            }
+        }
+        for name in orphan_labels {
+            self.graph.labels.remove(&name);
+        }
+
         self.status_message = String::from("已删除选中项");
     }
 
@@ -942,9 +956,28 @@ impl eframe::App for App {
                                     ui.label("暂无标签");
                                 } else {
                                 let mut to_delete = None;
-                                let mut to_rename = None;
                                 for (name, ids) in self.graph.labels.clone() {
                                     let is_main = name.starts_with("main");
+                                    let is_renaming = self.label_renaming.as_deref() == Some(&name);
+                                    if is_renaming {
+                                        ui.horizontal(|ui| {
+                                            let mut new_name = name.clone();
+                                            ui.text_edit_singleline(&mut new_name);
+                                            if ui.button("✔").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                                                if !new_name.is_empty() && new_name != name {
+                                                    let ids_clone = ids.clone();
+                                                    self.graph.labels.remove(&name);
+                                                    self.graph.labels.insert(new_name.clone(), ids_clone);
+                                                    self.graph_version += 1;
+                                                    self.status_message = format!("已重命名 {name} → {new_name}");
+                                                }
+                                                self.label_renaming = None;
+                                            }
+                                            if ui.button("✘").clicked() {
+                                                self.label_renaming = None;
+                                            }
+                                        });
+                                    } else {
                                     ui.horizontal(|ui| {
                                         if ui.button(&name).clicked() {
                                             self.selected_nodes.clear();
@@ -961,22 +994,15 @@ impl eframe::App for App {
                                                 to_delete = Some(name.clone());
                                             }
                                             if ui.small_button("Ren").clicked() {
-                                                to_rename = Some(name.clone());
+                                                self.label_renaming = Some(name.clone());
                                             }
                                         }
                                     });
+                                    }
                                     if let Some(del) = to_delete.take() {
                                         self.graph.labels.remove(&del);
                                         self.graph_version += 1;
                                         self.status_message = format!("已删除标签 {}", del);
-                                    }
-                                    if let Some(old) = to_rename.take() {
-                                        let new_name = format!("{old}_renamed");
-                                        let ids_clone = ids.clone();
-                                        self.graph.labels.remove(&old);
-                                        self.graph.labels.insert(new_name.clone(), ids_clone);
-                                        self.graph_version += 1;
-                                        self.status_message = format!("已重命名 {old} → {new_name}");
                                     }
                                 }
                                 }
@@ -1335,6 +1361,23 @@ impl eframe::App for App {
                                         _ => false,
                                     };
                                     if needs_label {
+                                        // 清理旧的标签归属（Label 改名或 Goto 改目标）
+                                        if n.node_type == NodeType::Label {
+                                            // 从所有旧标签中移除该节点的 ID
+                                            for (old_name, ids) in self.graph.labels.iter_mut() {
+                                                if *old_name != lbl {
+                                                    ids.retain(|id| id != &node_id);
+                                                }
+                                            }
+                                            // 清理空标签
+                                            let empty: Vec<String> = self.graph.labels.iter()
+                                                .filter(|(_, ids)| ids.is_empty())
+                                                .map(|(n, _)| n.clone())
+                                                .collect();
+                                            for name in empty {
+                                                self.graph.labels.remove(&name);
+                                            }
+                                        }
                                         let entry = self.graph.labels.entry(lbl).or_default();
                                         // Label 节点本身是该标签的入口节点
                                         if n.node_type == NodeType::Label {
