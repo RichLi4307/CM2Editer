@@ -503,6 +503,7 @@ impl<'a> CodeGenerator<'a> {
             .graph
             .labels
             .iter()
+            .filter(|(k, _)| !k.is_empty())
             .map(|(k, v)| (k.clone(), v.clone()))
             .collect();
 
@@ -551,6 +552,9 @@ impl<'a> CodeGenerator<'a> {
                 _ => None,
             };
             if let Some(t) = target_label {
+                if t.is_empty() {
+                    continue;
+                }
                 if node.node_type == NodeType::Label {
                     if let Some(idx) = labels.iter().position(|(n, _)| *n == t) {
                         if !labels[idx].1.contains(&node.id) {
@@ -581,11 +585,12 @@ impl<'a> CodeGenerator<'a> {
                     _ => None,
                 });
             if let Some(t) = target_label {
-                if !discovered.contains(&t) {
-                    discovered.insert(t.clone());
-                    labels.push((t.clone(), Vec::new()));
-                    listener_only.insert(t);
+                if t.is_empty() || discovered.contains(&t) {
+                    continue;
                 }
+                discovered.insert(t.clone());
+                labels.push((t.clone(), Vec::new()));
+                listener_only.insert(t);
             }
         }
 
