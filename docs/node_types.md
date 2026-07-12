@@ -1,6 +1,6 @@
-# CM2Editer 节点手册（v0.2.2 实际实现）
+# CM2Editer 节点手册（v0.2.2 + P1 低难度）
 
-> 本文档描述 CM2Editer **实际支持的** 159 个节点类型及其用法。
+> 本文档描述 CM2Editer **实际支持的** 168 个节点类型及其用法。
 > 代码生成语法以 `docs/code_api_reference.md` 为准。
 
 ---
@@ -22,6 +22,8 @@
 | `Return` | `_result = {value}` |
 | `CallFunction` | `funcName(args)`，Data 端口需手动生成 |
 | `ForeachNode` | `var = Foreach(list, thread)` |
+| `DestroyListener` | `listener = null` |
+| `WaitForThread` | `{thread}.WaitForFinish()` |
 
 **规则**：向 A 类节点新增 Data 输出端口，必须在 match 臂中手动写 `var_{id}_{port} = ...`。参照 Goto `out_label` 实现。
 
@@ -40,7 +42,7 @@
 
 | 节点 |
 |------|
-| `Boolean`, `NumberConstant`, `StringConstant`, `GetStateBool`, `GetStateNumber`, `CompareNumbers`, `LogicAnd`, `LogicOr`, `LogicNot`, `CheckCondition`, `CheckEquipment`, `CheckCosplay`, `GetPosition`, `MakeVector`, `BreakVector` |
+| `Boolean`, `NumberConstant`, `StringConstant`, `GetStateBool`, `GetStateNumber`, `CompareNumbers`, `LogicAnd`, `LogicOr`, `LogicNot`, `CheckCondition`, `CheckEquipment`, `CheckCosplay`, `GetPosition`, `MakeVector`, `BreakVector`, `GetCurrentThread`, `GetSave`, `GetTime`, `GetTimeDiff`, `GetSettings`, `GetMod`, `GetMods` |
 
 处理位置：`evaluate_data_output()`——仅在其他节点通过 Data 边引用时才被递归解析。**不在 Flow 链中遍历**。新增参数或输出端口需在 `evaluate_data_output` 中添加对应分支。
 
@@ -65,7 +67,7 @@
 | **Goto** | 入 Flow | `label`(String), `args`(Object) | `thread.Goto("label")` |
 | **If** | 入 Flow, 出 True/False | `condition`(Boolean) | `if {expr}` + `else` |
 | **While** | 入 Flow, 出 Loop/Break | `condition`(Boolean) | `while {expr}` |
-| **For** | 入 Flow, 出 Loop/Break | `iterable`(List) | `for i in {list}` |
+| **For** | 入 Flow, 出 Loop/Break | `iterable`(List) | `for i in {list}`，支持 `Range` 直连生成 `for i in Range(0, 10)` |
 | **Break** | 入 Flow | — | `break` |
 | **Return** | 入 Flow | `value`(List) | `_result = {value}` |
 | **CallFunction** | 入/出 Flow | `function`(String), `params`(Object) | `funcName(args)` |
@@ -80,6 +82,9 @@
 | **CreateThread** | 入/出 Flow | `labelName`(String), `params`(Object) | `var = CreateThread(labelName="x")` |
 | **CreateListener** | 入/出 Flow | `labelName`(String), `params`(Object) | `var = CreateListener(labelName="x")` |
 | **CreateListenerLocal** | 入/出 Flow | `labelName`(String), `params`(Object) | `var = CreateListenerLocal(labelName="x")` |
+| **DestroyListener** | 入/出 Flow | — | `listener = null` |
+| **GetCurrentThread** | — | — | `_this`（Object 输出） |
+| **WaitForThread** | 入/出 Flow | `thread`(Object) | `{thread}.WaitForFinish()` |
 
 > `params` 用于传递额外参数给标签，如 `duration=3.0`。
 
@@ -124,6 +129,21 @@
                                     [If.condition]
 → 生成: if _state.Ecstasy >= 90
 ```
+
+---
+
+## 全局变量数据节点（P1 低难度）
+
+> 无 Flow 端口，通过 Data 边引用。
+
+| 节点 | Data 出 | `.code` 输出 |
+|------|---------|-------------|
+| **GetSave** | `out_value: Object` | `_save` |
+| **GetTime** | `out_value: Number` | `_time` |
+| **GetTimeDiff** | `out_value: Number` | `_timediff` |
+| **GetSettings** | `out_value: Object` | `_settings` |
+| **GetMod** | `out_value: List` | `_mod` |
+| **GetMods** | `out_value: Object` | `_mods` |
 
 ---
 

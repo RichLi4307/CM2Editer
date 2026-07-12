@@ -587,6 +587,55 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_event", PortType::List, "事件数据"),
         ])
         .with_params(vec![p_req("name", "事件名", ParamType::String)]),
+        // ── P1 低难度：全局变量数据节点 ──
+        NodeDefinition::new(
+            NodeType::GetSave,
+            "General Functions",
+            "读取存档",
+            "读取跨会话持久存储（`_save`）",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Object, "存档")]),
+        NodeDefinition::new(
+            NodeType::GetTime,
+            "General Functions",
+            "读取时间",
+            "读取累计时间（`_time`）",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Number, "时间")]),
+        NodeDefinition::new(
+            NodeType::GetTimeDiff,
+            "General Functions",
+            "读取时间差",
+            "读取上一帧到当前帧时间差（`_timediff`）",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Number, "时间差")]),
+        NodeDefinition::new(
+            NodeType::GetSettings,
+            "General Functions",
+            "读取设置",
+            "读取 meta.json 设置菜单中的值（`_settings`）",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Object, "设置")]),
+        NodeDefinition::new(
+            NodeType::GetMod,
+            "General Functions",
+            "读取Mod数据",
+            "读取共享给其他 mod 的数据（`_mod`）",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::List, "Mod数据")]),
+        NodeDefinition::new(
+            NodeType::GetMods,
+            "General Functions",
+            "读取所有Mod数据",
+            "读取所有已激活 mod 的数据（`_mods`）",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Object, "Mods")]),
         // -----------------------------------------------------------------
         // Game Functions: Items & Equipment
         // -----------------------------------------------------------------
@@ -1913,7 +1962,35 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
+            NodeType::DestroyListener,
+            "Objects",
+            "销毁监听器",
+            "销毁当前 listener（`listener = null`）",
+            WAIT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()]),
+        NodeDefinition::new(
+            NodeType::GetCurrentThread,
+            "Objects",
+            "当前线程",
+            "获取当前线程引用（`_this`）",
+            OBJECT_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Object, "线程")]),
+        NodeDefinition::new(
+            NodeType::WaitForThread,
+            "Objects",
+            "等待线程结束",
+            "等待子线程结束（`thread.WaitForFinish()`）",
+            WAIT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()])
+        .with_params(vec![p_req("thread", "线程对象", ParamType::Object)]),
+        NodeDefinition::new(
             NodeType::CreateMissionPanel,
+
             "Objects",
             "任务面板",
             "创建任务面板",
@@ -2340,7 +2417,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 159);
+        assert_eq!(all.len(), 168);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2349,8 +2426,9 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 159);
+        assert_eq!(seen.len(), 168);
     }
+
 
     #[test]
     fn test_start_definition() {

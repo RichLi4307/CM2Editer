@@ -34,11 +34,11 @@
 
 | 难度 | 任务 | 说明 | 工作量 |
 |------|------|------|--------|
-| 🟢 低 | **`listener = null`** | 销毁监听器的显式节点 | 1 个 B 类节点 + 1 行 code gen |
-| 🟢 低 | **`_this` 当前线程引用** | `GetCurrentThread` 数据节点 | 1 个 C 类节点 |
-| 🟢 低 | **`thread.WaitForFinish`** | 等待子线程结束 | 1 个 B 类节点 |
-| 🟢 低 | **For + Range 直连** | `Range.out_range → For.iterable` 自动生成 `for i in Range(0,10)` | evaluate_data_output 分支 |
-| 🟢 低 | **_save / _time / _timediff / _settings** | 6 个 C 类纯数据节点，复用现有模式 | 6 个 NodeType + 定义 |
+| 🟢 低 | ~~**`listener = null`**~~ ✅ | 销毁监听器的显式节点 | 1 个 B 类节点 + 1 行 code gen |
+| 🟢 低 | ~~**`_this` 当前线程引用**~~ ✅ | `GetCurrentThread` 数据节点 | 1 个 C 类节点 |
+| 🟢 低 | ~~**`thread.WaitForFinish`**~~ ✅ | 等待子线程结束 | 1 个 B 类节点 |
+| 🟢 低 | ~~**For + Range 直连**~~ ✅ | `Range.out_range → For.iterable` 自动生成 `for i in Range(0,10)` | evaluate_data_output 分支 |
+| 🟢 低 | ~~**_save / _time / _timediff / _settings**~~ ✅ | 6 个 C 类纯数据节点（含 `_mod` / `_mods`），复用现有模式 | 6 个 NodeType + 定义 |
 | 🟡 中 | **Gallery API** | `.Show()` `.Confirmed()` `.GetSelection()` 3 个对象方法 | 3 个 A 类节点 |
 | 🟡 中 | **list.Insert/Remove/Contains/Count/Clear/GetKeys** | 7 个列表操作方法 | 7 个 B 类节点 |
 | 🟡 中 | **MessengerChat API** | `.Add()` `.SetButtons()` `.Clicked()` | 3 个 A 类节点（Add 参数复杂） |
@@ -113,3 +113,4 @@
 | 2026-07-10 | 字体子集化 | 33MB→5.8MB、OFL 合规改名、发行包 29.5→9.0MB | ✅ |
 | 2026-07-10 | P0 核实 + 标签重命名修复 | 确认 Goto 标签自动注册已工作；修复左栏标签重命名文本框缓冲缺失导致打字被覆盖的 bug（app.rs:962-984） | ✅ |
 | 2026-07-12 | P0 验证回归 | 复核 Goto 标签自动注册逻辑（app.rs:1469-1540 + generator.rs collect_labels），新增回归测试 `test_generate_goto_discovers_label_from_param`，cargo test 全过（94+4+9） | ✅ |
+| 2026-07-12 | P1 低难度 5 项 | 新增 DestroyListener / GetCurrentThread / WaitForThread / For+Range 直连 / 6 个全局变量数据节点；NodeType 159→168；新增 6 个生成测试；修复 CallFunction 函数名引号问题 | ✅ |

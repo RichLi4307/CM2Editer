@@ -198,6 +198,7 @@ impl<'a> CodeGenerator<'a> {
             }
             NodeType::CallFunction => {
                 let func = self.require_param(node, "function")?;
+                let func = func.trim_matches('"');
                 let mut line = format!("{func}(");
                 if let Some(args) = self.resolve_param_opt(node, "params") {
                     if args != "null" && args != "[]" && !args.is_empty() {
@@ -219,6 +220,16 @@ impl<'a> CodeGenerator<'a> {
             }
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal => {
                 self.generate_node_call(node)?;
+                self.follow_flow(node_id, "out_flow", stop_at)?;
+            }
+            NodeType::DestroyListener => {
+                self.formatter.write_line("listener = null");
+                self.follow_flow(node_id, "out_flow", stop_at)?;
+            }
+            NodeType::WaitForThread => {
+                let thread = self.require_param(node, "thread")?;
+                self.formatter
+                    .write_line(&format!("{thread}.WaitForFinish()"));
                 self.follow_flow(node_id, "out_flow", stop_at)?;
             }
             _ => {
@@ -548,6 +559,26 @@ impl<'a> CodeGenerator<'a> {
                     "y" => Some(format!("{v}[1]")),
                     "z" => Some(format!("{v}[2]")),
                     _ => Some(format!("{v}[0]")),
+                }
+            }
+            // P1 低难度：全局变量数据节点
+            NodeType::GetCurrentThread => Some("_this".to_string()),
+            NodeType::GetSave => Some("_save".to_string()),
+            NodeType::GetTime => Some("_time".to_string()),
+            NodeType::GetTimeDiff => Some("_timediff".to_string()),
+            NodeType::GetSettings => Some("_settings".to_string()),
+            NodeType::GetMod => Some("_mod".to_string()),
+            NodeType::GetMods => Some("_mods".to_string()),
+            // P1 低难度：For + Range 直连
+            NodeType::Range => {
+                let start = self.resolve_param_opt(node, "start")?;
+                let stop = self.resolve_param_opt(node, "stop")?;
+                let step = self.resolve_param_opt(node, "step");
+                match step {
+                    Some(s) if s != "null" && !s.is_empty() => {
+                        Some(format!("Range({start}, {stop}, {s})"))
+                    }
+                    _ => Some(format!("Range({start}, {stop})")),
                 }
             }
             // Goto / CreateThread / CreateListener 的 out_label/out_name 端口映射到参数值
@@ -1185,6 +1216,276 @@ fn test_generate_create_listener() -> Result<()> {
         let code = generate_code(&graph)?;
         assert!(code.contains("var_random_out_value = Random(min=0, max=10)"));
         assert!(code.contains("SetEcstasy(value=var_random_out_value)"));
+        Ok(())
+    }
+
+    // ── P1 低难度节点测试 ──
+
+    #[test]
+    fn test_generate_destroy_listener() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+        let destroy = make_node("destroy", NodeType::DestroyListener);
+        let mut end = make_node("end", NodeType::Return);
+        end.set_param("value", ParamValue::Literal(json!(null)));
+
+        graph.add_node(start);
+        graph.add_node(destroy);
+        graph.add_node(end);
+        graph.add_label(
+            "main",
+            vec!["start".to_string(), "destroy".to_string(), "end".to_string()],
+        );
+
+        add_flow_edge(&mut graph, "start", "out_flow", "destroy", "in_flow");
+        add_flow_edge(&mut graph, "destroy", "out_flow", "end", "in_flow");
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("listener = null"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_wait_for_thread() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+        let mut create = make_node("create", NodeType::CreateThread);
+        create.set_param("labelName", ParamValue::Literal(json!("child")));
+        create.outputs = vec![
+            Port::new("out_flow", PortType::Flow, "下一步"),
+            Port::new("out_thread", PortType::Object, "线程"),
+        ];
+        let mut wait = make_node("wait", NodeType::WaitForThread);
+        wait.inputs.push(Port::new("thread", PortType::Object, "线程对象"));
+        let mut end = make_node("end", NodeType::Return);
+        end.set_param("value", ParamValue::Literal(json!(null)));
+
+        graph.add_node(start);
+        graph.add_node(create);
+        graph.add_node(wait);
+        graph.add_node(end);
+        graph.add_label(
+            "main",
+            vec![
+                "start".to_string(),
+                "create".to_string(),
+                "wait".to_string(),
+                "end".to_string(),
+            ],
+        );
+
+        add_flow_edge(&mut graph, "start", "out_flow", "create", "in_flow");
+        add_flow_edge(&mut graph, "create", "out_flow", "wait", "in_flow");
+        add_flow_edge(&mut graph, "wait", "out_flow", "end", "in_flow");
+
+        let data_edge = Edge::new(
+            EdgeEndpoint::new("create", "out_thread"),
+            EdgeEndpoint::new("wait", "thread"),
+            PortType::Object,
+        );
+        graph.add_edge(data_edge)?;
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("var_create_out_thread.WaitForFinish()"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_get_current_thread() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+        let mut get_this = make_node("get_this", NodeType::GetCurrentThread);
+        get_this.outputs = vec![Port::new("out_value", PortType::Object, "线程")];
+        let mut log = make_node("log", NodeType::Log);
+        log.inputs.push(Port::new("output", PortType::Object, "输出"));
+
+        graph.add_node(start);
+        graph.add_node(get_this);
+        graph.add_node(log);
+        graph.add_label(
+            "main",
+            vec!["start".to_string(), "log".to_string()],
+        );
+
+        add_flow_edge(&mut graph, "start", "out_flow", "log", "in_flow");
+
+        let data_edge = Edge::new(
+            EdgeEndpoint::new("get_this", "out_value"),
+            EdgeEndpoint::new("log", "output"),
+            PortType::Object,
+        );
+        graph.add_edge(data_edge)?;
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("Log(output=_this)"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_for_with_range() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+        let mut range = make_node("range", NodeType::Range);
+        range.set_param("start", ParamValue::Literal(json!(0)));
+        range.set_param("stop", ParamValue::Literal(json!(10)));
+        range.outputs = vec![
+            Port::new("out_flow", PortType::Flow, "下一步"),
+            Port::new("out_list", PortType::List, "列表"),
+        ];
+        let mut for_node = make_node("for", NodeType::For);
+        for_node.inputs.push(Port::new("iterable", PortType::List, "列表"));
+        let mut body = make_node("body", NodeType::Log);
+        body.set_param("output", ParamValue::Literal(json!("loop")));
+        let mut end = make_node("end", NodeType::Return);
+        end.set_param("value", ParamValue::Literal(json!(null)));
+
+        graph.add_node(start);
+        graph.add_node(range);
+        graph.add_node(for_node);
+        graph.add_node(body);
+        graph.add_node(end);
+        graph.add_label(
+            "main",
+            vec![
+                "start".to_string(),
+                "range".to_string(),
+                "for".to_string(),
+                "end".to_string(),
+            ],
+        );
+
+        add_flow_edge(&mut graph, "start", "out_flow", "range", "in_flow");
+        add_flow_edge(&mut graph, "range", "out_flow", "for", "in_flow");
+        add_flow_edge(&mut graph, "for", "out_flow", "body", "in_flow");
+        add_flow_edge(&mut graph, "body", "out_flow", "end", "in_flow");
+
+        let data_edge = Edge::new(
+            EdgeEndpoint::new("range", "out_list"),
+            EdgeEndpoint::new("for", "iterable"),
+            PortType::List,
+        );
+        graph.add_edge(data_edge)?;
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("for i in Range(0, 10)"));
+        assert!(code.contains("Log(output=\"loop\")"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_global_data_nodes() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+
+        let mut get_time = make_node("time", NodeType::GetTime);
+        get_time.outputs = vec![Port::new("out_value", PortType::Number, "时间")];
+        let mut get_timediff = make_node("timediff", NodeType::GetTimeDiff);
+        get_timediff.outputs = vec![Port::new("out_value", PortType::Number, "时间差")];
+        let mut get_save = make_node("save", NodeType::GetSave);
+        get_save.outputs = vec![Port::new("out_value", PortType::Object, "存档")];
+        let mut get_settings = make_node("settings", NodeType::GetSettings);
+        get_settings.outputs = vec![Port::new("out_value", PortType::Object, "设置")];
+        let mut get_mod = make_node("mod", NodeType::GetMod);
+        get_mod.outputs = vec![Port::new("out_value", PortType::List, "Mod数据")];
+        let mut get_mods = make_node("mods", NodeType::GetMods);
+        get_mods.outputs = vec![Port::new("out_value", PortType::Object, "Mods")];
+
+        let mut set1 = make_node("set1", NodeType::SetEcstasy);
+        set1.inputs.push(Port::new("value", PortType::Number, "数值"));
+        let mut set2 = make_node("set2", NodeType::SetEcstasy);
+        set2.inputs.push(Port::new("value", PortType::Number, "数值"));
+
+        let mut call1 = make_node("call1", NodeType::CallFunction);
+        call1.set_param("function", ParamValue::Literal(json!("Foo")));
+        call1.inputs.push(Port::new("params", PortType::Object, "参数"));
+        let mut call2 = make_node("call2", NodeType::CallFunction);
+        call2.set_param("function", ParamValue::Literal(json!("Bar")));
+        call2.inputs.push(Port::new("params", PortType::Object, "参数"));
+        let mut call3 = make_node("call3", NodeType::CallFunction);
+        call3.set_param("function", ParamValue::Literal(json!("Baz")));
+        call3.inputs.push(Port::new("params", PortType::Object, "参数"));
+
+        let mut set_event = make_node("se", NodeType::SetEvent);
+        set_event.set_param("name", ParamValue::Literal(json!("evt")));
+        set_event.inputs.push(Port::new("value", PortType::List, "值"));
+
+        let mut end = make_node("end", NodeType::Return);
+        end.set_param("value", ParamValue::Literal(json!(null)));
+
+        graph.add_node(start);
+        graph.add_node(get_time);
+        graph.add_node(get_timediff);
+        graph.add_node(get_save);
+        graph.add_node(get_settings);
+        graph.add_node(get_mod);
+        graph.add_node(get_mods);
+        graph.add_node(set1);
+        graph.add_node(set2);
+        graph.add_node(call1);
+        graph.add_node(call2);
+        graph.add_node(call3);
+        graph.add_node(set_event);
+        graph.add_node(end);
+        graph.add_label(
+            "main",
+            vec![
+                "start".to_string(),
+                "set1".to_string(),
+                "set2".to_string(),
+                "call1".to_string(),
+                "call2".to_string(),
+                "call3".to_string(),
+                "se".to_string(),
+                "end".to_string(),
+            ],
+        );
+
+        add_flow_edge(&mut graph, "start", "out_flow", "set1", "in_flow");
+        add_flow_edge(&mut graph, "set1", "out_flow", "set2", "in_flow");
+        add_flow_edge(&mut graph, "set2", "out_flow", "call1", "in_flow");
+        add_flow_edge(&mut graph, "call1", "out_flow", "call2", "in_flow");
+        add_flow_edge(&mut graph, "call2", "out_flow", "call3", "in_flow");
+        add_flow_edge(&mut graph, "call3", "out_flow", "se", "in_flow");
+        add_flow_edge(&mut graph, "se", "out_flow", "end", "in_flow");
+
+        graph.add_edge(Edge::new(
+            EdgeEndpoint::new("time", "out_value"),
+            EdgeEndpoint::new("set1", "value"),
+            PortType::Number,
+        ))?;
+        graph.add_edge(Edge::new(
+            EdgeEndpoint::new("timediff", "out_value"),
+            EdgeEndpoint::new("set2", "value"),
+            PortType::Number,
+        ))?;
+        graph.add_edge(Edge::new(
+            EdgeEndpoint::new("save", "out_value"),
+            EdgeEndpoint::new("call1", "params"),
+            PortType::Object,
+        ))?;
+        graph.add_edge(Edge::new(
+            EdgeEndpoint::new("settings", "out_value"),
+            EdgeEndpoint::new("call2", "params"),
+            PortType::Object,
+        ))?;
+        graph.add_edge(Edge::new(
+            EdgeEndpoint::new("mods", "out_value"),
+            EdgeEndpoint::new("call3", "params"),
+            PortType::Object,
+        ))?;
+        graph.add_edge(Edge::new(
+            EdgeEndpoint::new("mod", "out_value"),
+            EdgeEndpoint::new("se", "value"),
+            PortType::List,
+        ))?;
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("SetEcstasy(value=_time)"));
+        assert!(code.contains("SetEcstasy(value=_timediff)"));
+        assert!(code.contains("Foo(_save)"));
+        assert!(code.contains("Bar(_settings)"));
+        assert!(code.contains("Baz(_mods)"));
+        assert!(code.contains("SetEvent(name=\"evt\", value=_mod)"));
         Ok(())
     }
 }

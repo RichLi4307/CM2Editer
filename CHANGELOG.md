@@ -6,15 +6,29 @@
 
 ## [Unreleased]
 
+### 新增（P1 低难度节点）
+
+- **DestroyListener**：销毁当前监听器，生成 `listener = null`。
+- **GetCurrentThread**：纯数据节点，输出当前线程引用 `_this`。
+- **WaitForThread**：Flow 节点，等待子线程结束，生成 `{thread}.WaitForFinish()`。
+- **全局变量数据节点**：GetSave、GetTime、GetTimeDiff、GetSettings、GetMod、GetMods，分别输出 `_save`、`_time`、`_timediff`、`_settings`、`_mod`、`_mods`。
+- **For + Range 直连**：当 `For.iterable` 通过 Data 边连接 `Range.out_list` 时，生成 `for i in Range(0, 10)`。
+
+### 修复
+
+- **CallFunction 函数名引号**：动态函数名现在不再被额外包裹引号，生成 `Foo(args)` 而非 `"Foo"(args)`。
+
 ### 文档
 
 - 更新 `docs/agent_prompt.md`：将 commit message 规范改为中文前缀，并明确要求任何任务完成后必须提交一次 commit。
 - 更新 `docs/TODO.md`：新增「Agent 交付规则」小节，规定完成任务必须更新 `CHANGELOG.md`、`docs/TODO.md`，并运行 `cargo test` 全过后再提交。
+- 更新 `docs/node_types.md`：节点数量 159 → 168，新增线程/监听器与全局变量数据节点章节。
 
 ### 测试
 
 - 新增 `code_gen::generator::tests::test_generate_goto_discovers_label_from_param` 回归测试，验证即使 `graph.labels` 未预先注册目标标签，`collect_labels` 仍能从 `Goto.label` 参数自动发现。
-- `cargo test`：94 个 lib tests + 4 个 code_gen 集成测试 + 9 个 examples 测试 + 4 个 json_roundtrip 测试全部通过。
+- 新增 P1 节点代码生成测试：`test_generate_destroy_listener`、`test_generate_wait_for_thread`、`test_generate_get_current_thread`、`test_generate_for_with_range`、`test_generate_global_data_nodes`。
+- `cargo test`：99 个 lib tests + 4 个 code_gen 集成测试 + 9 个 examples 测试 + 4 个 json_roundtrip 测试全部通过。
 
 ---
 

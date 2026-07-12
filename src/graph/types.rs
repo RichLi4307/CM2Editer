@@ -56,6 +56,18 @@ pub enum NodeType {
     SetEvent,
     /// 获取事件数据
     GetEvent,
+    /// 读取跨会话持久存储（`_save`）
+    GetSave,
+    /// 读取累计时间（`_time`）
+    GetTime,
+    /// 读取上一帧到当前帧时间差（`_timediff`）
+    GetTimeDiff,
+    /// 读取 meta.json 设置值（`_settings`）
+    GetSettings,
+    /// 读取共享给其他 mod 的数据（`_mod`）
+    GetMod,
+    /// 读取所有已激活 mod 的数据（`_mods`）
+    GetMods,
 
     // ── 游戏功能：物品与装备 ──
     /// 在世界中掉落一个物品
@@ -285,6 +297,12 @@ pub enum NodeType {
     CreateListener,
     /// 创建一个 listener（局部作用域）
     CreateListenerLocal,
+    /// 销毁当前 listener（`listener = null`）
+    DestroyListener,
+    /// 获取当前线程引用（`_this`）
+    GetCurrentThread,
+    /// 等待子线程结束（`thread.WaitForFinish()`）
+    WaitForThread,
     /// 创建 mission panel
     CreateMissionPanel,
     /// 创建 mission menu item
@@ -601,8 +619,17 @@ mod tests {
             NodeType::CheckEquipment,
             NodeType::CheckCosplay,
             NodeType::StringConstant,
+            NodeType::DestroyListener,
+            NodeType::GetCurrentThread,
+            NodeType::WaitForThread,
+            NodeType::GetSave,
+            NodeType::GetTime,
+            NodeType::GetTimeDiff,
+            NodeType::GetSettings,
+            NodeType::GetMod,
+            NodeType::GetMods,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 159);
+        assert_eq!(variants.len(), 168);
     }
 }
