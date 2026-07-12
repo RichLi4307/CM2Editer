@@ -634,6 +634,26 @@ impl<'a> CodeGenerator<'a> {
         let mut discovered: HashSet<String> =
             labels.iter().map(|(n, _)| n.clone()).collect();
 
+        // 兜底：如果 graph.labels 为空但存在 Start 节点，按序注册为 main / main_1 / ...
+        // 修复旧工程或新建工程未写入 labels 时导致 .code 为空的问题。
+        if labels.is_empty() {
+            let starts: Vec<&Node> = self
+                .graph
+                .nodes
+                .values()
+                .filter(|n| n.node_type == NodeType::Start)
+                .collect();
+            if let Some(first) = starts.first() {
+                labels.push(("main".to_string(), vec![first.id.clone()]));
+                discovered.insert("main".to_string());
+                for (i, start) in starts.iter().skip(1).enumerate() {
+                    let name = format!("main_{}", i + 1);
+                    labels.push((name.clone(), vec![start.id.clone()]));
+                    discovered.insert(name);
+                }
+            }
+        }
+
         // Pass 1: discover labels from non-listener sources (Label / Goto / CreateThread)
         for node in self.graph.nodes.values() {
             let target_label = match node.node_type {
@@ -1486,6 +1506,38 @@ fn test_generate_create_listener() -> Result<()> {
         assert!(code.contains("Bar(_settings)"));
         assert!(code.contains("Baz(_mods)"));
         assert!(code.contains("SetEvent(name=\"evt\", value=_mod)"));
+        Ok(())
+    }
+
+    /// 兜底测试：graph.labels 为空但存在 Start 节点时，
+    /// collect_labels 应自动将 Start 注册为 main 标签，使 .code 不为空。
+    #[test]
+    fn test_generate_with_empty_labels_and_start() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+        let mut log = make_node("log", NodeType::Log);
+        log.set_param("output", ParamValue::Literal(json!("hello")));
+
+        graph.add_node(start);
+        graph.add_node(log);
+        // 故意不注册 labels
+        add_flow_edge(&mut graph, "start", "out_flow", "log", "in_flow");
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("var_main_thread = CreateThread(\"main\")"));
+        assert!(code.contains("main:"));
+        assert!(code.contains("Log(output=\"hello\")"));
+        Ok(())
+    }
+
+    /// 新建工程默认图：只有 Start 节点，应生成顶层 CreateThread 和空 main 标签。
+    #[test]
+    fn test_generate_default_project_graph() -> Result<()> {
+        let graph = crate::project::default_graph_doc().into_graph();
+        let code = generate_code(&graph)?;
+        assert!(code.contains("var_main_thread = CreateThread(\"main\")"));
+        assert!(code.contains("main:"));
+        assert!(code.contains("_result = null"));
         Ok(())
     }
 }

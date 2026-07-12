@@ -24,6 +24,7 @@
 - 更新 `docs/TODO.md`：新增「Agent 交付规则」小节，规定完成任务必须更新 `CHANGELOG.md`、`docs/TODO.md`，并运行 `cargo test` 全过后再提交。
 - 更新 `docs/node_types.md`：节点数量 159 → 168，新增线程/监听器与全局变量数据节点章节。
 - 重写 `docs/tutorial_make_code.md`：适配实际 `.code` 生成结构、当前 Data 节点连线方式，新增 WaitForThread、Range+For、全局变量等章节，补充常见误区。
+- 新增 `docs/architecture_evaluation.md`：基于 `.code` DSL 语义、当前实现和跨编辑器模式研究，系统评估 Start/Label/Flow 边/节点分类的错配，提出线程/标签容器化 redesign 方向与迁移路线图。
 
 ### 测试
 

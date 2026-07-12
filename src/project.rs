@@ -476,7 +476,7 @@ impl Project {
 }
 
 /// 创建带有一个 `Start` 节点的默认节点图。
-fn default_graph_doc() -> GraphDocument {
+pub(crate) fn default_graph_doc() -> GraphDocument {
     let mut graph = Graph::default();
     let mut start = Node::new(NodeType::Start, Vec2::ZERO);
     if let Some(def) = get_definition(NodeType::Start) {
@@ -493,7 +493,9 @@ fn default_graph_doc() -> GraphDocument {
         start.outputs = vec![Port::new("out_flow", PortType::Flow, "开始")];
         start.category = "Control".to_string();
     }
+    let start_id = start.id.clone();
     graph.add_node(start);
+    graph.add_label("main", vec![start_id]);
     GraphDocument::from_graph(
         graph,
         Value::Object(serde_json::Map::new()),

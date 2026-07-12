@@ -115,3 +115,4 @@
 | 2026-07-12 | P0 验证回归 | 复核 Goto 标签自动注册逻辑（app.rs:1469-1540 + generator.rs collect_labels），新增回归测试 `test_generate_goto_discovers_label_from_param`，cargo test 全过（94+4+9） | ✅ |
 | 2026-07-12 | P1 低难度 5 项 | 新增 DestroyListener / GetCurrentThread / WaitForThread / For+Range 直连 / 6 个全局变量数据节点；NodeType 159→168；新增 6 个生成测试；修复 CallFunction 函数名引号问题 | ✅ |
 | 2026-07-13 | 实战教程更新 | 重写 `docs/tutorial_make_code.md`，适配实际 `.code` 生成结构（顶层变量名、CreateThread/CreateListener 变量名、Data 节点用法、Goto/Label 状态机、新增 WaitForThread/Range+For/全局变量等章节） | ✅ |
+| 2026-07-13 | 架构评估 | 完成 `docs/architecture_evaluation.md`，基于 `.code` DSL 语义、当前实现和跨编辑器模式研究，评估 Start/Label/Flow 边/节点分类的错配，提出容器化 redesign 方向 | ✅ |
