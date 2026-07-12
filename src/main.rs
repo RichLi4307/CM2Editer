@@ -1,16 +1,3 @@
-use CM2Editer::app::App;
-
-fn main() -> Result<(), eframe::Error> {
-    eframe::run_native(
-        "CM2Editer",
-        eframe::NativeOptions {
-            vsync: true,
-            wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
-                desired_maximum_frame_latency: Some(1),
-                ..Default::default()
-            },
-            ..Default::default()
-        },
-        Box::new(|cc| Ok(Box::new(App::new(cc)))),
-    )
+fn main() {
+    eprintln!("UI 正在重构中，暂时不可用。请先运行 cargo test 验证核心模块。");
 }

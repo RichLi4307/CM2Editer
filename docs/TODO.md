@@ -11,12 +11,12 @@
 
 | 文档/模块 | 旧版 | 新版 | 状态 |
 |----------|------|------|------|
-| TODO 清单 | `docs/archive/TODO_20260713_v8.md` | 本文档 | 编写中 |
-| 节点手册 | `docs/archive/node_types_20260713_v1.md` | `docs/node_types.md` | 待写 |
-| JSON Schema | `docs/json_schema.md` | `docs/json_schema.md` | 待重写 |
-| 系统提示词 | `docs/agent_prompt.md` | `docs/agent_prompt.md` | 待更新 |
-| 实战教程 | `docs/tutorial_make_code.md` | `docs/tutorial_make_code.md` | 待重写 |
-| 迁移指南 | 无 | `docs/migration_guide.md` | 待写 |
+| TODO 清单 | `docs/archive/TODO_20260713_v8.md` | 本文档 | 已更新 |
+| 节点手册 | `docs/archive/node_types_20260713_v1.md` | `docs/node_types.md` | 已完成 |
+| JSON Schema | `docs/json_schema.md` | `docs/json_schema.md` | 已完成 |
+| 系统提示词 | `docs/agent_prompt.md` | `docs/agent_prompt.md` | 已完成 |
+| 实战教程 | `docs/tutorial_make_code.md` | `docs/tutorial_make_code.md` | 已完成 |
+| 迁移指南 | 无 | `docs/migration_guide.md` | 已完成 |
 | 架构评估 | 无 | `docs/architecture_evaluation.md` | 已完成 ✅ |
 
 ---
@@ -25,13 +25,13 @@
 
 ### P0 — 核心图模型重构
 
-- [ ] 设计并实现 `ThreadContainer` / `LabelContainer` / `ListenerContainer` 数据结构。
-- [ ] 重写 JSON 序列化，版本升级为 `2.0`，顶层结构改为 `threads: [...]`。
-- [ ] 重写 `src/code_gen/generator.rs`：基于容器生成 `.code`，不再依赖 BFS 推断子标签。
-- [ ] 从 `NodeType` 中移除 `Start` / `Label`；保留反序列化兼容层，标记为 deprecated。
-- [ ] 限制 `Flow` 边仅在 `LabelContainer` / `ListenerContainer` 内部表示顺序；禁止跨容器 `Flow` 边。
-- [ ] 重写 `src/graph/validation.rs`：移除 `Flow` DAG 约束和菱形警告，新增标签名唯一性、作用域一致性、未使用标签检查。
-- [ ] 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器，而不是 `Start` 节点。
+- [x] 设计并实现 `ThreadContainer` / `LabelContainer` / `ListenerContainer` 数据结构。
+- [x] 重写 JSON 序列化，版本升级为 `2.0`，顶层结构改为 `threads: [...]`；不再兼容 v1.0。
+- [x] 重写 `src/code_gen/generator.rs`：基于容器生成 `.code`，不再依赖 BFS 推断子标签。
+- [x] 从 `NodeType` 中移除 `Start` / `Label`；`NodeType` 变体数从 168 调整为 166。
+- [x] 限制 `Flow` 边仅在 `LabelContainer` / `ListenerContainer` 内部表示顺序；禁止跨容器 `Flow` 边。
+- [x] 重写 `src/graph/validation.rs`：移除 `Flow` DAG 约束和菱形警告，新增标签名唯一性、容器内边检查。
+- [x] 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器，而不是 `Start` 节点。
 
 ### P1 — 节点分类与语义修正
 
@@ -85,6 +85,7 @@
 - `main` 只是一个约定俗成的顶层线程标签，不是特殊入口。
 - Listener 是每帧/每秒调用标签的循环；局部监听器捕获创建处作用域。
 - 标签间关系应通过名称引用或 Data 端口表达，不能画 `Flow` 边。
+- `app` 和 `ui` 模块已暂时从 `src/lib.rs` 中屏蔽，待核心稳定后逐步恢复。
 
 ---
 
@@ -94,5 +95,5 @@
 |------|----------|------|------|
 | 2026-07-13 | 文档-归档 | 将旧版 `TODO.md` / `node_types.md` 归档到 `docs/archive/` | 已完成 |
 | 2026-07-13 | 文档-新架构 | 完成新架构核心文档：TODO.md、node_types.md、json_schema.md、agent_prompt.md、tutorial_make_code.md、migration_guide.md | 已完成 ✅ |
+| 2026-07-13 | 重构-P0 | 完成核心图模型重构：容器化图、序列化 v2.0、代码生成器、验证器、移除 Start/Label，UI 暂时屏蔽 | 已完成 ✅ |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |
-

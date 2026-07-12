@@ -37,17 +37,17 @@ mod tests {
         let all = all_node_definitions();
         let reg = registry();
         assert_eq!(reg.len(), all.len());
-        assert_eq!(all.len(), 168);
+        assert_eq!(all.len(), 166);
     }
 
     #[test]
-    fn test_get_definition_start() {
-        let definition = get_definition(NodeType::Start);
+    fn test_get_definition_goto() {
+        let definition = get_definition(NodeType::Goto);
         assert!(definition.is_some());
         let definition = definition.unwrap();
-        assert_eq!(definition.node_type, NodeType::Start);
-        assert!(definition.inputs.is_empty());
-        assert_eq!(definition.outputs[0].port_type, PortType::Flow);
+        assert_eq!(definition.node_type, NodeType::Goto);
+        assert!(definition.inputs.iter().any(|p| p.port_type == PortType::Flow));
+        assert!(definition.outputs.iter().any(|p| p.port_type == PortType::Flow));
     }
 
     #[test]

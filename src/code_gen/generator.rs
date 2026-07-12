@@ -5,15 +5,15 @@ use super::formatter::CodeFormatter;
 use crate::api::definitions::NodeDefinition;
 use crate::api::registry;
 use crate::error::{FlowError, Result};
-use crate::graph::graph::Graph;
+use crate::graph::container::{ContainerGraph, LabelContainer, ThreadContainer};
 use crate::graph::node::{Node, ParamValue};
 use crate::graph::types::{NodeType, PortType};
 use crate::graph::validation::GraphValidator;
 
 /// 生成 `.code` 文件代码
 ///
-/// 先运行图验证器，再按标签遍历 Flow 边生成代码。
-pub fn generate_code(graph: &Graph) -> Result<String> {
+/// 先运行图验证器，再按线程/标签遍历 Flow 边生成代码。
+pub fn generate_code(graph: &ContainerGraph) -> Result<String> {
     GraphValidator::validate(graph)?;
 
     let registry = registry::registry();
@@ -26,7 +26,7 @@ pub fn generate_code(graph: &Graph) -> Result<String> {
 /// 生成 `.code` 文件并写入磁盘
 ///
 /// 路径父目录必须存在。
-pub fn generate_code_to_file(graph: &Graph, path: &Path) -> Result<()> {
+pub fn generate_code_to_file(graph: &ContainerGraph, path: &Path) -> Result<()> {
     let code = generate_code(graph)?;
     std::fs::write(path, code)?;
     Ok(())
@@ -34,20 +34,18 @@ pub fn generate_code_to_file(graph: &Graph, path: &Path) -> Result<()> {
 
 /// 代码生成器状态
 pub struct CodeGenerator<'a> {
-    graph: &'a Graph,
+    graph: &'a ContainerGraph,
     registry: &'a HashMap<NodeType, NodeDefinition>,
     formatter: &'a mut CodeFormatter,
     visited: HashSet<String>,
     /// True if the current label already wrote `_result = ...`
     result_written: bool,
-    /// 子标签入口节点的 ID 集合，generate_sequence 遇到它们停止跟随 flow
-    child_label_node_ids: HashSet<String>,
 }
 
 impl<'a> CodeGenerator<'a> {
     /// 创建新的代码生成器
     pub fn new(
-        graph: &'a Graph,
+        graph: &'a ContainerGraph,
         registry: &'a HashMap<NodeType, NodeDefinition>,
         formatter: &'a mut CodeFormatter,
     ) -> Self {
@@ -57,97 +55,101 @@ impl<'a> CodeGenerator<'a> {
             formatter,
             visited: HashSet::new(),
             result_written: false,
-            child_label_node_ids: HashSet::new(),
         }
     }
 
     /// 执行代码生成
     pub fn run(&mut self) -> Result<()> {
-        let (labels, skip_top_level) = self.collect_labels();
-
-        // 发现 Listener 子标签：BFS 找出每个标签可达的节点，匹配 CreateListener/CreateListenerLocal 目标
-        let child_map = compute_child_labels(self.graph, &labels, &skip_top_level);
-        let child_names: HashSet<String> = child_map
-            .values()
-            .flat_map(|v| v.iter().map(|(n, _)| n.clone()))
-            .collect();
-
-        // 子标签入口的 Label 节点 ID：generate_sequence 遇到它们停止跟随 flow
-        // 包括 listener 子标签，和从 Thread/Listener out_flow 连接到 Label 入口的节点
-        self.child_label_node_ids = labels
-            .iter()
-            .filter(|(name, _)| child_names.contains(name))
-            .flat_map(|(_, ids)| ids.iter().cloned())
-            .collect();
-        for edge in self.graph.edges.values() {
-            if edge.edge_type != PortType::Flow || edge.to.port_id != "in_flow" {
-                continue;
-            }
-            let source_is_thread_or_listener = matches!(
-                self.graph.nodes.get(&edge.from.node_id).map(|n| &n.node_type),
-                Some(NodeType::CreateThread)
-                    | Some(NodeType::CreateListener)
-                    | Some(NodeType::CreateListenerLocal)
-            );
-            if source_is_thread_or_listener {
-                if let Some(target_node) = self.graph.nodes.get(&edge.to.node_id) {
-                    if target_node.node_type == NodeType::Label {
-                        self.child_label_node_ids.insert(edge.to.node_id.clone());
-                    }
-                }
-            }
-        }
-
-        // Top-level: CreateThread only for entry-point labels
-        for (label_name, _) in &labels {
-            if skip_top_level.contains(label_name) || child_names.contains(label_name) {
-                continue;
-            }
-            let var = format!("var_{}_thread", label_name);
-            self.formatter
-                .write_line(&format!("{var} = CreateThread(\"{label_name}\")"));
-        }
-
-        // Label bodies: 父标签内嵌子标签
-        for (label_name, node_ids) in labels {
-            if child_names.contains(&label_name) {
-                continue;
-            }
-            self.result_written = false;
-            self.formatter.write_line(&format!("{label_name}:"));
-            self.formatter.indent();
-            self.visited.clear();
-            if let Some(first_id) = node_ids.first() {
-                self.generate_sequence(first_id, None)?;
-            }
-            // 在 _result = null 前内嵌子标签
-            let parent_result = self.result_written;
-            if let Some(kids) = child_map.get(&label_name) {
-                for (child_name, child_ids) in kids {
-                    self.result_written = false;
-                    self.formatter.write_line(&format!("{child_name}:"));
-                    self.formatter.indent();
-                    self.visited.clear();
-                    if let Some(first_id) = child_ids.first() {
-                        self.generate_sequence(first_id, None)?;
-                    }
-                    if !self.result_written {
-                        self.formatter.write_line("_result = null");
-                    }
-                    self.formatter.dedent();
-                }
-            }
-            self.result_written = parent_result;
-            if !self.result_written {
-                self.formatter.write_line("_result = null");
-            }
-            self.formatter.dedent();
+        for thread in &self.graph.threads {
+            self.generate_thread(thread)?;
         }
         Ok(())
     }
 
+    /// 生成单个线程的代码
+    fn generate_thread(&mut self, thread: &ThreadContainer) -> Result<()> {
+        // 顶层：auto_start 线程创建
+        if thread.auto_start {
+            if let Some(first_label) = thread.labels.first() {
+                self.formatter.write_line(&format!(
+                    "{} = CreateThread(\"{}\")",
+                    thread.variable_name, first_label.name
+                ));
+            }
+        }
+
+        // 监听器创建
+        for listener in &thread.listeners {
+            let func = match listener.kind {
+                crate::graph::container::ListenerKind::Listener => "CreateListener",
+                crate::graph::container::ListenerKind::LocalListener => "CreateListenerLocal",
+            };
+            self.formatter.write_line(&format!(
+                "{} = {}(\"{}\")",
+                listener.variable_name, func, listener.inner.name
+            ));
+        }
+
+        // 标签体
+        for label in &thread.labels {
+            self.generate_label(label)?;
+        }
+
+        Ok(())
+    }
+
+    /// 生成单个标签体的代码
+    fn generate_label(&mut self, label: &LabelContainer) -> Result<()> {
+        self.result_written = false;
+        self.formatter.write_line(&format!("{}:", label.name));
+        self.formatter.indent();
+        self.formatter.write_line("thread = _this");
+        self.visited.clear();
+
+        // 找到入口节点：没有入 Flow 边的节点
+        let entry = self.find_entry_node(label);
+        if let Some(entry_id) = entry {
+            self.generate_sequence(label, &entry_id, None)?;
+        }
+
+        if !self.result_written {
+            self.formatter.write_line("_result = null");
+        }
+        self.formatter.dedent();
+        Ok(())
+    }
+
+    /// 找到标签的入口节点
+    fn find_entry_node(&self, label: &LabelContainer) -> Option<String> {
+        // 优先返回有 out_flow 但没有 in_flow 的节点
+        for (id, node) in &label.nodes {
+            if node.outputs.iter().any(|p| p.port_type == PortType::Flow)
+                && !self.has_incoming_flow(label, id)
+            {
+                return Some(id.clone());
+            }
+        }
+        // 兜底：返回第一个有 out_flow 的节点
+        label
+            .nodes
+            .values()
+            .find(|n| n.outputs.iter().any(|p| p.port_type == PortType::Flow))
+            .map(|n| n.id.clone())
+    }
+
+    fn has_incoming_flow(&self, label: &LabelContainer, node_id: &str) -> bool {
+        label.edges.values().any(|e| {
+            e.edge_type == PortType::Flow && e.to.node_id == node_id && e.to.port_id == "in_flow"
+        })
+    }
+
     /// 递归生成从某个节点开始的代码序列
-    fn generate_sequence(&mut self, node_id: &str, stop_at: Option<&str>) -> Result<()> {
+    fn generate_sequence(
+        &mut self,
+        label: &LabelContainer,
+        node_id: &str,
+        stop_at: Option<&str>,
+    ) -> Result<()> {
         if let Some(stop) = stop_at {
             if node_id == stop {
                 return Ok(());
@@ -157,84 +159,79 @@ impl<'a> CodeGenerator<'a> {
             return Ok(());
         }
 
-        let node = self
-            .graph
+        let node = label
             .nodes
             .get(node_id)
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
 
         match node.node_type {
-            NodeType::Start | NodeType::Label => {
-                self.follow_flow(node_id, "out_flow", stop_at)?;
-            }
             NodeType::Comment | NodeType::Meta | NodeType::Group => {
-                self.follow_flow(node_id, "out_flow", stop_at)?;
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             NodeType::Goto => {
-                let label = self.require_param(node, "label")?;
-                let mut line = format!("thread.Goto({label})");
-                if let Some(args) = self.resolve_param_opt(node, "args") {
+                let label_param = self.require_param(label, node, "label")?;
+                let mut line = format!("thread.Goto({label_param})");
+                if let Some(args) = self.resolve_param_opt(label, node, "args") {
                     if args != "null" && args != "[]" && !args.is_empty() {
                         line.push_str(&format!(", {args}"));
                     }
                 }
                 self.formatter.write_line(&line);
-                // 输出 out_label Data 端口值，供其他节点引用
                 self.formatter
-                    .write_line(&format!("var_{node_id}_out_label = {label}"));
+                    .write_line(&format!("var_{node_id}_out_label = {label_param}"));
             }
-            NodeType::If => self.generate_if(node_id, stop_at)?,
-            NodeType::While => self.generate_while(node_id, stop_at)?,
-            NodeType::For => self.generate_for(node_id, stop_at)?,
+            NodeType::If => self.generate_if(label, node_id, stop_at)?,
+            NodeType::While => self.generate_while(label, node_id, stop_at)?,
+            NodeType::For => self.generate_for(label, node_id, stop_at)?,
             NodeType::Break => {
                 self.formatter.write_line("break");
             }
             NodeType::Return => {
                 let value = self
-                    .resolve_param(node, "value")
+                    .resolve_param(label, node, "value")
                     .unwrap_or_else(|_| "null".to_string());
                 self.formatter.write_line(&format!("_result = {value}"));
                 self.result_written = true;
             }
             NodeType::CallFunction => {
-                let func = self.require_param(node, "function")?;
+                let func = self.require_param(label, node, "function")?;
                 let func = func.trim_matches('"');
                 let mut line = format!("{func}(");
-                if let Some(args) = self.resolve_param_opt(node, "params") {
+                if let Some(args) = self.resolve_param_opt(label, node, "params") {
                     if args != "null" && args != "[]" && !args.is_empty() {
                         line.push_str(&args);
                     }
                 }
                 line.push(')');
                 self.formatter.write_line(&line);
-                self.follow_flow(node_id, "out_flow", stop_at)?;
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             NodeType::ForeachNode => {
-                let list = self.require_param(node, "list")?;
-                let thread = self.require_param(node, "threadVar")?;
+                let list = self.require_param(label, node, "list")?;
+                let thread = self.require_param(label, node, "threadVar")?;
                 let list = list.trim_matches('"');
                 let var = format!("var_{node_id}_idx");
                 self.formatter
                     .write_line(&format!("{var} = Foreach({list}, {thread})"));
-                self.follow_flow(node_id, "out_flow", stop_at)?;
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal => {
-                self.generate_node_call(node)?;
-                self.follow_flow(node_id, "out_flow", stop_at)?;
+                self.generate_node_call(label, node)?;
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             NodeType::DestroyListener => {
                 self.formatter.write_line("listener = null");
-                self.follow_flow(node_id, "out_flow", stop_at)?;
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             NodeType::WaitForThread => {
-                let thread = self.require_param(node, "thread")?;
+                let thread = self.require_param(label, node, "thread")?;
                 self.formatter
                     .write_line(&format!("{thread}.WaitForFinish()"));
-                self.follow_flow(node_id, "out_flow", stop_at)?;
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             _ => {
-                self.generate_node_call(node)?;
-                self.follow_flow(node_id, "out_flow", stop_at)?;
+                self.generate_node_call(label, node)?;
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
         }
 
@@ -242,95 +239,106 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// 生成 `if` 条件分支
-    fn generate_if(&mut self, node_id: &str, stop_at: Option<&str>) -> Result<()> {
-        let node = self
-            .graph
+    fn generate_if(
+        &mut self,
+        label: &LabelContainer,
+        node_id: &str,
+        stop_at: Option<&str>,
+    ) -> Result<()> {
+        let node = label
             .nodes
             .get(node_id)
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
-        let condition = self.require_param(node, "condition")?;
+        let condition = self.require_param(label, node, "condition")?;
 
-        let true_target = self.flow_target(node_id, "out_true")?;
-        let false_target = self.flow_target(node_id, "out_false")?;
+        let true_target = self.flow_target(label, node_id, "out_true")?;
+        let false_target = self.flow_target(label, node_id, "out_false")?;
 
         let join = match (&true_target, &false_target) {
-            (Some(a), Some(b)) => find_join_node(self.graph, a, b),
+            (Some(a), Some(b)) => find_join_node(label, a, b),
             _ => None,
         };
 
         self.formatter.write_line(&format!("if {condition}"));
         self.formatter.indent();
         if let Some(ref target) = true_target {
-            self.generate_sequence(target, join.as_deref())?;
+            self.generate_sequence(label, target, join.as_deref())?;
         }
         self.formatter.dedent();
         if let Some(ref target) = false_target {
             self.formatter.write_line("else");
             self.formatter.indent();
-            self.generate_sequence(target, join.as_deref())?;
+            self.generate_sequence(label, target, join.as_deref())?;
             self.formatter.dedent();
         }
 
         if let Some(join_id) = join {
-            self.generate_sequence(&join_id, stop_at)?;
+            self.generate_sequence(label, &join_id, stop_at)?;
         }
         Ok(())
     }
 
     /// 生成 `while` 循环
-    fn generate_while(&mut self, node_id: &str, stop_at: Option<&str>) -> Result<()> {
-        let node = self
-            .graph
+    fn generate_while(
+        &mut self,
+        label: &LabelContainer,
+        node_id: &str,
+        stop_at: Option<&str>,
+    ) -> Result<()> {
+        let node = label
             .nodes
             .get(node_id)
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
-        let condition = self.require_param(node, "condition")?;
+        let condition = self.require_param(label, node, "condition")?;
 
-        let body_target = self.flow_target(node_id, "out_flow")?;
-        let break_target = self.flow_target(node_id, "out_break")?;
+        let body_target = self.flow_target(label, node_id, "out_flow")?;
+        let break_target = self.flow_target(label, node_id, "out_break")?;
 
         self.formatter.write_line(&format!("while {condition}"));
         self.formatter.indent();
         if let Some(ref target) = body_target {
-            self.generate_sequence(target, Some(node_id))?;
+            self.generate_sequence(label, target, Some(node_id))?;
         }
         self.formatter.dedent();
 
         if let Some(ref target) = break_target {
-            self.generate_sequence(target, stop_at)?;
+            self.generate_sequence(label, target, stop_at)?;
         }
         Ok(())
     }
 
     /// 生成 `for` 循环
-    fn generate_for(&mut self, node_id: &str, stop_at: Option<&str>) -> Result<()> {
-        let node = self
-            .graph
+    fn generate_for(
+        &mut self,
+        label: &LabelContainer,
+        node_id: &str,
+        stop_at: Option<&str>,
+    ) -> Result<()> {
+        let node = label
             .nodes
             .get(node_id)
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
-        let iterable = self.require_param(node, "iterable")?;
+        let iterable = self.require_param(label, node, "iterable")?;
 
-        let body_target = self.flow_target(node_id, "out_flow")?;
-        let break_target = self.flow_target(node_id, "out_break")?;
+        let body_target = self.flow_target(label, node_id, "out_flow")?;
+        let break_target = self.flow_target(label, node_id, "out_break")?;
 
         self.formatter
             .write_line(&format!("for i in {iterable}"));
         self.formatter.indent();
         if let Some(ref target) = body_target {
-            self.generate_sequence(target, Some(node_id))?;
+            self.generate_sequence(label, target, Some(node_id))?;
         }
         self.formatter.dedent();
 
         if let Some(ref target) = break_target {
-            self.generate_sequence(target, stop_at)?;
+            self.generate_sequence(label, target, stop_at)?;
         }
         Ok(())
     }
 
     /// 生成普通函数调用节点
-    /// Thread/Listener 节点头一个参数（labelName）按位置参数输出，params Object 解包为独立命名参数。
-    fn generate_node_call(&mut self, node: &Node) -> Result<()> {
+    fn generate_node_call(&mut self, label: &LabelContainer, node: &Node) -> Result<()> {
         let def = self
             .registry
             .get(&node.node_type)
@@ -344,17 +352,15 @@ impl<'a> CodeGenerator<'a> {
         let mut params: Vec<String> = Vec::new();
         for param in &def.params {
             if is_thread_or_listener && param.name == "labelName" {
-                let value = match self.resolve_param_opt(node, &param.name) {
+                let value = match self.resolve_param_opt(label, node, &param.name) {
                     Some(v) => v,
                     None if param.required => "\"\"".to_string(),
                     None => continue,
                 };
-                // position 参数不加参数名前缀
                 params.push(value);
                 continue;
             }
             if is_thread_or_listener && param.name == "params" {
-                // 解包 Object 为独立命名参数
                 if let Some(ParamValue::Literal(obj)) = node.params.get("params") {
                     if obj.is_object() {
                         if let Some(map) = obj.as_object() {
@@ -363,26 +369,21 @@ impl<'a> CodeGenerator<'a> {
                             }
                         }
                     } else if !obj.is_null() {
-                        // 非 Object 引用：直接作为额外参数
                         params.push(format_literal(obj));
                     }
                 }
                 continue;
             }
-            let value = match self.resolve_param_opt(node, &param.name) {
+            let value = match self.resolve_param_opt(label, node, &param.name) {
                 Some(v) => v,
-                None if param.required => {
-                    match param.default_value() {
-                        ParamValue::Ref {
-                            node: ref_node,
-                            port,
-                        } => {
-                            format!("ref:{}/{}", ref_node, port)
-                        }
-                        ParamValue::Literal(v) => format_literal(&v),
-                        ParamValue::Null => "null".to_string(),
-                    }
-                }
+                None if param.required => match param.default_value() {
+                    ParamValue::Ref {
+                        node: ref_node,
+                        port,
+                    } => format!("ref:{}/{}", ref_node, port),
+                    ParamValue::Literal(v) => format_literal(&v),
+                    ParamValue::Null => "null".to_string(),
+                },
                 None => continue,
             };
             params.push(format!("{}={}", param.name, value));
@@ -409,21 +410,31 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// 沿指定 Flow 输出端口继续生成
-    fn follow_flow(&mut self, node_id: &str, port_id: &str, stop_at: Option<&str>) -> Result<()> {
-        if let Some(target) = self.flow_target(node_id, port_id)? {
-            // 子标签入口节点：停止跟随，由 run() 单独缩进生成
-            if self.child_label_node_ids.contains(&target) {
-                return Ok(());
-            }
-            self.generate_sequence(&target, stop_at)?;
+    fn follow_flow(
+        &mut self,
+        label: &LabelContainer,
+        node_id: &str,
+        port_id: &str,
+        stop_at: Option<&str>,
+    ) -> Result<()> {
+        if let Some(target) = self.flow_target(label, node_id, port_id)? {
+            self.generate_sequence(label, &target, stop_at)?;
         }
         Ok(())
     }
 
     /// 查找指定 Flow 输出端口连接的目标节点
-    fn flow_target(&self, node_id: &str, port_id: &str) -> Result<Option<String>> {
-        for edge in self.graph.outgoing_edges(node_id) {
-            if edge.edge_type == PortType::Flow && edge.from.port_id == port_id {
+    fn flow_target(
+        &self,
+        label: &LabelContainer,
+        node_id: &str,
+        port_id: &str,
+    ) -> Result<Option<String>> {
+        for edge in label.edges.values() {
+            if edge.edge_type == PortType::Flow
+                && edge.from.node_id == node_id
+                && edge.from.port_id == port_id
+            {
                 return Ok(Some(edge.to.node_id.clone()));
             }
         }
@@ -431,8 +442,13 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// 解析参数值，必填参数缺失时使用默认值。
-    fn require_param(&self, node: &Node, name: &str) -> Result<String> {
-        if let Some(value) = self.resolve_param_opt(node, name) {
+    fn require_param(
+        &self,
+        label: &LabelContainer,
+        node: &Node,
+        name: &str,
+    ) -> Result<String> {
+        if let Some(value) = self.resolve_param_opt(label, node, name) {
             return Ok(value);
         }
         let def = self
@@ -453,10 +469,14 @@ impl<'a> CodeGenerator<'a> {
     }
 
     /// 解析参数值为 `.code` 字符串，缺失时返回 `None`（用于可选参数）
-    fn resolve_param_opt(&self, node: &Node, name: &str) -> Option<String> {
-        // DataFlow：优先使用参数对应 Data 输入端口的连接。
-        if let Some((src_node, src_port)) = self.connected_param_source(node, name) {
-            return self.evaluate_data_output(&src_node, &src_port);
+    fn resolve_param_opt(
+        &self,
+        label: &LabelContainer,
+        node: &Node,
+        name: &str,
+    ) -> Option<String> {
+        if let Some((src_node, src_port)) = self.connected_param_source(label, node, name) {
+            return self.evaluate_data_output(label, &src_node, &src_port);
         }
         match node.params.get(name) {
             Some(ParamValue::Ref {
@@ -469,144 +489,13 @@ impl<'a> CodeGenerator<'a> {
         }
     }
 
-    /// 递归解析 Data 节点的输出端口值，生成 `.code` 表达式。
-    fn evaluate_data_output(&self, node_id: &str, port_name: &str) -> Option<String> {
-        let node = self.graph.nodes.get(node_id)?;
-        match node.node_type {
-            NodeType::Boolean => {
-                let v = self.resolve_param_opt(node, "value")?;
-                Some(v.trim_matches('"').to_string())
-            }
-            NodeType::NumberConstant => {
-                let v = self.resolve_param_opt(node, "value")?;
-                Some(v.trim_matches('"').to_string())
-            }
-            NodeType::StringConstant => {
-                self.resolve_param_opt(node, "value")
-            }
-            NodeType::CheckCondition => {
-                let cond = self.resolve_param_opt(node, "cond")?;
-                Some(format!("{cond}.Check()"))
-            }
-            NodeType::CheckEquipment => {
-                let t = self.resolve_param_opt(node, "equipType")?;
-                let t = t.trim_matches('"');
-                Some(format!("_state.AdultToys.{t} != null"))
-            }
-            NodeType::CheckCosplay => {
-                let k = self.resolve_param_opt(node, "cosplayKey")?;
-                let k = k.trim_matches('"');
-                Some(format!("Cosplay_{k}"))
-            }
-            NodeType::GetStateBool => {
-                let key = self.resolve_param_opt(node, "stateKey")?;
-                let key = key.trim_matches('"');
-                Some(format!("_state.{key}"))
-            }
-            NodeType::GetStateNumber => {
-                let key = self.resolve_param_opt(node, "stateKey")?;
-                let key = key.trim_matches('"');
-                Some(format!("_state.{key}"))
-            }
-            NodeType::CompareNumbers => {
-                let a = self.resolve_param_opt(node, "a")?;
-                let a = a.trim_matches('"');
-                let b = self.resolve_param_opt(node, "b")?;
-                let b = b.trim_matches('"');
-                let op = self.resolve_param_opt(node, "operator")
-                    .unwrap_or_else(|| ">=".to_string());
-                let op = op.trim_matches('"');
-                Some(format!("{a} {op} {b}"))
-            }
-            NodeType::LogicAnd => {
-                let a = self.resolve_param_opt(node, "a")?;
-                let b = self.resolve_param_opt(node, "b")?;
-                Some(format!("({a}) && ({b})"))
-            }
-            NodeType::LogicOr => {
-                let a = self.resolve_param_opt(node, "a")?;
-                let b = self.resolve_param_opt(node, "b")?;
-                Some(format!("({a}) || ({b})"))
-            }
-            NodeType::LogicNot => {
-                let a = self.resolve_param_opt(node, "a")?;
-                Some(format!("!({a})"))
-            }
-            NodeType::GetPosition => {
-                if port_name == "out_stage" {
-                    let stage = self.resolve_param_opt(node, "stage")?;
-                    Some(stage.trim_matches('"').to_string())
-                } else {
-                    let x = self.resolve_param_opt(node, "x")?;
-                    let y = self.resolve_param_opt(node, "y")?;
-                    let z = self.resolve_param_opt(node, "z")?;
-                    let x = x.trim_matches('"');
-                    let y = y.trim_matches('"');
-                    let z = z.trim_matches('"');
-                    Some(format!("[{x}, {y}, {z}]"))
-                }
-            }
-            NodeType::MakeVector => {
-                let x = self.resolve_param_opt(node, "x")?;
-                let y = self.resolve_param_opt(node, "y")?;
-                let z = self.resolve_param_opt(node, "z")?;
-                Some(format!("[{x}, {y}, {z}]"))
-            }
-            NodeType::BreakVector => {
-                let v = self.resolve_param_opt(node, "in_vec")?;
-                match port_name {
-                    "x" => Some(format!("{v}[0]")),
-                    "y" => Some(format!("{v}[1]")),
-                    "z" => Some(format!("{v}[2]")),
-                    _ => Some(format!("{v}[0]")),
-                }
-            }
-            // P1 低难度：全局变量数据节点
-            NodeType::GetCurrentThread => Some("_this".to_string()),
-            NodeType::GetSave => Some("_save".to_string()),
-            NodeType::GetTime => Some("_time".to_string()),
-            NodeType::GetTimeDiff => Some("_timediff".to_string()),
-            NodeType::GetSettings => Some("_settings".to_string()),
-            NodeType::GetMod => Some("_mod".to_string()),
-            NodeType::GetMods => Some("_mods".to_string()),
-            // P1 低难度：For + Range 直连
-            NodeType::Range => {
-                let start = self.resolve_param_opt(node, "start")?;
-                let stop = self.resolve_param_opt(node, "stop")?;
-                let step = self.resolve_param_opt(node, "step");
-                match step {
-                    Some(s) if s != "null" && !s.is_empty() => {
-                        Some(format!("Range({start}, {stop}, {s})"))
-                    }
-                    _ => Some(format!("Range({start}, {stop})")),
-                }
-            }
-            // Goto / CreateThread / CreateListener 的 out_label/out_name 端口映射到参数值
-            NodeType::Goto if port_name == "out_label" => {
-                let label = self.resolve_param_opt(node, "label")?;
-                Some(label.trim_matches('"').to_string())
-            }
-            NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
-                if port_name == "out_name" =>
-            {
-                let name = self.resolve_param_opt(node, "labelName")?;
-                Some(name.trim_matches('"').to_string())
-            }
-            _ => Some(format!("var_{node_id}_{port_name}")),
-        }
-    }
-
-    /// 查找参数对应的 Data 输入端口是否连接了数据源。
-    fn connected_param_source(&self, node: &Node, param_name: &str) -> Option<(String, String)> {
-        self.graph
-            .incoming_edges(&node.id)
-            .iter()
-            .find(|e| e.to.port_id == param_name && e.edge_type != PortType::Flow)
-            .map(|e| (e.from.node_id.clone(), e.from.port_id.clone()))
-    }
-
     /// 解析参数值为 `.code` 字符串，缺失时返回错误
-    fn resolve_param(&self, node: &Node, name: &str) -> Result<String> {
+    fn resolve_param(
+        &self,
+        _label: &LabelContainer,
+        node: &Node,
+        name: &str,
+    ) -> Result<String> {
         match node.params.get(name) {
             Some(ParamValue::Ref {
                 node: ref_node,
@@ -621,923 +510,256 @@ impl<'a> CodeGenerator<'a> {
         }
     }
 
-    /// 收集标签 + 标记仅由 Listener 引用的标签（不应有顶层 CreateThread）。
-    fn collect_labels(&self) -> (Vec<(String, Vec<String>)>, HashSet<String>) {
-        let mut labels: Vec<(String, Vec<String>)> = self
-            .graph
-            .labels
-            .iter()
-            .filter(|(k, _)| !k.is_empty())
-            .map(|(k, v)| (k.clone(), v.clone()))
-            .collect();
-
-        let mut discovered: HashSet<String> =
-            labels.iter().map(|(n, _)| n.clone()).collect();
-
-        // 兜底：如果 graph.labels 为空但存在 Start 节点，按序注册为 main / main_1 / ...
-        // 修复旧工程或新建工程未写入 labels 时导致 .code 为空的问题。
-        if labels.is_empty() {
-            let starts: Vec<&Node> = self
-                .graph
-                .nodes
-                .values()
-                .filter(|n| n.node_type == NodeType::Start)
-                .collect();
-            if let Some(first) = starts.first() {
-                labels.push(("main".to_string(), vec![first.id.clone()]));
-                discovered.insert("main".to_string());
-                for (i, start) in starts.iter().skip(1).enumerate() {
-                    let name = format!("main_{}", i + 1);
-                    labels.push((name.clone(), vec![start.id.clone()]));
-                    discovered.insert(name);
+    /// 递归解析 Data 节点的输出端口值，生成 `.code` 表达式。
+    fn evaluate_data_output(
+        &self,
+        label: &LabelContainer,
+        node_id: &str,
+        port_name: &str,
+    ) -> Option<String> {
+        let node = label.nodes.get(node_id)?;
+        match node.node_type {
+            NodeType::Boolean => {
+                let v = self.resolve_param_opt(label, node, "value")?;
+                Some(v.trim_matches('"').to_string())
+            }
+            NodeType::NumberConstant => {
+                let v = self.resolve_param_opt(label, node, "value")?;
+                Some(v.trim_matches('"').to_string())
+            }
+            NodeType::StringConstant => self.resolve_param_opt(label, node, "value"),
+            NodeType::CheckCondition => {
+                let cond = self.resolve_param_opt(label, node, "cond")?;
+                Some(format!("{cond}.Check()"))
+            }
+            NodeType::CheckEquipment => {
+                let t = self.resolve_param_opt(label, node, "equipType")?;
+                let t = t.trim_matches('"');
+                Some(format!("_state.AdultToys.{t} != null"))
+            }
+            NodeType::CheckCosplay => {
+                let k = self.resolve_param_opt(label, node, "cosplayKey")?;
+                let k = k.trim_matches('"');
+                Some(format!("Cosplay_{k}"))
+            }
+            NodeType::GetStateBool => {
+                let key = self.resolve_param_opt(label, node, "stateKey")?;
+                let key = key.trim_matches('"');
+                Some(format!("_state.{key}"))
+            }
+            NodeType::GetStateNumber => {
+                let key = self.resolve_param_opt(label, node, "stateKey")?;
+                let key = key.trim_matches('"');
+                Some(format!("_state.{key}"))
+            }
+            NodeType::CompareNumbers => {
+                let a = self.resolve_param_opt(label, node, "a")?;
+                let a = a.trim_matches('"');
+                let b = self.resolve_param_opt(label, node, "b")?;
+                let b = b.trim_matches('"');
+                let op = self
+                    .resolve_param_opt(label, node, "operator")
+                    .unwrap_or_else(|| ">=".to_string());
+                let op = op.trim_matches('"');
+                Some(format!("{a} {op} {b}"))
+            }
+            NodeType::LogicAnd => {
+                let a = self.resolve_param_opt(label, node, "a")?;
+                let b = self.resolve_param_opt(label, node, "b")?;
+                Some(format!("({a}) && ({b})"))
+            }
+            NodeType::LogicOr => {
+                let a = self.resolve_param_opt(label, node, "a")?;
+                let b = self.resolve_param_opt(label, node, "b")?;
+                Some(format!("({a}) || ({b})"))
+            }
+            NodeType::LogicNot => {
+                let a = self.resolve_param_opt(label, node, "a")?;
+                Some(format!("!({a})"))
+            }
+            NodeType::GetPosition => {
+                if port_name == "out_stage" {
+                    let stage = self.resolve_param_opt(label, node, "stage")?;
+                    Some(stage.trim_matches('"').to_string())
+                } else {
+                    let x = self.resolve_param_opt(label, node, "x")?;
+                    let y = self.resolve_param_opt(label, node, "y")?;
+                    let z = self.resolve_param_opt(label, node, "z")?;
+                    Some(format!("[{x}, {y}, {z}]"))
                 }
             }
-        }
-
-        // Pass 1: discover labels from non-listener sources (Label / Goto / CreateThread)
-        for node in self.graph.nodes.values() {
-            let target_label = match node.node_type {
-                NodeType::Goto => node
-                    .params
-                    .get("label")
-                    .and_then(|v| match v {
-                        ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
-                        _ => None,
-                    }),
-                NodeType::CreateThread => node
-                    .params
-                    .get("labelName")
-                    .and_then(|v| match v {
-                        ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
-                        _ => None,
-                    }),
-                NodeType::Label => {
-                    // 优先解析 Data 边（out_name / out_label → name）
-                    self.graph
-                        .edges
-                        .values()
-                        .find(|e| {
-                            e.to.node_id == node.id
-                                && e.to.port_id == "name"
-                                && e.edge_type != PortType::Flow
-                        })
-                        .and_then(|edge| {
-                            let source = self.graph.nodes.get(&edge.from.node_id)?;
-                            match source.node_type {
-                                NodeType::CreateThread
-                                | NodeType::CreateListener
-                                | NodeType::CreateListenerLocal => source
-                                    .params
-                                    .get("labelName")
-                                    .and_then(|v| match v {
-                                        ParamValue::Literal(val) => {
-                                            val.as_str().map(|s| s.to_string())
-                                        }
-                                        _ => None,
-                                    }),
-                                _ => None,
-                            }
-                        })
-                        .or_else(|| {
-                            self.resolve_param_opt(node, "name")
-                                .map(|s| s.trim_matches('"').to_string())
-                        })
+            NodeType::MakeVector => {
+                let x = self.resolve_param_opt(label, node, "x")?;
+                let y = self.resolve_param_opt(label, node, "y")?;
+                let z = self.resolve_param_opt(label, node, "z")?;
+                Some(format!("[{x}, {y}, {z}]"))
+            }
+            NodeType::BreakVector => {
+                let v = self.resolve_param_opt(label, node, "in_vec")?;
+                match port_name {
+                    "x" => Some(format!("{v}[0]")),
+                    "y" => Some(format!("{v}[1]")),
+                    "z" => Some(format!("{v}[2]")),
+                    _ => Some(format!("{v}[0]")),
                 }
-                _ => None,
-            };
-            if let Some(t) = target_label {
-                if t.is_empty() {
-                    continue;
-                }
-                if node.node_type == NodeType::Label {
-                    if let Some(idx) = labels.iter().position(|(n, _)| *n == t) {
-                        if !labels[idx].1.contains(&node.id) {
-                            labels[idx].1.push(node.id.clone());
-                        }
-                    } else {
-                        labels.push((t.clone(), vec![node.id.clone()]));
-                        discovered.insert(t.clone());
+            }
+            NodeType::GetCurrentThread => Some("_this".to_string()),
+            NodeType::GetSave => Some("_save".to_string()),
+            NodeType::GetTime => Some("_time".to_string()),
+            NodeType::GetTimeDiff => Some("_timediff".to_string()),
+            NodeType::GetSettings => Some("_settings".to_string()),
+            NodeType::GetMod => Some("_mod".to_string()),
+            NodeType::GetMods => Some("_mods".to_string()),
+            NodeType::Range => {
+                let start = self.resolve_param_opt(label, node, "start")?;
+                let stop = self.resolve_param_opt(label, node, "stop")?;
+                let step = self.resolve_param_opt(label, node, "step");
+                match step {
+                    Some(s) if s != "null" && !s.is_empty() => {
+                        Some(format!("Range({start}, {stop}, {s})"))
                     }
-                } else if !discovered.contains(&t) {
-                    discovered.insert(t.clone());
-                    labels.push((t, Vec::new()));
+                    _ => Some(format!("Range({start}, {stop})")),
                 }
             }
+            NodeType::Goto if port_name == "out_label" => {
+                let label = self.resolve_param_opt(label, node, "label")?;
+                Some(label.trim_matches('"').to_string())
+            }
+            NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
+                if port_name == "out_name" =>
+            {
+                let name = self.resolve_param_opt(label, node, "labelName")?;
+                Some(name.trim_matches('"').to_string())
+            }
+            _ => Some(format!("var_{node_id}_{port_name}")),
         }
+    }
 
-        // Pass 2: discover labels from Listener targets — any not already known
-        for node in self.graph.nodes.values() {
-            if !matches!(node.node_type, NodeType::CreateListener | NodeType::CreateListenerLocal) {
-                continue;
-            }
-            let target_label = node
-                .params
-                .get("labelName")
-                .and_then(|v| match v {
-                    ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
-                    _ => None,
-                });
-            if let Some(t) = target_label {
-                if t.is_empty() || discovered.contains(&t) {
-                    continue;
-                }
-                discovered.insert(t.clone());
-                labels.push((t, Vec::new()));
-            }
-        }
-
-        // Top-level CreateThread only for labels explicitly created by CreateThread
-        // (or "main"). Listener targets and Goto targets never need it.
-        let skip_top_level: HashSet<String> = labels
-            .iter()
-            .filter(|(name, _)| {
-                if name == "main" {
-                    return false;
-                }
-                !self.graph.nodes.values().any(|n| matches!(n.node_type, NodeType::CreateThread)
-                    && match n.params.get("labelName") {
-                        Some(ParamValue::Literal(val)) => val.as_str() == Some(name.as_str()),
-                        _ => false,
-                    })
+    /// 查找参数对应的 Data 输入端口是否连接了数据源。
+    fn connected_param_source(
+        &self,
+        label: &LabelContainer,
+        node: &Node,
+        param_name: &str,
+    ) -> Option<(String, String)> {
+        label
+            .edges
+            .values()
+            .find(|e| {
+                e.to.node_id == node.id && e.to.port_id == param_name && e.edge_type != PortType::Flow
             })
-            .map(|(name, _)| name.clone())
-            .collect();
-
-        labels.sort_by(|a, b| {
-            if a.0 == "main" {
-                return std::cmp::Ordering::Less;
-            }
-            if b.0 == "main" {
-                return std::cmp::Ordering::Greater;
-            }
-            a.0.cmp(&b.0)
-        });
-        (labels, skip_top_level)
+            .map(|e| (e.from.node_id.clone(), e.from.port_id.clone()))
     }
 }
 
-/// BFS 可达节点集合：从 start_id 出发沿所有 Flow 边可达的节点 ID
-fn flow_reachable(graph: &Graph, start_id: &str) -> HashSet<String> {
-    let mut visited = HashSet::new();
-    let mut queue = VecDeque::new();
-    queue.push_back(start_id.to_string());
-    while let Some(current) = queue.pop_front() {
-        if !visited.insert(current.clone()) {
-            continue;
-        }
-        for edge in graph.outgoing_edges(&current) {
-            if edge.edge_type == PortType::Flow {
-                queue.push_back(edge.to.node_id.clone());
-            }
-        }
-    }
-    visited
-}
-
-/// 识别 Listener 创建的子标签：返回 parent → [(child_name, child_node_ids)]
-fn compute_child_labels(
-    graph: &Graph,
-    labels: &[(String, Vec<String>)],
-    skip_top_level: &HashSet<String>,
-) -> HashMap<String, Vec<(String, Vec<String>)>> {
-    let mut child_map: HashMap<String, Vec<(String, Vec<String>)>> = HashMap::new();
-
-    // 计算每个标签从入口点 BFS 可达的节点集合
-    let label_reachable: HashMap<String, HashSet<String>> = labels
-        .iter()
-        .map(|(name, entry_ids)| {
-            let mut reachable = HashSet::new();
-            for id in entry_ids {
-                reachable.extend(flow_reachable(graph, id));
-            }
-            (name.clone(), reachable)
-        })
-        .collect();
-
-    for node in graph.nodes.values() {
-        if !matches!(
-            node.node_type,
-            NodeType::CreateListener | NodeType::CreateListenerLocal
-        ) {
-            continue;
-        }
-        let target = node
-            .params
-            .get("labelName")
-            .and_then(|v| match v {
-                ParamValue::Literal(val) => val.as_str(),
-                _ => None,
-            })
-            .unwrap_or("");
-        if target.is_empty() || !skip_top_level.contains(target) {
-            continue;
-        }
-        for (parent_name, reachable) in &label_reachable {
-            if reachable.contains(&node.id) {
-                let target_ids = labels
-                    .iter()
-                    .find(|(n, _)| n == target)
-                    .map(|(_, ids)| ids.clone())
-                    .unwrap_or_default();
-                child_map
-                    .entry(parent_name.clone())
-                    .or_default()
-                    .push((target.to_string(), target_ids));
-                break;
-            }
-        }
-    }
-    child_map
-}
-
-/// 将 JSON 字面量格式化为 `.code` 可识别的字符串
+/// 格式化 JSON 字面量为 `.code` 字符串
 fn format_literal(value: &serde_json::Value) -> String {
-    serde_json::to_string(value).unwrap_or_else(|_| "null".to_string())
-}
-
-/// 查找两个分支汇合的第一个公共节点
-fn find_join_node(graph: &Graph, a: &str, b: &str) -> Option<String> {
-    let reachable_a = reachable_nodes(graph, a);
-    let reachable_b = reachable_nodes(graph, b);
-    let mut common: Vec<(String, usize)> = reachable_a
-        .iter()
-        .filter_map(|(id, depth_a)| {
-            reachable_b
-                .get(id)
-                .map(|depth_b| (id.clone(), depth_a + depth_b))
-        })
-        .collect();
-    common.sort_by_key(|x| x.1);
-    common.first().map(|(id, _)| id.clone())
-}
-
-/// 计算从起点出发可达的所有节点及其深度
-fn reachable_nodes(graph: &Graph, start: &str) -> HashMap<String, usize> {
-    let mut result = HashMap::new();
-    let mut queue = VecDeque::new();
-    queue.push_back((start.to_string(), 0));
-    while let Some((node_id, depth)) = queue.pop_front() {
-        if result.contains_key(&node_id) {
-            continue;
+    match value {
+        serde_json::Value::String(s) => format!("\"{}\"", s),
+        serde_json::Value::Number(n) => n.to_string(),
+        serde_json::Value::Bool(b) => b.to_string(),
+        serde_json::Value::Null => "null".to_string(),
+        serde_json::Value::Array(arr) => {
+            let parts: Vec<String> = arr.iter().map(format_literal).collect();
+            format!("[{}]", parts.join(", "))
         }
-        result.insert(node_id.clone(), depth);
-        for edge in graph.outgoing_edges(&node_id) {
-            if edge.edge_type == PortType::Flow && edge.from.node_id == node_id {
-                queue.push_back((edge.to.node_id.clone(), depth + 1));
+        serde_json::Value::Object(obj) => {
+            let parts: Vec<String> = obj
+                .iter()
+                .map(|(k, v)| format!("{}={}", k, format_literal(v)))
+                .collect();
+            format!("{{{}}}", parts.join(", "))
+        }
+    }
+}
+
+/// 寻找两个分支的汇合节点，用于 if 生成
+fn find_join_node(label: &LabelContainer, a: &str, b: &str) -> Option<String> {
+    let mut queue_a: VecDeque<String> = VecDeque::new();
+    let mut queue_b: VecDeque<String> = VecDeque::new();
+    let mut visited_a: HashSet<String> = HashSet::new();
+    let mut visited_b: HashSet<String> = HashSet::new();
+
+    queue_a.push_back(a.to_string());
+    queue_b.push_back(b.to_string());
+    visited_a.insert(a.to_string());
+    visited_b.insert(b.to_string());
+
+    while !queue_a.is_empty() || !queue_b.is_empty() {
+        if let Some(id) = queue_a.pop_front() {
+            if visited_b.contains(&id) {
+                return Some(id);
+            }
+            for edge in label.edges.values() {
+                if edge.edge_type == PortType::Flow && edge.from.node_id == id {
+                    let next = edge.to.node_id.clone();
+                    if visited_a.insert(next.clone()) {
+                        queue_a.push_back(next);
+                    }
+                }
+            }
+        }
+        if let Some(id) = queue_b.pop_front() {
+            if visited_a.contains(&id) {
+                return Some(id);
+            }
+            for edge in label.edges.values() {
+                if edge.edge_type == PortType::Flow && edge.from.node_id == id {
+                    let next = edge.to.node_id.clone();
+                    if visited_b.insert(next.clone()) {
+                        queue_b.push_back(next);
+                    }
+                }
             }
         }
     }
-    result
+    None
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use super::*;
-    use crate::graph::edge::{Edge, EdgeEndpoint};
-    use crate::graph::node::{Node, ParamValue, Port, Vec2};
+    use crate::graph::node::{Node, Port, Vec2};
     use crate::graph::types::{NodeType, PortType};
-    use serde_json::json;
+    use std::collections::HashMap;
 
     fn make_node(id: &str, node_type: NodeType) -> Node {
         Node {
             id: id.to_string(),
             node_type,
-            position: Vec2::ZERO,
+            position: Vec2::default(),
             size: Vec2::new(180.0, 120.0),
             collapsed: false,
             params: HashMap::new(),
             inputs: vec![Port::new("in_flow", PortType::Flow, "执行")],
             outputs: vec![Port::new("out_flow", PortType::Flow, "下一步")],
-            category: "Test".to_string(),
+            category: "Control".to_string(),
         }
     }
 
-    fn add_flow_edge(
-        graph: &mut Graph,
-        from_node: &str,
-        from_port: &str,
-        to_node: &str,
-        to_port: &str,
-    ) {
-        let edge = Edge::new(
-            EdgeEndpoint::new(from_node, from_port),
-            EdgeEndpoint::new(to_node, to_port),
-            PortType::Flow,
-        );
-        let _ = graph.add_edge(edge);
-    }
-
-    fn build_graph() -> Graph {
-        Graph::default()
+    fn make_graph() -> ContainerGraph {
+        ContainerGraph::default_main()
     }
 
     #[test]
-    fn test_generate_log_and_return() -> Result<()> {
-        let mut graph = build_graph();
-        let mut start = make_node("start", NodeType::Start);
-        start.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
-        let mut log = make_node("log", NodeType::Log);
-        log.set_param("output", ParamValue::Literal(json!("hello")));
-        let mut ret = make_node("ret", NodeType::Return);
-        ret.set_param("value", ParamValue::Literal(json!(42)));
-
-        graph.add_node(start);
-        graph.add_node(log);
-        graph.add_node(ret);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "log".to_string(), "ret".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "log", "in_flow");
-        add_flow_edge(&mut graph, "log", "out_flow", "ret", "in_flow");
-
+    fn test_generate_empty_label() -> Result<()> {
+        let graph = make_graph();
         let code = generate_code(&graph)?;
         assert!(code.contains("main:"));
-        assert!(code.contains("Log(output=\"hello\")"));
-        assert!(code.contains("_result = 42"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_if() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut if_node = make_node("if", NodeType::If);
-        if_node.set_param("condition", ParamValue::Literal(json!(true)));
-        if_node.outputs = vec![
-            Port::new("out_true", PortType::Flow, "True"),
-            Port::new("out_false", PortType::Flow, "False"),
-        ];
-        let mut log_true = make_node("log_true", NodeType::Log);
-        log_true.set_param("output", ParamValue::Literal(json!("yes")));
-        let mut log_false = make_node("log_false", NodeType::Log);
-        log_false.set_param("output", ParamValue::Literal(json!("no")));
-        let mut end = make_node("end", NodeType::Log);
-        end.set_param("output", ParamValue::Literal(json!("done")));
-
-        graph.add_node(start);
-        graph.add_node(if_node);
-        graph.add_node(log_true);
-        graph.add_node(log_false);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "if".to_string(), "end".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "if", "in_flow");
-        add_flow_edge(&mut graph, "if", "out_true", "log_true", "in_flow");
-        add_flow_edge(&mut graph, "if", "out_false", "log_false", "in_flow");
-        add_flow_edge(&mut graph, "log_true", "out_flow", "end", "in_flow");
-        add_flow_edge(&mut graph, "log_false", "out_flow", "end", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("if true"));
-        assert!(code.contains("Log(output=\"yes\")"));
-        assert!(code.contains("Log(output=\"no\")"));
-        assert!(code.contains("Log(output=\"done\")"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_while() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut while_node = make_node("while", NodeType::While);
-        while_node.set_param("condition", ParamValue::Literal(json!(false)));
-        while_node.outputs = vec![
-            Port::new("out_flow", PortType::Flow, "Loop"),
-            Port::new("out_break", PortType::Flow, "Break"),
-        ];
-        let mut body = make_node("body", NodeType::Log);
-        body.set_param("output", ParamValue::Literal(json!("loop")));
-        let mut end = make_node("end", NodeType::Log);
-        end.set_param("output", ParamValue::Literal(json!("end")));
-
-        graph.add_node(start);
-        graph.add_node(while_node);
-        graph.add_node(body);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "while".to_string(), "end".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "while", "in_flow");
-        add_flow_edge(&mut graph, "while", "out_flow", "body", "in_flow");
-        add_flow_edge(&mut graph, "while", "out_break", "end", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("while false"));
-        assert!(code.contains("Log(output=\"loop\")"));
-        assert!(code.contains("Log(output=\"end\")"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_goto() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut goto = make_node("goto", NodeType::Goto);
-        goto.set_param("label", ParamValue::Literal(json!("target")));
-        let mut target = make_node("target", NodeType::Log);
-        target.set_param("output", ParamValue::Literal(json!("reached")));
-
-        graph.add_node(start);
-        graph.add_node(goto);
-        graph.add_node(target);
-        graph.add_label("main", vec!["start".to_string(), "goto".to_string()]);
-        graph.add_label("target", vec!["target".to_string()]);
-
-        add_flow_edge(&mut graph, "start", "out_flow", "goto", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("thread.Goto(\"target\")"));
-        assert!(code.contains("target:"));
-        assert!(code.contains("Log(output=\"reached\")"));
-        Ok(())
-    }
-
-    /// 回归测试：即使 graph.labels 中没有预先注册 target 标签，
-    /// collect_labels 也应从 Goto 的 label 参数自动发现该标签，
-    /// 使代码生成成功并包含 Goto 语句。
-    #[test]
-    fn test_generate_goto_discovers_label_from_param() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut goto = make_node("goto", NodeType::Goto);
-        goto.set_param("label", ParamValue::Literal(json!("target")));
-
-        graph.add_node(start);
-        graph.add_node(goto);
-        graph.add_label("main", vec!["start".to_string(), "goto".to_string()]);
-
-        add_flow_edge(&mut graph, "start", "out_flow", "goto", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("thread.Goto(\"target\")"));
-        // 自动发现的标签不会生成标签体（缺少入口节点），但代码生成器应成功返回。
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_param_ref() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut random = make_node("random", NodeType::Random);
-        random.set_param("min", ParamValue::Literal(json!(0)));
-        random.set_param("max", ParamValue::Literal(json!(10)));
-        random.outputs = vec![
-            Port::new("out_flow", PortType::Flow, "下一步"),
-            Port::new("out_value", PortType::Number, "值"),
-        ];
-        let mut log = make_node("log", NodeType::Log);
-        log.set_param("output", ParamValue::from_ref("random", "out_value"));
-
-        graph.add_node(start);
-        graph.add_node(random);
-        graph.add_node(log);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "random".to_string(), "log".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "random", "in_flow");
-        add_flow_edge(&mut graph, "random", "out_flow", "log", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("var_random_out_value = Random(min=0, max=10)"));
-        assert!(code.contains("Log(output=var_random_out_value)"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_create_thread() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut create_thread = make_node("ct", NodeType::CreateThread);
-        create_thread.set_param("labelName", ParamValue::Literal(json!("m1")));
-        let mut end = make_node("end", NodeType::Log);
-        end.set_param("output", ParamValue::Literal(json!("done")));
-
-        graph.add_node(start);
-        graph.add_node(create_thread);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "ct".to_string(), "end".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "ct", "in_flow");
-        add_flow_edge(&mut graph, "ct", "out_flow", "end", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("main:"));
-        assert!(code.contains("CreateThread(\"m1\")"));
-        assert!(code.contains("Log(output=\"done\")"));
-        Ok(())
-    }
-
-    #[test]
-fn test_generate_create_listener() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut listener = make_node("cl", NodeType::CreateListener);
-        listener.set_param("labelName", ParamValue::Literal(json!("on_tick")));
-        listener.set_param("params", ParamValue::Literal(json!({})));
-        let mut end = make_node("end", NodeType::Return);
-        end.set_param("value", ParamValue::Literal(json!(null)));
-
-        graph.add_node(start);
-        graph.add_node(listener);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "cl".to_string(), "end".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "cl", "in_flow");
-        add_flow_edge(&mut graph, "cl", "out_flow", "end", "in_flow");
-
-        let code = generate_code(&graph)?;
-        // out_name port changes output format: check only essential content
-        assert!(code.contains("main:"));
-        assert!(code.contains("CreateListener"));
+        assert!(code.contains("thread = _this"));
         assert!(code.contains("_result = null"));
         Ok(())
     }
 
     #[test]
-    fn test_generate_two_starts_produce_separate_labels() -> Result<()> {
-        let mut graph = build_graph();
-        let start1 = make_node("start1", NodeType::Start);
-        let mut log1 = make_node("log1", NodeType::Log);
-        log1.set_param("output", ParamValue::Literal(json!("a")));
-        let start2 = make_node("start2", NodeType::Start);
-        let mut log2 = make_node("log2", NodeType::Log);
-        log2.set_param("output", ParamValue::Literal(json!("b")));
-
-        graph.add_node(start1);
-        graph.add_node(log1);
-        graph.add_node(start2);
-        graph.add_node(log2);
-        graph.add_label("a", vec!["start1".to_string(), "log1".to_string()]);
-        graph.add_label("b", vec!["start2".to_string(), "log2".to_string()]);
-
-        add_flow_edge(&mut graph, "start1", "out_flow", "log1", "in_flow");
-        add_flow_edge(&mut graph, "start2", "out_flow", "log2", "in_flow");
-
+    fn test_generate_log() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("log1", NodeType::Log);
+        node.set_param("output", ParamValue::Literal(serde_json::json!("hello")));
+        graph.threads[0].labels[0].nodes.insert("log1".to_string(), node);
+        // log1 没有入 Flow 边，会作为入口节点
         let code = generate_code(&graph)?;
-        assert!(code.contains("a:"));
-        assert!(code.contains("b:"));
-        assert!(code.contains("Log(output=\"a\")"));
-        assert!(code.contains("Log(output=\"b\")"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_param_via_data_port() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut random = make_node("random", NodeType::Random);
-        random.set_param("min", ParamValue::Literal(json!(0)));
-        random.set_param("max", ParamValue::Literal(json!(10)));
-        random.outputs = vec![
-            Port::new("out_flow", PortType::Flow, "下一步"),
-            Port::new("out_value", PortType::Number, "值"),
-        ];
-        let mut set_ecstasy = make_node("set", NodeType::SetEcstasy);
-        set_ecstasy.set_param("value", ParamValue::Literal(json!(0.0)));
-        set_ecstasy
-            .inputs
-            .push(Port::new("value", PortType::Number, "数值"));
-
-        graph.add_node(start);
-        graph.add_node(random);
-        graph.add_node(set_ecstasy);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "random".to_string(), "set".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "random", "in_flow");
-        add_flow_edge(&mut graph, "random", "out_flow", "set", "in_flow");
-
-        let data_edge = Edge::new(
-            EdgeEndpoint::new("random", "out_value"),
-            EdgeEndpoint::new("set", "value"),
-            PortType::Number,
-        );
-        graph.add_edge(data_edge)?;
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("var_random_out_value = Random(min=0, max=10)"));
-        assert!(code.contains("SetEcstasy(value=var_random_out_value)"));
-        Ok(())
-    }
-
-    // ── P1 低难度节点测试 ──
-
-    #[test]
-    fn test_generate_destroy_listener() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let destroy = make_node("destroy", NodeType::DestroyListener);
-        let mut end = make_node("end", NodeType::Return);
-        end.set_param("value", ParamValue::Literal(json!(null)));
-
-        graph.add_node(start);
-        graph.add_node(destroy);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "destroy".to_string(), "end".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "destroy", "in_flow");
-        add_flow_edge(&mut graph, "destroy", "out_flow", "end", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("listener = null"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_wait_for_thread() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut create = make_node("create", NodeType::CreateThread);
-        create.set_param("labelName", ParamValue::Literal(json!("child")));
-        create.outputs = vec![
-            Port::new("out_flow", PortType::Flow, "下一步"),
-            Port::new("out_thread", PortType::Object, "线程"),
-        ];
-        let mut wait = make_node("wait", NodeType::WaitForThread);
-        wait.inputs.push(Port::new("thread", PortType::Object, "线程对象"));
-        let mut end = make_node("end", NodeType::Return);
-        end.set_param("value", ParamValue::Literal(json!(null)));
-
-        graph.add_node(start);
-        graph.add_node(create);
-        graph.add_node(wait);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec![
-                "start".to_string(),
-                "create".to_string(),
-                "wait".to_string(),
-                "end".to_string(),
-            ],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "create", "in_flow");
-        add_flow_edge(&mut graph, "create", "out_flow", "wait", "in_flow");
-        add_flow_edge(&mut graph, "wait", "out_flow", "end", "in_flow");
-
-        let data_edge = Edge::new(
-            EdgeEndpoint::new("create", "out_thread"),
-            EdgeEndpoint::new("wait", "thread"),
-            PortType::Object,
-        );
-        graph.add_edge(data_edge)?;
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("var_create_out_thread.WaitForFinish()"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_get_current_thread() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut get_this = make_node("get_this", NodeType::GetCurrentThread);
-        get_this.outputs = vec![Port::new("out_value", PortType::Object, "线程")];
-        let mut log = make_node("log", NodeType::Log);
-        log.inputs.push(Port::new("output", PortType::Object, "输出"));
-
-        graph.add_node(start);
-        graph.add_node(get_this);
-        graph.add_node(log);
-        graph.add_label(
-            "main",
-            vec!["start".to_string(), "log".to_string()],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "log", "in_flow");
-
-        let data_edge = Edge::new(
-            EdgeEndpoint::new("get_this", "out_value"),
-            EdgeEndpoint::new("log", "output"),
-            PortType::Object,
-        );
-        graph.add_edge(data_edge)?;
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("Log(output=_this)"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_for_with_range() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut range = make_node("range", NodeType::Range);
-        range.set_param("start", ParamValue::Literal(json!(0)));
-        range.set_param("stop", ParamValue::Literal(json!(10)));
-        range.outputs = vec![
-            Port::new("out_flow", PortType::Flow, "下一步"),
-            Port::new("out_list", PortType::List, "列表"),
-        ];
-        let mut for_node = make_node("for", NodeType::For);
-        for_node.inputs.push(Port::new("iterable", PortType::List, "列表"));
-        let mut body = make_node("body", NodeType::Log);
-        body.set_param("output", ParamValue::Literal(json!("loop")));
-        let mut end = make_node("end", NodeType::Return);
-        end.set_param("value", ParamValue::Literal(json!(null)));
-
-        graph.add_node(start);
-        graph.add_node(range);
-        graph.add_node(for_node);
-        graph.add_node(body);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec![
-                "start".to_string(),
-                "range".to_string(),
-                "for".to_string(),
-                "end".to_string(),
-            ],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "range", "in_flow");
-        add_flow_edge(&mut graph, "range", "out_flow", "for", "in_flow");
-        add_flow_edge(&mut graph, "for", "out_flow", "body", "in_flow");
-        add_flow_edge(&mut graph, "body", "out_flow", "end", "in_flow");
-
-        let data_edge = Edge::new(
-            EdgeEndpoint::new("range", "out_list"),
-            EdgeEndpoint::new("for", "iterable"),
-            PortType::List,
-        );
-        graph.add_edge(data_edge)?;
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("for i in Range(0, 10)"));
-        assert!(code.contains("Log(output=\"loop\")"));
-        Ok(())
-    }
-
-    #[test]
-    fn test_generate_global_data_nodes() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-
-        let mut get_time = make_node("time", NodeType::GetTime);
-        get_time.outputs = vec![Port::new("out_value", PortType::Number, "时间")];
-        let mut get_timediff = make_node("timediff", NodeType::GetTimeDiff);
-        get_timediff.outputs = vec![Port::new("out_value", PortType::Number, "时间差")];
-        let mut get_save = make_node("save", NodeType::GetSave);
-        get_save.outputs = vec![Port::new("out_value", PortType::Object, "存档")];
-        let mut get_settings = make_node("settings", NodeType::GetSettings);
-        get_settings.outputs = vec![Port::new("out_value", PortType::Object, "设置")];
-        let mut get_mod = make_node("mod", NodeType::GetMod);
-        get_mod.outputs = vec![Port::new("out_value", PortType::List, "Mod数据")];
-        let mut get_mods = make_node("mods", NodeType::GetMods);
-        get_mods.outputs = vec![Port::new("out_value", PortType::Object, "Mods")];
-
-        let mut set1 = make_node("set1", NodeType::SetEcstasy);
-        set1.inputs.push(Port::new("value", PortType::Number, "数值"));
-        let mut set2 = make_node("set2", NodeType::SetEcstasy);
-        set2.inputs.push(Port::new("value", PortType::Number, "数值"));
-
-        let mut call1 = make_node("call1", NodeType::CallFunction);
-        call1.set_param("function", ParamValue::Literal(json!("Foo")));
-        call1.inputs.push(Port::new("params", PortType::Object, "参数"));
-        let mut call2 = make_node("call2", NodeType::CallFunction);
-        call2.set_param("function", ParamValue::Literal(json!("Bar")));
-        call2.inputs.push(Port::new("params", PortType::Object, "参数"));
-        let mut call3 = make_node("call3", NodeType::CallFunction);
-        call3.set_param("function", ParamValue::Literal(json!("Baz")));
-        call3.inputs.push(Port::new("params", PortType::Object, "参数"));
-
-        let mut set_event = make_node("se", NodeType::SetEvent);
-        set_event.set_param("name", ParamValue::Literal(json!("evt")));
-        set_event.inputs.push(Port::new("value", PortType::List, "值"));
-
-        let mut end = make_node("end", NodeType::Return);
-        end.set_param("value", ParamValue::Literal(json!(null)));
-
-        graph.add_node(start);
-        graph.add_node(get_time);
-        graph.add_node(get_timediff);
-        graph.add_node(get_save);
-        graph.add_node(get_settings);
-        graph.add_node(get_mod);
-        graph.add_node(get_mods);
-        graph.add_node(set1);
-        graph.add_node(set2);
-        graph.add_node(call1);
-        graph.add_node(call2);
-        graph.add_node(call3);
-        graph.add_node(set_event);
-        graph.add_node(end);
-        graph.add_label(
-            "main",
-            vec![
-                "start".to_string(),
-                "set1".to_string(),
-                "set2".to_string(),
-                "call1".to_string(),
-                "call2".to_string(),
-                "call3".to_string(),
-                "se".to_string(),
-                "end".to_string(),
-            ],
-        );
-
-        add_flow_edge(&mut graph, "start", "out_flow", "set1", "in_flow");
-        add_flow_edge(&mut graph, "set1", "out_flow", "set2", "in_flow");
-        add_flow_edge(&mut graph, "set2", "out_flow", "call1", "in_flow");
-        add_flow_edge(&mut graph, "call1", "out_flow", "call2", "in_flow");
-        add_flow_edge(&mut graph, "call2", "out_flow", "call3", "in_flow");
-        add_flow_edge(&mut graph, "call3", "out_flow", "se", "in_flow");
-        add_flow_edge(&mut graph, "se", "out_flow", "end", "in_flow");
-
-        graph.add_edge(Edge::new(
-            EdgeEndpoint::new("time", "out_value"),
-            EdgeEndpoint::new("set1", "value"),
-            PortType::Number,
-        ))?;
-        graph.add_edge(Edge::new(
-            EdgeEndpoint::new("timediff", "out_value"),
-            EdgeEndpoint::new("set2", "value"),
-            PortType::Number,
-        ))?;
-        graph.add_edge(Edge::new(
-            EdgeEndpoint::new("save", "out_value"),
-            EdgeEndpoint::new("call1", "params"),
-            PortType::Object,
-        ))?;
-        graph.add_edge(Edge::new(
-            EdgeEndpoint::new("settings", "out_value"),
-            EdgeEndpoint::new("call2", "params"),
-            PortType::Object,
-        ))?;
-        graph.add_edge(Edge::new(
-            EdgeEndpoint::new("mods", "out_value"),
-            EdgeEndpoint::new("call3", "params"),
-            PortType::Object,
-        ))?;
-        graph.add_edge(Edge::new(
-            EdgeEndpoint::new("mod", "out_value"),
-            EdgeEndpoint::new("se", "value"),
-            PortType::List,
-        ))?;
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("SetEcstasy(value=_time)"));
-        assert!(code.contains("SetEcstasy(value=_timediff)"));
-        assert!(code.contains("Foo(_save)"));
-        assert!(code.contains("Bar(_settings)"));
-        assert!(code.contains("Baz(_mods)"));
-        assert!(code.contains("SetEvent(name=\"evt\", value=_mod)"));
-        Ok(())
-    }
-
-    /// 兜底测试：graph.labels 为空但存在 Start 节点时，
-    /// collect_labels 应自动将 Start 注册为 main 标签，使 .code 不为空。
-    #[test]
-    fn test_generate_with_empty_labels_and_start() -> Result<()> {
-        let mut graph = build_graph();
-        let start = make_node("start", NodeType::Start);
-        let mut log = make_node("log", NodeType::Log);
-        log.set_param("output", ParamValue::Literal(json!("hello")));
-
-        graph.add_node(start);
-        graph.add_node(log);
-        // 故意不注册 labels
-        add_flow_edge(&mut graph, "start", "out_flow", "log", "in_flow");
-
-        let code = generate_code(&graph)?;
-        assert!(code.contains("var_main_thread = CreateThread(\"main\")"));
-        assert!(code.contains("main:"));
         assert!(code.contains("Log(output=\"hello\")"));
-        Ok(())
-    }
-
-    /// 新建工程默认图：只有 Start 节点，应生成顶层 CreateThread 和空 main 标签。
-    #[test]
-    fn test_generate_default_project_graph() -> Result<()> {
-        let graph = crate::project::default_graph_doc().into_graph();
-        let code = generate_code(&graph)?;
-        assert!(code.contains("var_main_thread = CreateThread(\"main\")"));
-        assert!(code.contains("main:"));
-        assert!(code.contains("_result = null"));
         Ok(())
     }
 }

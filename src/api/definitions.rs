@@ -315,24 +315,6 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         // Control
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::Start,
-            "Control",
-            "开始",
-            "任务入口，每张图必须有且仅有一个",
-            CONTROL_COLOR,
-        )
-        .with_outputs(vec![out_flow()]),
-        NodeDefinition::new(
-            NodeType::Label,
-            "Control",
-            "标签",
-            "标签定义，可作为 Goto 目标",
-            CONTROL_COLOR,
-        )
-        .with_inputs(vec![PortDefinition::new("in_flow", PortType::Flow, "缩进位置").required(true)])
-        .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("name", "名称", ParamType::String)]),
-        NodeDefinition::new(
             NodeType::Goto,
             "Control",
             "跳转",
@@ -2417,7 +2399,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 168);
+        assert_eq!(all.len(), 166);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2426,18 +2408,16 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 168);
+        assert_eq!(seen.len(), 166);
     }
 
 
     #[test]
-    fn test_start_definition() {
+    fn test_goto_definition() {
         let all = all_definitions();
-        let definition = find_definition(&all, NodeType::Start);
-        assert!(definition.inputs.is_empty());
-        assert_eq!(definition.outputs.len(), 1);
-        assert_eq!(definition.outputs[0].port_type, PortType::Flow);
-        assert!(definition.params.is_empty());
+        let definition = find_definition(&all, NodeType::Goto);
+        assert!(definition.inputs.iter().any(|p| p.port_type == PortType::Flow));
+        assert!(definition.outputs.iter().any(|p| p.port_type == PortType::Flow));
     }
 
     #[test]

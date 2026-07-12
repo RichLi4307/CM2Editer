@@ -167,7 +167,7 @@ mod tests {
     #[test]
     fn test_remove_node_updates_labels() {
         let mut graph = Graph::default();
-        let n1 = make_node(NodeType::Start, "node_1");
+        let n1 = make_node(NodeType::Log, "node_1");
         let n2 = make_node(NodeType::Log, "node_2");
         graph.add_node(n1);
         graph.add_node(n2);

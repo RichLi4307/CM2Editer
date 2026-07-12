@@ -4,13 +4,10 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::api::registry::get_definition;
 use crate::code_gen::generator::generate_code;
 use crate::error::{FlowError, Result};
-use crate::graph::graph::Graph;
-use crate::graph::node::{Node, Port, Vec2};
-use crate::graph::types::{NodeType, PortType};
-use crate::serializer::json::{GraphDocument, Viewport};
+use crate::graph::container::{ContainerGraph, Viewport};
+use crate::serializer::json::GraphDocument;
 
 /// 编辑器工程内部数据文件夹名称。
 ///
@@ -135,8 +132,8 @@ impl CodeFile {
         Ok(())
     }
 
-    /// 更新节点图与画布状态，并重新生成代码。
-    pub fn update_graph(&mut self, graph: Graph, viewport: Viewport) -> Result<()> {
+    /// 更新容器化节点图与画布状态，并重新生成代码。
+    pub fn update_container_graph(&mut self, graph: ContainerGraph, viewport: Viewport) -> Result<()> {
         self.graph_doc.graph = graph;
         self.graph_doc.viewport = viewport;
         self.regenerate_code()
@@ -249,10 +246,9 @@ impl Project {
             let mut code_file = CodeFile {
                 name: DEFAULT_CODE_FILE.to_string(),
                 graph_doc: GraphDocument::from_graph(
-                    Graph::default(),
+                    ContainerGraph::default_main(),
                     Value::Object(serde_json::Map::new()),
                     Viewport::default(),
-                    Vec::new(),
                     Vec::new(),
                 ),
                 generated_code: String::new(),
@@ -347,9 +343,9 @@ impl Project {
     }
 
     /// 将当前节点图与画布状态同步到激活的 `.code` 文件。
-    pub fn sync_active_code(&mut self, graph: Graph, viewport: Viewport) -> Result<()> {
+    pub fn sync_active_code(&mut self, graph: ContainerGraph, viewport: Viewport) -> Result<()> {
         if let Some(code_file) = self.active_code_file_mut() {
-            code_file.update_graph(graph, viewport)?;
+            code_file.update_container_graph(graph, viewport)?;
         }
         Ok(())
     }
@@ -475,32 +471,12 @@ impl Project {
     }
 }
 
-/// 创建带有一个 `Start` 节点的默认节点图。
+/// 创建一个默认的容器化节点图，包含一个 main 线程和 main 标签。
 pub(crate) fn default_graph_doc() -> GraphDocument {
-    let mut graph = Graph::default();
-    let mut start = Node::new(NodeType::Start, Vec2::ZERO);
-    if let Some(def) = get_definition(NodeType::Start) {
-        start.outputs = def
-            .outputs
-            .iter()
-            .map(|p| Port::new(&p.id, p.port_type.clone(), &p.label))
-            .collect();
-        start.category = def.category.clone();
-        for param in &def.params {
-            start.set_param(&param.name, param.default_value());
-        }
-    } else {
-        start.outputs = vec![Port::new("out_flow", PortType::Flow, "开始")];
-        start.category = "Control".to_string();
-    }
-    let start_id = start.id.clone();
-    graph.add_node(start);
-    graph.add_label("main", vec![start_id]);
     GraphDocument::from_graph(
-        graph,
+        ContainerGraph::default_main(),
         Value::Object(serde_json::Map::new()),
         Viewport::default(),
-        Vec::new(),
         Vec::new(),
     )
 }
@@ -559,10 +535,9 @@ fn load_code_file(root: &Path, name: &str) -> Result<CodeFile> {
     } else {
         loaded_from_code = true;
         GraphDocument::from_graph(
-            Graph::default(),
+            ContainerGraph::default_main(),
             Value::Object(serde_json::Map::new()),
             Viewport::default(),
-            Vec::new(),
             Vec::new(),
         )
     };

@@ -27,7 +27,14 @@
 - 新增 `docs/architecture_evaluation.md`：基于 `.code` DSL 语义、当前实现和跨编辑器模式研究，系统评估 Start/Label/Flow 边/节点分类的错配，提出线程/标签容器化 redesign 方向与迁移路线图。
 - 归档旧版文档：`docs/TODO.md` → `docs/archive/TODO_20260713_v8.md`，`docs/node_types.md` → `docs/archive/node_types_20260713_v1.md`。
 - 重写新架构核心文档：`docs/TODO.md`（新架构待办）、`docs/node_types.md`（按 `.code` 语言概念分类）、`docs/json_schema.md`（v2.0 容器化格式）、`docs/agent_prompt.md`（v3.0-architecture）、`docs/tutorial_make_code.md`（基于容器化模型）、`docs/migration_guide.md`（v1.x → v2.0 迁移指南）。
-
+- 完成 P0 核心图模型重构：
+  - 新增 `src/graph/container.rs`：容器化数据结构 `ThreadContainer` / `LabelContainer` / `ListenerContainer`。
+  - 重写 `src/serializer/json.rs`：JSON 格式升级为 `2.0`，顶层结构 `threads: [...]`，不再兼容 v1.0。
+  - 重写 `src/code_gen/generator.rs`：基于容器化图生成 `.code`，移除 BFS 子标签推断。
+  - 重写 `src/graph/validation.rs`：按容器检查，移除 Flow DAG/菱形警告，新增标签名唯一性、容器内边检查。
+  - 从 `NodeType` 枚举中移除 `Start` / `Label`（变体数 168 → 166）。
+  - 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器。
+  - 暂时屏蔽 `src/app.rs` 和 `src/ui` 模块，待核心稳定后逐步恢复。
 ### 测试
 
 - 新增 `code_gen::generator::tests::test_generate_goto_discovers_label_from_param` 回归测试，验证即使 `graph.labels` 未预先注册目标标签，`collect_labels` 仍能从 `Goto.label` 参数自动发现。
