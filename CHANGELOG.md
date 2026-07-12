@@ -4,6 +4,20 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
+## [Unreleased]
+
+### 文档
+
+- 更新 `docs/agent_prompt.md`：将 commit message 规范改为中文前缀，并明确要求任何任务完成后必须提交一次 commit。
+- 更新 `docs/TODO.md`：新增「Agent 交付规则」小节，规定完成任务必须更新 `CHANGELOG.md`、`docs/TODO.md`，并运行 `cargo test` 全过后再提交。
+
+### 测试
+
+- 新增 `code_gen::generator::tests::test_generate_goto_discovers_label_from_param` 回归测试，验证即使 `graph.labels` 未预先注册目标标签，`collect_labels` 仍能从 `Goto.label` 参数自动发现。
+- `cargo test`：94 个 lib tests + 4 个 code_gen 集成测试 + 9 个 examples 测试 + 4 个 json_roundtrip 测试全部通过。
+
+---
+
 ## [0.2.2] — 2026-07-10
 
 ### 修复（Data 端口链路）

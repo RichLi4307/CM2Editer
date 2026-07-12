@@ -1010,6 +1010,28 @@ mod tests {
         Ok(())
     }
 
+    /// 回归测试：即使 graph.labels 中没有预先注册 target 标签，
+    /// collect_labels 也应从 Goto 的 label 参数自动发现该标签，
+    /// 使代码生成成功并包含 Goto 语句。
+    #[test]
+    fn test_generate_goto_discovers_label_from_param() -> Result<()> {
+        let mut graph = build_graph();
+        let start = make_node("start", NodeType::Start);
+        let mut goto = make_node("goto", NodeType::Goto);
+        goto.set_param("label", ParamValue::Literal(json!("target")));
+
+        graph.add_node(start);
+        graph.add_node(goto);
+        graph.add_label("main", vec!["start".to_string(), "goto".to_string()]);
+
+        add_flow_edge(&mut graph, "start", "out_flow", "goto", "in_flow");
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("thread.Goto(\"target\")"));
+        // 自动发现的标签不会生成标签体（缺少入口节点），但代码生成器应成功返回。
+        Ok(())
+    }
+
     #[test]
     fn test_generate_param_ref() -> Result<()> {
         let mut graph = build_graph();
