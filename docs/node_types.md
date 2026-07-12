@@ -1,195 +1,222 @@
-# CM2Editer 节点手册（v0.2.2 + P1 低难度）
+# CM2Editer 节点手册（新架构 v0.3.0）
 
-> 本文档描述 CM2Editer **实际支持的** 168 个节点类型及其用法。
-> 代码生成语法以 `docs/code_api_reference.md` 为准。
+> 本文档描述新架构下 CM2Editer 支持的节点类型。
+> 新架构以 `.code` 语法结构为中心，节点按 **语言概念** 分类，而非 API 表面。
+> 旧版已归档：`docs/archive/node_types_20260713_v1.md`
+> 完整参数定义参见 `src/api/definitions.rs`。
 
 ---
 
-## 代码生成兼容性 ⚠️ 必读
+## 1. 代码生成兼容性（必读）
 
-新增/修改节点时必须对照下表。节点分为三类：
+新增/修改节点时必须先读本文档。节点按代码生成方式分为三类：
 
-### A 类：自定义代码生成（`generate_sequence` 显式 match 臂）
+### A 类：自定义代码生成（`generate_sequence` 显式 match）
+
+这些节点涉及 `.code` 控制结构或特殊语法，需要手写代码生成逻辑：
 
 | 节点 | 代码生成 |
 |------|---------|
-| `Start`, `Label`, `Comment`, `Meta`, `Group` | 贯通：`follow_flow` 继续 Flow 链 |
-| `Goto` | `thread.Goto(label)`，Data 端口需手动生成 var 赋值 |
-| `If` | `generate_if()`：分支 Flow + Data condition |
-| `While` | `generate_while()`：循环 Flow |
-| `For` | `generate_for()`：`for i in list` |
+| `Goto` | `thread.Goto("label")` |
+| `If` | `if {condition}` / `else` |
+| `While` | `while {condition}` |
+| `For` | `for i in {iterable}` |
 | `Break` | `break` |
 | `Return` | `_result = {value}` |
-| `CallFunction` | `funcName(args)`，Data 端口需手动生成 |
+| `CallFunction` | `funcName(args)` |
+| `CallMethod` | `object.Method(args)` |
 | `ForeachNode` | `var = Foreach(list, thread)` |
 | `DestroyListener` | `listener = null` |
 | `WaitForThread` | `{thread}.WaitForFinish()` |
+| `Wait` | `Wait(seconds)` |
+| `WaitForEvent` | `WaitForEvent(eventName)` |
+| `Meta` / `Comment` / `Group` | 不产生代码，贯通 Flow 链 |
 
-**规则**：向 A 类节点新增 Data 输出端口，必须在 match 臂中手动写 `var_{id}_{port} = ...`。参照 Goto `out_label` 实现。
-
-⚠️ **同时**：A 类 Flow 节点的 Data 输出端口值需被其他节点通过 Data 边引用时，还必须在 `evaluate_data_output` 中添加对应分支，将端口名映射到实际参数值。否则回退到 `var_{id}_{port}`（变量名引用而非变量值）。参见 `Goto.out_label` 和 `CreateListener.out_name` 的实现（`generator.rs:458-473`）。
+**规则**：向 A 类节点新增 Data 输出端口，必须：
+1. 在 match 臂中手动写 `var_{id}_{port} = ...`。
+2. 在 `evaluate_data_output` 中添加分支，将端口名映射到实际参数值。
 
 ### B 类：通用代码生成（`generate_node_call`）
 
-| 节点 | 代码生成 |
-|------|---------|
-| `CreateThread`, `CreateListener`, `CreateListenerLocal` | 显式匹配到 `generate_node_call` |
-| 其他所有带 Flow 端口的节点 | `_` 默认走 `generate_node_call` |
+所有带 Flow 端口、但不属于 A 类的节点。代码生成器自动调用对应 API 函数，并自动为 Data 输出端口生成 `var_{id}_{port} = Func(...)`。
 
-`generate_node_call` 自动为**所有 Data 输出端口**生成 `var_{id}_{port} = Func(params)`。**新增 Data 输出端口无需改代码生成器**。
+**规则**：新增 Data 输出端口无需改代码生成器。
 
 ### C 类：纯 Data 节点（无 Flow 端口）
 
-| 节点 |
-|------|
-| `Boolean`, `NumberConstant`, `StringConstant`, `GetStateBool`, `GetStateNumber`, `CompareNumbers`, `LogicAnd`, `LogicOr`, `LogicNot`, `CheckCondition`, `CheckEquipment`, `CheckCosplay`, `GetPosition`, `MakeVector`, `BreakVector`, `GetCurrentThread`, `GetSave`, `GetTime`, `GetTimeDiff`, `GetSettings`, `GetMod`, `GetMods` |
+仅通过 Data 边给其他节点喂值，不在 Flow 链中遍历。处理位置：`evaluate_data_output()`。
 
-处理位置：`evaluate_data_output()`——仅在其他节点通过 Data 边引用时才被递归解析。**不在 Flow 链中遍历**。新增参数或输出端口需在 `evaluate_data_output` 中添加对应分支。
+**规则**：新增 C 类节点或输出端口需在 `evaluate_data_output` 中添加分支。
 
 ---
 
-## 约定
+## 2. 节点分类（按 `.code` 语言概念）
 
-| 术语 | 说明 |
+### 2.1 Threading & Concurrency（线程与并发）
+
+> 这些节点直接对应 `.code` 的线程和监听器原语。在新架构中，它们与 `ThreadContainer` / `ListenerContainer` 紧密配合。
+
+| 节点 | 类别 | 说明 | `.code` 示例 |
+|------|------|------|--------------|
+| `CreateThread` | B | 创建并启动一个线程 | `var = CreateThread(labelName="x")` |
+| `CreateListener` | B | 创建全局监听器 | `var = CreateListener(labelName="x")` |
+| `CreateListenerLocal` | B | 创建局部监听器 | `var = CreateListenerLocal(labelName="x")` |
+| `DestroyListener` | A | 销毁监听器 | `listener = null` |
+| `GetCurrentThread` | C | 获取当前线程引用 | `_this` |
+| `WaitForThread` | A | 等待线程结束 | `{thread}.WaitForFinish()` |
+
+### 2.2 Control Flow（控制流）
+
+> 这些节点只在 `LabelContainer` 或 `ListenerContainer` 内部有效。`Flow` 边表示同一容器内的执行顺序。
+
+| 节点 | 类别 | 说明 | `.code` 示例 |
+|------|------|------|--------------|
+| `Goto` | A | 跳转到同一线程的另一个标签 | `thread.Goto("step2")` |
+| `If` | A | 条件分支 | `if {cond} ... else ...` |
+| `While` | A | 循环 | `while {cond} ...` |
+| `For` | A | 遍历列表/范围 | `for i in Range(0, 10) ...` |
+| `Break` | A | 跳出循环 | `break` |
+| `Return` | A | 设置返回值 | `_result = {value}` |
+| `Wait` | A | 等待秒数 | `Wait(3.0)` |
+| `WaitForEvent` | A | 等待事件触发 | `WaitForEvent("done")` |
+| `Start` | — | ⚠️ 已弃用，新架构中不再作为 `NodeType` | 无 |
+| `Label` | — | ⚠️ 已弃用，新架构中不再作为 `NodeType` | 无 |
+
+### 2.3 Variables & Globals（变量与全局状态）
+
+| 节点 | 类别 | 说明 | `.code` 示例 |
+|------|------|------|--------------|
+| `Global` | B | 读/写全局变量 | `Global("key", value)` |
+| `Local` | B | 读/写局部变量 | 局部变量存取 |
+| `GetSave` | C | 读取跨会话保存数据 | `_save.SomeKey` |
+| `GetTime` | C | 读取累计时间 | `_time` |
+| `GetTimeDiff` | C | 读取上一帧时间差 | `_timediff` |
+| `GetSettings` | C | 读取 meta 设置 | `_settings.Key` |
+| `GetMod` | C | 读取 mod 共享数据 | `_mod.Key` |
+| `GetMods` | C | 读取所有已激活 mod 数据 | `_mods` |
+| `SetEvent` | B | 设置跨项目事件 | `SetEvent("name", data)` |
+| `GetEvent` | C | 获取事件数据 | `_event` |
+| `DumpVariables` | B | 导出所有变量 | `DumpVariables()` |
+| `DumpVariable` | B | 导出单个变量 | `DumpVariable("name")` |
+| `GetType` | C | 获取值类型名 | `type(value)` |
+| `GetLanguage` | C | 获取当前语言 | `GetLanguage()` |
+
+> **规划**：新架构将引入 `Set Variable` / `Variable` 通用变量节点，替换 `Global` / `Local` 的歧义用法。
+
+### 2.4 Literals（字面量）
+
+| 节点 | 类别 | 说明 | `.code` 示例 |
+|------|------|------|--------------|
+| `NumberConstant` | C | 数字常量 | `90` |
+| `StringConstant` | C | 字符串常量 | `"hello"` |
+| `Boolean` | C | 布尔常量 | `true` / `false` |
+| `Color` | C/B | 颜色 `[r, g, b, a]` | `Color(1, 0, 0, 1)` |
+| `Range` | C | 数值范围 | `Range(0, 10)` |
+
+### 2.5 Math & Logic（数学与逻辑）
+
+| 节点 | 类别 | 说明 |
+|------|------|------|
+| `Random` | C | 随机浮点数 |
+| `RandomInt` | C | 随机整数 |
+| `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan` | C | 三角函数 |
+| `Floor`, `Ceil`, `Round`, `Trunc`, `Sign`, `Abs` | C | 数值处理 |
+| `LogN`, `Log2`, `Log10` | C | 对数 |
+| `Min`, `Max` | C | 最值 |
+| `Vector`, `Quaternion` | C | 构造向量/四元数 |
+| `Vector3Length`, `Vector3SqrLength`, `Vector3Add`, `Vector3Sub`, `Vector3Scale`, `Vector3Dot`, `Vector3Cross`, `Vector3Rotate`, `Vector3Distance` | C | 向量运算 |
+| `GetPosition` | C | 获取位置 |
+| `MakeVector`, `BreakVector` | C | 向量打包/解包 |
+| `CompareNumbers` | C | 数字比较 |
+| `LogicAnd`, `LogicOr`, `LogicNot` | C | 布尔逻辑 |
+
+### 2.6 Conditions & Queries（条件对象与状态查询）
+
+> 这些节点生成布尔值，通常接入 `If` / `While` 的 `condition` Data 端口。
+
+| 节点 | 类别 | 说明 | `.code` 示例 |
+|------|------|------|--------------|
+| `CheckCondition` | C | 检查 Condition 对象 | `{cond}.Check()` |
+| `CheckEquipment` | C | 检查装备状态 | `_state.AdultToys.X != null` |
+| `CheckCosplay` | C | 检查 cosplay 状态 | `Cosplay_{key}` |
+| `GetStateBool` | C | 读取布尔状态 | `_state.Futanari` |
+| `GetStateNumber` | C | 读取数值状态 | `_state.Ecstasy` |
+
+### 2.7 String / File / List（字符串、文件与列表）
+
+| 节点 | 类别 | 说明 |
+|------|------|------|
+| `Length`, `Lower`, `Upper`, `Find`, `SubString`, `Format`, `ToNumber` | C | 字符串处理 |
+| `FileExists`, `GetFiles`, `GetFileExtension` | C | 文件操作 |
+| `CreateList`, `Copy`, `CreateListFromJson` | C | 列表构造 |
+| `ForeachNode` | A | 遍历列表（特殊函数调用） | `var = Foreach(list, thread)` |
+
+### 2.8 Game API（游戏功能）
+
+> 这些节点对应 CM2 游戏 API，按子系统分组：
+
+| 子系统 | 节点 |
+|--------|------|
+| 物品与装备 | `DropItem`, `CollectItem`, `SetVibrator`, `SetPiston`, `LockHandcuffs`, `UnlockHandcuffs`, `EquipCosplay`, `UnequipCosplay`, `UnequipAllCosplay`, `OwnCosplay`, `EquipAdultToy`, `UnequipAdultToy` |
+| 玩家状态与设置 | `SetPlayerPosition`, `SetStage`, `SetCamera`, `SetAction`, `SetFutanari`, `SetSkill`, `SetPlayerData`, `SetSkillShortcut`, `GetSkillShortcut`, `GetRandomPosition` |
+| 数值统计 | `AddCurrentEarnRP`, `SetCurrentEarnRP`, `GetCurrentEarnRP`, `AddCurrentRP`, `SetCurrentRP`, `GetCurrentRP`, `SetEcstasy`, `AddEcstasy`, `GetEcstasy`, `SetStamina`, `AddStamina`, `GetStamina`, `SetMoisture`, `AddMoisture`, `GetMoisture`, `SetItemCount`, `AddItemCount`, `GetItemCount` |
+| 游戏控制 | `CanGameOver`, `TriggerGameOver`, `PlaySoundEffect`, `SetStageRankLimit`, `GetStageRankLimit`, `SetPortalEnabled`, `GetAllWaypoints`, `SetSexPosition`, `DeactivateSex`, `SetSexMenu` |
+| 图形与杂项 | `ShowBlackscreen`, `GetSnapshotData`, `GetAllSnapshots`, `DeleteSnapshot`, `GetImageReference`, `SetGraphicsOption`, `GetGraphicsOption` |
+| 日志 | `Log` |
+
+### 2.9 Objects（对象构造与方法）
+
+> 这些节点创建或调用 `.code` 对象。
+
+| 节点 | 类别 | 说明 |
+|------|------|------|
+| `CreateMissionPanel` | B | 创建任务面板 |
+| `CreateMissionMenuItem` | B | 创建任务菜单项 |
+| `CreateArea` | B | 创建区域 |
+| `CreateZone` | B | 创建区域（旧版） |
+| `CreateCondition` | B | 创建条件对象 |
+| `CreateItemCondition` | B | 创建物品条件对象 |
+| `CreateInteractArea` | B | 创建交互区域 |
+| `CreateText` | B | 创建文本对象 |
+| `CreateMessengerChat` | B | 创建聊天对象 |
+| `CreateAudio` | B | 创建音频对象 |
+| `CreateGallery` | B | 创建画廊对象 |
+| `CreateSnapshot` | B | 创建 snapshot 对象 |
+| `CreateNPC` | B | 创建 NPC 对象 |
+| `CreateInput` | B | 创建输入对象 |
+| `CallFunction` | A | 动态调用函数 |
+| `CallMethod` | A | 动态调用对象方法 |
+| `GetCurrentThread` | C | 获取当前线程对象（也归类在 Threading） |
+
+### 2.10 Editor-only（编辑器专用）
+
+> 这些节点在 `.code` 中没有对应物，只用于辅助编辑器组织。
+
+| 节点 | 类别 | 说明 |
+|------|------|------|
+| `Meta` | A | 元数据注释，不产生代码 |
+| `Comment` | A | 注释节点，不产生代码 |
+| `Group` | A | 视觉分组，不产生代码 |
+
+---
+
+## 3. 作用域与生命周期
+
+| 概念 | 说明 |
 |------|------|
-| **Flow 端口** | 白色，控制执行顺序，跟随 Flow 边生成代码 |
-| **Data 端口** | 彩色，按类型着色。传递 Number/String/Boolean/List/Object |
-| **纯 Data 节点** | 无 Flow 端口，仅通过 Data 边给其他节点喂值。代码生成中不直接出现，通过 `evaluate_data_output()` 递归解析 |
-| **🔗 连线优先级** | Data 端口有连线时，属性面板参数自动隐藏，值取连线源。断线后恢复 |
+| `_this` | 当前线程引用。在新架构中，应自然绑定到当前 `ThreadContainer`。
+| `_result` | 标签返回值。由 `Return` 节点显式设置；容器结束时默认 `null`。
+| 线程变量 | `CreateThread` 等返回值应绑定到 `ThreadContainer.variable_name`。
+| 监听器变量 | 同线程变量，但属于 `ListenerContainer`。
+| 全局变量 | `Global` / `GetSave` / `GetSettings` / `GetMod` / `GetMods` 等跨作用域访问。
+| 局部变量 | `Local` 节点仅在当前线程作用域内有效；新架构将用 `Set Variable` / `Variable` 替代。
 
 ---
 
-## 控制流（Flow）
+## 4. 已弃用节点
 
-| 节点 | Flow 入/出 | 参数 | `.code` 输出 |
-|------|-----------|------|-------------|
-| **Start** | 出 Flow | — | 标签入口（不产生代码） |
-| **Goto** | 入 Flow | `label`(String), `args`(Object) | `thread.Goto("label")` |
-| **If** | 入 Flow, 出 True/False | `condition`(Boolean) | `if {expr}` + `else` |
-| **While** | 入 Flow, 出 Loop/Break | `condition`(Boolean) | `while {expr}` |
-| **For** | 入 Flow, 出 Loop/Break | `iterable`(List) | `for i in {list}`，支持 `Range` 直连生成 `for i in Range(0, 10)` |
-| **Break** | 入 Flow | — | `break` |
-| **Return** | 入 Flow | `value`(List) | `_result = {value}` |
-| **CallFunction** | 入/出 Flow | `function`(String), `params`(Object) | `funcName(args)` |
-| **Foreach** | 入/出 Flow | `list`(String), `threadVar`(String) | `var = Foreach(list, thread)` |
+| 节点 | 状态 | 说明 |
+|------|------|------|
+| `Start` | 已弃用 | 新架构中由 `ThreadContainer` / `LabelContainer` 入口钉替代。保留反序列化兼容。 |
+| `Label` | 已弃用 | 新架构中由 `LabelContainer` 名称替代。保留反序列化兼容。 |
 
----
-
-## 线程与监听器（Objects）
-
-| 节点 | Flow 入/出 | 参数 | `.code` 输出 |
-|------|-----------|------|-------------|
-| **CreateThread** | 入/出 Flow | `labelName`(String), `params`(Object) | `var = CreateThread(labelName="x")` |
-| **CreateListener** | 入/出 Flow | `labelName`(String), `params`(Object) | `var = CreateListener(labelName="x")` |
-| **CreateListenerLocal** | 入/出 Flow | `labelName`(String), `params`(Object) | `var = CreateListenerLocal(labelName="x")` |
-| **DestroyListener** | 入/出 Flow | — | `listener = null` |
-| **GetCurrentThread** | — | — | `_this`（Object 输出） |
-| **WaitForThread** | 入/出 Flow | `thread`(Object) | `{thread}.WaitForFinish()` |
-
-> `params` 用于传递额外参数给标签，如 `duration=3.0`。
-
----
-
-## 条件系统（Condition Objects）
-
-| 节点 | Data 入/出 | 参数 | `.code` 输出 |
-|------|-----------|------|-------------|
-| **CreateCondition** | 入 Flow, 出 Object | `condition`(String), `id`(String) | `var = CreateCondition(condition="[Exposed_All]", id="x")` |
-| **CreateItemCondition** | 入 Flow, 出 Object | `itemtype`(Enum) | 同上 |
-
-→ `Condition` Object 不能直接接 `If`。需通过 **CheckCondition** 转为 Boolean。
-
----
-
-## Boolean 管道（Phase 6 Data 节点）
-
-> 这些节点**无 Flow 端口**，仅通过 Data 边连入 If/While。
-
-| 节点 | Data 入 | Data 出 | 参数 | `.code` 输出 |
-|------|---------|---------|------|-------------|
-| **Boolean** | — | `out_value: Boolean` | `value`(Enum: true/false) | `true` / `false` |
-| **NumberConstant** | — | `out_value: Number` | `value`(Number) | `90` |
-| **GetStateBool** | — | `out_value: Boolean` | `stateKey`(Enum:18项) | `_state.Futanari` |
-| **GetStateNumber** | — | `out_value: Number` | `stateKey`(Enum:8项) | `_state.Ecstasy` |
-| **CompareNumbers** | `a:Number`, `b:Number` | `out_result: Boolean` | `a`(Number), `b`(Number), `operator`(Enum:>=/==/!=/>/</<=) | `_state.Ecstasy >= 90` |
-| **LogicAnd** | `a:Boolean`, `b:Boolean` | `out_result: Boolean` | — | `({a}) && ({b})` |
-| **LogicOr** | `a:Boolean`, `b:Boolean` | `out_result: Boolean` | — | `({a}) \|\| ({b})` |
-| **LogicNot** | `a:Boolean` | `out_result: Boolean` | — | `!({a})` |
-| **CheckCondition** | `cond:Object` | `out_result: Boolean` | — | `{cond}.Check()` |
-| **CheckEquipment** | — | `out_value: Boolean` | `equipType`(Enum:10项) | `_state.AdultToys.{type} != null` |
-| **CheckCosplay** | — | `out_value: Boolean` | `cosplayKey`(String→命名空间) | `Cosplay_{key}` |
-
-### 数据节点使用模式
-
-```text
-[GetStateNumber(Ecstasy)] ──Data──→ [CompareNumbers.a]
-[NumberConstant(90)]     ──Data──→ [CompareNumbers.b]
-                                        │ Boolean
-                                        ▼
-                                    [If.condition]
-→ 生成: if _state.Ecstasy >= 90
-```
-
----
-
-## 全局变量数据节点（P1 低难度）
-
-> 无 Flow 端口，通过 Data 边引用。
-
-| 节点 | Data 出 | `.code` 输出 |
-|------|---------|-------------|
-| **GetSave** | `out_value: Object` | `_save` |
-| **GetTime** | `out_value: Number` | `_time` |
-| **GetTimeDiff** | `out_value: Number` | `_timediff` |
-| **GetSettings** | `out_value: Object` | `_settings` |
-| **GetMod** | `out_value: List` | `_mod` |
-| **GetMods** | `out_value: Object` | `_mods` |
-
----
-
-## 坐标系统（Phase 7）
-
-| 节点 | Data 入 | Data 出 | 参数 |
-|------|---------|---------|------|
-| **GetPosition** | — | `out_position:List`, `out_stage:String` | `coord_id`, `stage`(Enum), `x`,`y`,`z`(Number) |
-| **MakeVector** | `x:Number`, `y:Number`, `z:Number` | `out_vec:List` | `x`,`y`,`z`(Number) |
-| **BreakVector** | `in_vec:List` | `x:Number`, `y:Number`, `z:Number` | — |
-
----
-
-## If 条件模板（属性面板快速填充）
-
-If/While 的 `condition` 参数编辑区提供 ComboBox 30+ 预设模板：
-
-| 类别 | 示例 |
-|------|------|
-| 字面量 | `true`, `false` |
-| 角色状态 | `_state.Futanari`, `_state.Sitting`, `_state.Orgasm`... |
-| 环境 | `_state.InLight`, `_state.NearNPC`, `_state.IsDayTime`... |
-| 装备/拘束 | `_state.Blindfolded`, `_state.Invisible`, `_state.AdultToys.Handcuff != null`... |
-| 数值比较 | `_state.Ecstasy >=`, `_state.Detection >=`, `_state.Stamina >=`... |
-
-> Data 端口连线后模板自动隐藏，只显示 🔗 源引用。
-
----
-
-## 标签管理（左栏工程标签下）
-
-- 显示所有 `graph.labels` 条目（标签名 + 节点数）
-- 点击标签名 → 画布选中对应节点
-- `+ 新建标签` 按钮创建空标签
-- Goto / CreateThread 的参数更改时自动注册目标标签
-- 保存/生成时，所有标签生成顶层 `CreateThread` 和 `label:` 体
-
----
-
-## 代码生成规则（速查）
-
-| 项目 | 输出 |
-|------|------|
-| 顶层 | `var_main_thread = CreateThread("main")` |
-| 标签体 | `main:` → Tab 缩进 → Flow 序列 → `_result = null` |
-| Data 解析 | `evaluate_data_output()` 递归追踪 Data 边链 |
-| If 条件 | `if _state.Futanari`（无括号，小写 if） |
-| Goto | `thread.Goto("step1")` |
-| 标签收尾 | 每个标签体末尾自动追加 `_result = null`（Return 已有时跳过） |

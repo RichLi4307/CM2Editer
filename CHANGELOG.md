@@ -25,6 +25,8 @@
 - 更新 `docs/node_types.md`：节点数量 159 → 168，新增线程/监听器与全局变量数据节点章节。
 - 重写 `docs/tutorial_make_code.md`：适配实际 `.code` 生成结构、当前 Data 节点连线方式，新增 WaitForThread、Range+For、全局变量等章节，补充常见误区。
 - 新增 `docs/architecture_evaluation.md`：基于 `.code` DSL 语义、当前实现和跨编辑器模式研究，系统评估 Start/Label/Flow 边/节点分类的错配，提出线程/标签容器化 redesign 方向与迁移路线图。
+- 归档旧版文档：`docs/TODO.md` → `docs/archive/TODO_20260713_v8.md`，`docs/node_types.md` → `docs/archive/node_types_20260713_v1.md`。
+- 重写新架构核心文档：`docs/TODO.md`（新架构待办）、`docs/node_types.md`（按 `.code` 语言概念分类）、`docs/json_schema.md`（v2.0 容器化格式）、`docs/agent_prompt.md`（v3.0-architecture）、`docs/tutorial_make_code.md`（基于容器化模型）、`docs/migration_guide.md`（v1.x → v2.0 迁移指南）。
 
 ### 测试
 

@@ -1,441 +1,338 @@
-# CustomMissions2 流编辑器 — JSON 序列化格式规范
+# CM2Editer JSON Schema（新架构 v2.0）
 
-> 版本：v1.0  
-> 用途：定义编辑器画布 ↔ JSON 文件的双向映射契约  
-> 阅读对象：编辑器前端、Rust 后端、自定义任务加载器  
-> 相关文档：
->
-> - 节点清单：[node_types.md](node_types.md)
-> - 项目骨架与 Rust 模块：[rust_project_skeleton.md](rust_project_skeleton.md)
-> - Agent 开发约束：[agent_prompt.md](agent_prompt.md)
+> 本文档定义新架构下 `.code.json` 文件的序列化格式。
+> 新架构以 **容器（ThreadContainer / LabelContainer / ListenerContainer）** 为骨架，替代旧版的扁平 `nodes + edges + labels` 模型。
+> 旧版 v1.x 已归档：`docs/archive/json_schema.md`（将在新架构实现后补充迁移说明）。
 
 ---
 
-## 一、顶层结构
+## 版本声明
 
 ```json
 {
-  "version": "1.0",
-  "meta": { ... },
-  "nodes": [ ... ],
-  "edges": [ ... ],
-  "labels": { ... },
-  "threads": [ ... ],
-  "comments": [ ... ],
-  "viewport": { ... }
+  "version": "2.0"
 }
 ```
 
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-| ------ | ------ | ------ | -------- | ------ |
-| `version` | String | 是 | — | 格式版本，用于迁移兼容 |
-| `meta` | Object | 否 | `{}` | 任务元数据（对应 [meta.json](meta.json)） |
-| `nodes` | Array | 是 | — | 所有节点列表 |
-| `edges` | Array | 是 | `[]` | 所有连线列表 |
-| `labels` | Object | 否 | `{}` | 标签到节点 ID 列表的映射 |
-| `threads` | Array | 否 | `[{"id": "thread_main", "name": "main", "entry_label": "main", "parent": null, "auto_start": true}]` | 线程定义（并发分支） |
-| `comments` | Array | 否 | `[]` | 注释节点列表（特殊节点，不参与代码生成） |
-| `viewport` | Object | 否 | 见下文 | 画布视口状态（视图层） |
+- v2.0 与 v1.x **不兼容**。
+- 旧版工程需通过迁移脚本转换到 v2.0。
 
-> 注意：
->
-> - `meta` 中的内容**不参与代码生成**，由加载器直接读取。
-> - 当 `threads` 缺失时，加载器应自动推断为单线程 `main`。
+---
 
-## 二、Meta 对象
-
-与文档中的 [meta.json](meta.json) 一一对应，编辑器直接透传。
+## 顶层结构
 
 ```json
 {
+  "version": "2.0",
   "meta": {
-    "title": {
-      "En": "Test Mission",
-      "Ja": "テストミッション"
-    },
-    "description": {
-      "En": "This is a description"
-    },
-    "settings": [
-      {
-        "name": "range",
-        "title": "Range Integer",
-        "type": "Integer",
-        "minvalue": 0,
-        "maxvalue": 100,
-        "default": 50
-      },
-      {
-        "type": "Label",
-        "title": "A descriptive label for the settings panel"
-      }
-    ],
-    "defaultactive": true
-  }
-}
-```
-
-### 字段说明
-
-| 字段 | 类型 | 必填 | 说明 |
-| ------ | ------ | ------ | ------ |
-| `title` | Object | 是 | 多语言标题，键为语言代码（如 `En`、`Ja`） |
-| `description` | Object | 否 | 多语言描述 |
-| `settings` | Array | 否 | 玩家可调设置项，见 [meta.json](meta.json) 示例 |
-| `defaultactive` | Boolean | 否 | 任务是否默认激活；默认 `true` |
-
-> 规则：`meta` 中的内容**不参与代码生成**，由加载器直接读取。
-
----
-
-## 三、Node 对象
-
-```json
-{
-  "id": "node_001",
-  "type": "DropItem",
-  "category": "Game Functions",
-  "position": { "x": 200.0, "y": 150.0 },
-  "size": { "width": 180.0, "height": 120.0 },
-  "collapsed": false,
-  "params": {
-    "itemtype": "Coat",
-    "stage": "Residence",
-    "x": -26.60,
-    "y": -0.10,
-    "z": -120.0
+    "name": "mission",
+    "created_at": "2026-07-13T00:00:00Z",
+    "author": "..."
   },
-  "ports": {
-    "inputs": [
-      { "id": "in_flow", "type": "Flow", "label": "执行" }
-    ],
-    "outputs": [
-      { "id": "out_flow", "type": "Flow", "label": "下一步" },
-      { "id": "out_result", "type": "String", "label": "返回值" }
-    ]
-  }
-}
-```
-
-### 字段说明
-
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-| ------ | ------ | ------ | -------- | ------ |
-| `id` | String | 是 | — | 全局唯一标识，格式 `node_{uuid}` 或 `node_{index}` |
-| `type` | String | 是 | — | 节点类型名，必须与 [node_types.md](node_types.md) 中的名称一致 |
-| `category` | String | 否 | 从类型推导 | 分类，用于导入时归类 |
-| `position` | Object | 是 | — | 画布坐标 `{x, y}`，单位像素 |
-| `size` | Object | 否 | 按类型默认 | 节点尺寸 `{width, height}`，用于恢复折叠状态 |
-| `collapsed` | Boolean | 否 | `false` | 是否折叠（宏节点/子图） |
-| `params` | Object | 否 | `{}` | 节点参数键值对，键对应 API 参数名 |
-| `ports` | Object | 否 | 由 `type` 推导 | 端口定义；可由节点类型注册表推导，导出时可选 |
-
-### 参数值类型映射
-
-| 编辑器中的值 | JSON 中的表示 | 对应的 Rust 类型 | 示例 |
-| ------------- | -------------- | ----------------- | ------ |
-| 数字 | Number | `f64` | `50`, `-26.6` |
-| 字符串 | String | `String` | `"Coat"`, `"Residence"` |
-| 布尔 | Boolean | `bool` | `true`, `false` |
-| 列表 | Array | `Vec<ParamValue>` 或 `List` | `[-26.6, -0.1, -120]` |
-| 对象 | Object | `HashMap<String, ParamValue>` | `{"r": 1, "g": 0, "b": 0}` |
-| 颜色 | Array | `[f32; 4]` | `[1.0, 0.0, 0.0, 1.0]` |
-| 向量 | Array | `[f32; 3]` | `[-26.6, -0.1, -120]` |
-| 四元数 | Array | `[f32; 4]` | `[0, 0, 0, 1]` |
-| 引用（其他节点输出） | Object | `ParamValue::Ref` | `{"ref": "node_002", "port": "out_result"}` |
-
-> 颜色与向量在 JSON 中均使用数组，加载器通过参数元数据中的 `param_type` 区分语义。
-
----
-
-## 四、Edge 对象
-
-```json
-{
-  "id": "edge_001",
-  "from": { "node": "node_001", "port": "out_flow" },
-  "to": { "node": "node_002", "port": "in_flow" },
-  "type": "Flow",
-  "waypoints": [
-    { "x": 300, "y": 200 },
-    { "x": 350, "y": 200 }
-  ]
-}
-```
-
-### 字段说明
-
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-| ------ | ------ | ------ | -------- | ------ |
-| `id` | String | 是 | — | 唯一标识，建议 `edge_{uuid}` |
-| `from` | Object | 是 | — | 源 `{node, port}` |
-| `to` | Object | 是 | — | 目标 `{node, port}` |
-| `type` | String | 是 | — | `Flow` / `Data` |
-| `waypoints` | Array | 否 | `[]` | 连线中间点（用户手动调整路径） |
-
-### 连线规则（验证器检查项）
-
-1. `from` 和 `to` 必须指向存在的节点和端口
-2. `type` 为 `Flow` 时，两端端口类型必须均为 `Flow`
-3. `type` 为 `Data` 时，两端数据类型必须兼容（同类型或可隐式转换，见 `PortType::is_compatible_with`）
-4. 一个输入端口只能有一条入边（`Data` 类型）；`Flow` 类型输入端口可有多条入边
-5. 不允许自环（`from.node == to.node`），除非显式使用 Loop 节点
-6. 不允许重复边（同一 from 到同一 to）
-
----
-
-## 五、Comments 数组
-
-`comments` 是可选的顶层数组，用于保存编辑器中的注释节点，不参与 `.code` 代码生成，仅保留编辑体验。若实现选择将注释作为 `nodes` 数组中的特殊类型，则顶层 `comments` 字段可省略，但需在 `Node` 对象中标识 `type` 为 `Comment`。
-
-```json
-{
-  "comments": [
+  "threads": [
     {
-      "id": "comment_001",
-      "text": "在此处触发剧情事件",
-      "position": { "x": 200, "y": 300 },
-      "size": { "width": 200, "height": 80 }
+      "id": "thread-1",
+      "name": "main",
+      "variable_name": "var_main_thread",
+      "auto_start": true,
+      "labels": [...],
+      "listeners": [],
+      "position": {"x": 0, "y": 0}
     }
-  ]
-}
-```
-
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-| ------ | ------ | ------ | -------- | ------ |
-| `id` | String | 是 | — | 注释唯一标识 |
-| `text` | String | 否 | `""` | 注释文本 |
-| `position` | Object | 是 | — | 画布坐标 `{x, y}` |
-| `size` | Object | 否 | 按默认 | 注释框尺寸 `{width, height}` |
-
-> 规则：
->
-> - `comments` 中的节点不参与验证器的拓扑检查。
-> - 导出 `.code` 时应忽略 `comments`，保存 JSON 时可保留。
-
----
-
-## 六、Labels 对象
-
-标签是代码中的入口点，映射到节点序列。
-
-```json
-{
-  "labels": {
-    "main": ["node_001", "node_002", "node_003"],
-    "delayed1": ["node_004"],
-    "delayed2": ["node_005"]
+  ],
+  "viewport": {
+    "x": 0,
+    "y": 0,
+    "zoom": 1.0
   }
 }
 ```
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| 键 | String | 标签名（如 `main`, `m1`, `listener_1`） |
-| 值 | Array | 该标签按顺序执行的节点 ID 列表 |
-
-> 规则：
->
-> - 每个 `.code` 文件至少有一个标签（默认 `main`）
-> - 标签内的节点通过 `Flow` 边串联，标签之间通过 `Goto` / `CreateThread` 跳转
-> - 如果一个节点不在任何标签中，视为孤立节点，验证器报 Warning
+| `version` | string | `"2.0"` |
+| `meta` | object | 工程元信息 |
+| `threads` | array | 所有线程容器 |
+| `viewport` | object | 画布视口状态 |
 
 ---
 
-## 六、Threads 对象
-
-支持并发线程的显式声明。每个线程对应一个 `CreateThread` 调用。
+## ThreadContainer（线程容器）
 
 ```json
 {
-  "threads": [
+  "id": "thread-1",
+  "name": "main",
+  "variable_name": "var_main_thread",
+  "auto_start": true,
+  "entry_pin": {"x": 0, "y": 0},
+  "labels": [
     {
-      "id": "thread_001",
+      "id": "label-1",
       "name": "main",
-      "entry_label": "main",
-      "parent": null,
-      "auto_start": true
-    },
-    {
-      "id": "thread_002",
-      "name": "delay_manager",
-      "entry_label": "delaymanager",
-      "parent": null,
-      "auto_start": false
-    },
-    {
-      "id": "thread_003",
-      "name": "listener_1",
-      "entry_label": "l",
-      "parent": "thread_002",
-      "auto_start": false
+      "params": [],
+      "nodes": [...],
+      "edges": [...],
+      "entry_pin": {"x": 0, "y": 0},
+      "position": {"x": 0, "y": 0}
     }
-  ]
+  ],
+  "listeners": [],
+  "position": {"x": 0, "y": 0}
 }
 ```
 
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-| ------ | ------ | ------ | -------- | ------ |
-| `id` | String | 是 | — | 线程唯一标识 |
-| `name` | String | 否 | `""` | 线程显示名称 |
-| `entry_label` | String | 是 | — | 入口标签名，对应 `labels` 中的键 |
-| `parent` | String/null | 否 | `null` | 父线程 ID，`null` 表示顶层线程 |
-| `auto_start` | Boolean | 否 | `true` | 是否任务开始时自动启动 |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 唯一标识符 |
+| `name` | string | 线程名称，用于生成和显示 |
+| `variable_name` | string | 生成的 `.code` 变量名，如 `var_main_thread` |
+| `auto_start` | boolean | 是否在模块加载时生成 `CreateThread("main")` |
+| `entry_pin` | object | 线程入口钉坐标（仅用于线程概览图） |
+| `labels` | array | 该线程拥有的标签容器 |
+| `listeners` | array | 该线程拥有的监听器容器 |
+| `position` | object | 线程概览图中的位置 |
 
-> 规则：
->
-> - 子线程 `parent` 指向的线程结束时，子线程应随父线程一起清理。
-> - 非自动启动线程需由 `CreateThread` 节点显式启动。
+### 代码生成规则
 
----
-
-## 七、Viewport 对象
-
-视图层状态，不影响逻辑，仅恢复编辑体验。
-
-```json
-{
-  "viewport": {
-    "x": 0.0,
-    "y": 0.0,
-    "zoom": 1.0,
-    "grid_size": 20.0,
-    "show_grid": true
-  }
-}
-```
-
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-| ------ | ------ | ------ | -------- | ------ |
-| `x` | Number | 否 | `0.0` | 画布中心 X 坐标 |
-| `y` | Number | 否 | `0.0` | 画布中心 Y 坐标 |
-| `zoom` | Number | 否 | `1.0` | 缩放比例，建议范围 `0.1` ~ `4.0` |
-| `grid_size` | Number | 否 | `20.0` | 网格间距 |
-| `show_grid` | Boolean | 否 | `true` | 是否显示网格 |
+- `auto_start: true` 的线程生成顶层语句：`variable_name = CreateThread("first_label_name")`。
+- `auto_start: false` 的线程不生成顶层语句，仅由 `CreateThread` 节点运行时创建。
+- 线程内所有标签共享同一个 `_this` 作用域。
 
 ---
 
-## 八、完整示例
+## LabelContainer（标签容器）
 
 ```json
 {
-  "version": "1.0",
-  "meta": {
-    "title": { "En": "Delay Example" }
-  },
+  "id": "label-1",
+  "name": "main",
+  "params": [
+    {"name": "duration", "type": "Number", "default": 0}
+  ],
   "nodes": [
     {
-      "id": "node_start",
-      "type": "Start",
-      "position": { "x": 100, "y": 100 },
-      "ports": {
-        "outputs": [{ "id": "out_flow", "type": "Flow", "label": "开始" }]
-      }
-    },
-    {
-      "id": "node_log_init",
+      "id": "node-1",
       "type": "Log",
-      "position": { "x": 300, "y": 100 },
-      "params": { "output": "DelayExample: Init" },
-      "ports": {
-        "inputs": [{ "id": "in_flow", "type": "Flow" }],
-        "outputs": [{ "id": "out_flow", "type": "Flow" }]
-      }
-    },
-    {
-      "id": "node_delay_1",
-      "type": "Wait",
-      "position": { "x": 500, "y": 50 },
-      "params": { "seconds": 5 },
-      "ports": {
-        "inputs": [{ "id": "in_flow", "type": "Flow" }],
-        "outputs": [{ "id": "out_flow", "type": "Flow" }]
-      }
-    },
-    {
-      "id": "node_log_delayed",
-      "type": "Log",
-      "position": { "x": 700, "y": 50 },
-      "params": { "output": "DelayExample: Delay 1" },
-      "ports": {
-        "inputs": [{ "id": "in_flow", "type": "Flow" }],
-        "outputs": [{ "id": "out_flow", "type": "Flow" }]
-      }
+      "position": {"x": 100, "y": 100},
+      "params": {"message": "hello"},
+      "ports": [...]
     }
   ],
   "edges": [
     {
-      "id": "edge_1",
-      "from": { "node": "node_start", "port": "out_flow" },
-      "to": { "node": "node_log_init", "port": "in_flow" },
-      "type": "Flow"
-    },
-    {
-      "id": "edge_2",
-      "from": { "node": "node_log_init", "port": "out_flow" },
-      "to": { "node": "node_delay_1", "port": "in_flow" },
-      "type": "Flow"
-    },
-    {
-      "id": "edge_3",
-      "from": { "node": "node_delay_1", "port": "out_flow" },
-      "to": { "node": "node_log_delayed", "port": "in_flow" },
-      "type": "Flow"
+      "id": "edge-1",
+      "source": {"node": "node-1", "port": "out_flow"},
+      "target": {"node": "node-2", "port": "in_flow"},
+      "kind": "Flow"
     }
   ],
-  "labels": {
-    "main": ["node_start", "node_log_init", "node_delay_1", "node_log_delayed"]
+  "entry_pin": {"x": 0, "y": 0},
+  "position": {"x": 0, "y": 0}
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 唯一标识符 |
+| `name` | string | 标签名，用于 `Goto` / `CreateThread` / `CreateListener` 引用 |
+| `params` | array | 标签参数签名（进入标签时传入的命名参数） |
+| `nodes` | array | 容器内节点 |
+| `edges` | array | 容器内边 |
+| `entry_pin` | object | 标签入口钉坐标 |
+| `position` | object | 线程内部标签画布的位置 |
+
+### 重要约束
+
+- `Flow` 边只能连接同一 `LabelContainer` 内的节点。
+- `Data` 边可以连接同一 `ThreadContainer` 内不同 `LabelContainer` 的节点（用于标签参数和返回值引用）。
+- 标签名在同一 `ThreadContainer` 内必须唯一。
+- 标签结束时如果没有显式 `Return`，自动生成 `_result = null`。
+
+### 标签参数签名
+
+```json
+[
+  {"name": "duration", "type": "Number", "default": 0},
+  {"name": "message", "type": "String", "default": ""}
+]
+```
+
+调用时生成：`labelname(duration=3, message="hi")`。
+
+---
+
+## ListenerContainer（监听器容器）
+
+```json
+{
+  "id": "listener-1",
+  "name": "check_status",
+  "kind": "listener",
+  "variable_name": "var_check_status_listener",
+  "params": [],
+  "nodes": [...],
+  "edges": [...],
+  "entry_pin": {"x": 0, "y": 0},
+  "position": {"x": 0, "y": 200}
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 唯一标识符 |
+| `name` | string | 监听器回调标签名 |
+| `kind` | string | `"listener"` 或 `"local_listener"` |
+| `variable_name` | string | 生成的 `.code` 变量名 |
+| `params` | array | 同 LabelContainer |
+| `nodes` / `edges` | array | 同 LabelContainer |
+| `entry_pin` | object | 入口钉坐标 |
+| `position` | object | 位置 |
+
+### 代码生成规则
+
+- `listener`: `var_check_status_listener = CreateListener("check_status")`
+- `local_listener`: `var_check_status_listener = CreateListenerLocal("check_status")`
+- 监听器回调体与标签体结构相同，每帧/每秒被调用。
+
+---
+
+## Node（节点）
+
+```json
+{
+  "id": "node-1",
+  "type": "Log",
+  "position": {"x": 100, "y": 100},
+  "params": {"message": "hello"},
+  "ports": [
+    {"name": "in_flow", "type": "Flow", "direction": "input"},
+    {"name": "out_flow", "type": "Flow", "direction": "output"}
+  ]
+}
+```
+
+### 移除的节点
+
+v2.0 中不再包含以下节点：
+
+| 旧节点 | 替代方式 |
+|--------|---------|
+| `Start` | 由 `ThreadContainer` / `LabelContainer` 的 `entry_pin` 替代 |
+| `Label` | 由 `LabelContainer.name` 替代 |
+
+### 端口方向
+
+| 方向 | 说明 |
+|------|------|
+| `input` | 可接收连线的端口 |
+| `output` | 可发出连线的端口 |
+| `entry` | 标签入口（仅入口钉） |
+
+---
+
+## Edge（边）
+
+```json
+{
+  "id": "edge-1",
+  "source": {"node": "node-1", "port": "out_flow"},
+  "target": {"node": "node-2", "port": "in_flow"},
+  "kind": "Flow",
+  "waypoints": []
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 唯一标识符 |
+| `source` | object | 源节点和端口 |
+| `target` | object | 目标节点和端口 |
+| `kind` | string | `"Flow"` 或 `"Data"` |
+| `waypoints` | array | 路径控制点 |
+
+### Flow 边约束
+
+- 仅在同一 `LabelContainer` / `ListenerContainer` 内有效。
+- 不允许形成环（因为对应 `.code` 的顺序执行，循环应使用 `While` 节点）。
+- 一个节点可以有多个出 `Flow`（分支），但通常一个入 `Flow`（`If` 等分支节点除外）。
+
+### Data 边约束
+
+- 可以跨 `LabelContainer` 连接（用于引用其他标签的输出）。
+- 一个 Data 输入端口只能有一条入边。
+- 一个 Data 输出端口可以有多条出边。
+
+---
+
+## v1.x → v2.0 映射
+
+| 旧结构 | 新结构 |
+|--------|--------|
+| `graph.nodes` | 分散到各 `ThreadContainer` / `LabelContainer` / `ListenerContainer` 的 `nodes` |
+| `graph.edges` | 分散到各 `LabelContainer` / `ListenerContainer` 的 `edges` |
+| `graph.labels: HashMap<String, Vec<String>>` | 由 `LabelContainer.name` 和 `ThreadContainer.labels` 替代 |
+| `Start` 节点 | `ThreadContainer` 的第一个 `LabelContainer` |
+| `Label` 节点 | 同名的 `LabelContainer` |
+| 跨标签 `Flow` 边 | 删除；改用 `Goto` / `CreateThread` / `CreateListener` 的名称参数 |
+| 同标签 `Flow` 边 | 保留在对应 `LabelContainer.edges` 中 |
+
+---
+
+## 示例：最小 v2.0 工程
+
+```json
+{
+  "version": "2.0",
+  "meta": {
+    "name": "test_project",
+    "created_at": "2026-07-13T00:00:00Z"
   },
   "threads": [
     {
-      "id": "thread_main",
+      "id": "thread-main",
       "name": "main",
-      "entry_label": "main",
-      "parent": null,
-      "auto_start": true
+      "variable_name": "var_main_thread",
+      "auto_start": true,
+      "labels": [
+        {
+          "id": "label-main",
+          "name": "main",
+          "params": [],
+          "nodes": [
+            {
+              "id": "node-log",
+              "type": "Log",
+              "position": {"x": 100, "y": 100},
+              "params": {"message": "Hello from main"}
+            }
+          ],
+          "edges": []
+        }
+      ],
+      "listeners": []
     }
   ],
-  "comments": [],
-  "viewport": {
-    "x": 0, "y": 0, "zoom": 1.0
-  }
+  "viewport": {"x": 0, "y": 0, "zoom": 1.0}
 }
+```
+
+对应 `.code`：
+
+```code
+var_main_thread = CreateThread("main")
+
+main:
+    thread = _this
+    Log("Hello from main")
+    _result = null
 ```
 
 ---
 
-## 九、版本迁移策略
+## 未实现事项
 
-| 版本 | 变更 | 兼容处理 |
-| ------ | ------ | --------- |
-| `1.0` | 初始版本 | — |
-| `1.1` | 新增 `threads` | 旧文件无 `threads` 时，默认单线程 `main`，`auto_start=true`，`parent=null` |
-| `1.2` | 新增 `node.size` | 旧文件无 `size` 时，按节点类型默认尺寸 |
-| `1.3` | 新增 `viewport.grid_size` / `show_grid` | 旧文件无这些字段时，使用默认值 |
+- v1.x → v2.0 迁移脚本（规划中）。
+- 新 UI 的线程树和标签画布（P2）。
+- 序列化文件的实际 Rust 结构体（待实现）。
 
-**规则**：
-
-- 加载时：未知字段忽略，缺失字段使用默认值
-- 保存时：始终写入最新版本格式
-- 升级时：保留旧版本备份（`mission.json.bak`）
-- 迁移逻辑实现于 `src/serializer/migration.rs`
-
----
-
-## 十、验证器检查清单
-
-加载 JSON 时必须验证；编辑器中也应在保存/导出前运行相同验证。
-
-1. [x] `version` 存在且为支持的版本
-2. [x] `nodes` 中每个节点 `id` 唯一
-3. [x] `nodes` 中每个节点 `type` 在节点清单中存在
-4. [x] `nodes` 中每个节点 `params` 符合对应节点类型的参数定义（类型、必填、选项范围）
-5. [x] `edges` 中 `from.node` 和 `to.node` 均存在于 `nodes`
-6. [x] `edges` 中 `from.port` 和 `to.port` 在对应节点中存在
-7. [x] `edges` 中类型匹配规则满足
-8. [x] `labels` 中每个节点 ID 存在于 `nodes`
-9. [x] `labels` 中同一节点不重复出现在同一线性序列中
-10. [x] `threads` 中 `entry_label` 存在于 `labels` 中
-11. [x] 无环检测（`Flow` 边构成的图必须是有向无环图，除非显式 Loop 节点）
-12. [x] 必填参数已填写（`params` 中无 `null` 且包含所有必填字段）
-13. [x] 孤立节点检测（不在任何 `labels` 与任何 `Flow` 边中的节点报 Warning）

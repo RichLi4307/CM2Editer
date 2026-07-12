@@ -1,118 +1,98 @@
-# CM2Editer 项目进度清单
+# CM2Editer 项目 TODO（新架构）
 
-> 版本：v0.2.2
-> 更新时间：2026-07-11 00:54
-> 归档：旧版本见 `docs/archive/TODO_20260710_v7.md`
+> **版本**: 0.3.0-architecture  
+> **日期**: 2026-07-13  
+> **目标**: 以 `.code` DSL 语法结构为中心重构编辑器核心图模型：Thread / Label / Listener 容器化，`Flow` 边仅限容器内部，节点按语言概念分类。  
+> **旧版已归档**: `docs/archive/TODO_20260713_v8.md`
 
 ---
 
 ## 当前状态
 
-| 阶段 | 状态 | 备注 |
-|------|------|------|
-| Phase 0–4.5：基础建设 | ✅ 完成 | 数据层 / 序列化 / 代码生成 / UI / 集成 / 工程管理 |
-| Phase 5：新功能 | ✅ 完成 | DataFlow / 枚举参数 / 命名空间 / 静态检查 / 错误面板 / 底栏 / 热键 / ID 冲突 |
-| Phase 6：Boolean 管道 | ✅ 完成 | 8 个纯数据节点 + If 条件模板 + evaluate_data_output 递归解析 |
-| Phase 7：坐标/条件系统 | ⚡ 已大部分实现 | GetPosition/MakeVector/BreakVector + CheckCondition/Equipment/Cosplay |
-| **P0 代码生成器重构** | ✅ 完成 | 顶层 CreateThread、if/while/for/break 语法对齐、标签生命周期、Goto out_label、Labels 自动发现 |
-| **验证器 BFS 重构** | ✅ 完成 | 同时从 Start + 子标签入口出发，消除误报 |
-| **Data 端口链路** | ✅ 完成 | A 类节点 + evaluate_data_output 三级配合，out_label/out_name 正确解析 |
+| 文档/模块 | 旧版 | 新版 | 状态 |
+|----------|------|------|------|
+| TODO 清单 | `docs/archive/TODO_20260713_v8.md` | 本文档 | 编写中 |
+| 节点手册 | `docs/archive/node_types_20260713_v1.md` | `docs/node_types.md` | 待写 |
+| JSON Schema | `docs/json_schema.md` | `docs/json_schema.md` | 待重写 |
+| 系统提示词 | `docs/agent_prompt.md` | `docs/agent_prompt.md` | 待更新 |
+| 实战教程 | `docs/tutorial_make_code.md` | `docs/tutorial_make_code.md` | 待重写 |
+| 迁移指南 | 无 | `docs/migration_guide.md` | 待写 |
+| 架构评估 | 无 | `docs/architecture_evaluation.md` | 已完成 ✅ |
 
 ---
 
-## 待办队列
+## 待办队列（新架构阶段）
 
-### P0：必须修
+### P0 — 核心图模型重构
 
-> ✅ 全部完成。
+- [ ] 设计并实现 `ThreadContainer` / `LabelContainer` / `ListenerContainer` 数据结构。
+- [ ] 重写 JSON 序列化，版本升级为 `2.0`，顶层结构改为 `threads: [...]`。
+- [ ] 重写 `src/code_gen/generator.rs`：基于容器生成 `.code`，不再依赖 BFS 推断子标签。
+- [ ] 从 `NodeType` 中移除 `Start` / `Label`；保留反序列化兼容层，标记为 deprecated。
+- [ ] 限制 `Flow` 边仅在 `LabelContainer` / `ListenerContainer` 内部表示顺序；禁止跨容器 `Flow` 边。
+- [ ] 重写 `src/graph/validation.rs`：移除 `Flow` DAG 约束和菱形警告，新增标签名唯一性、作用域一致性、未使用标签检查。
+- [ ] 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器，而不是 `Start` 节点。
 
-| 任务 | 来源 | 说明 |
-|------|------|------|
-| Goto 节点无法自动生成标签 | 📋 已记录 | ~~手动填写标签可行，自动注册待修复~~ ✅：已在属性面板参数变更时自动注册（app.rs:1354-1389） |
+### P1 — 节点分类与语义修正
 
-### P1：重要（缺失的 .code 特性）—— 按实现难度排序
+- [ ] 按 `.code` 语言概念重新分类全部 168 个节点：
+  - Threading & Concurrency
+  - Control Flow
+  - Variables & Globals
+  - Literals
+  - Math & Logic
+  - Conditions & Queries
+  - Game API（按子系统分组）
+  - Objects
+  - String / File / List
+  - Editor-only
+- [ ] 修正代码生成：
+  - `Goto` 必须显式指定目标线程或默认 `_this`。
+  - `CreateThread` 不再为每个标签自动生成顶层线程；只生成用户明确创建的线程。
+  - 移除 `Return` 自动追加 `_result = null` 的噪音，仅在显式 Return 时生成 `_result`。
+- [ ] 引入通用变量节点（`Set Variable` / `Variable`）以支持自定义作用域变量。
+- [ ] 验证所有现有节点在新模型下生成正确 `.code`。
 
-| 难度 | 任务 | 说明 | 工作量 |
-|------|------|------|--------|
-| 🟢 低 | ~~**`listener = null`**~~ ✅ | 销毁监听器的显式节点 | 1 个 B 类节点 + 1 行 code gen |
-| 🟢 低 | ~~**`_this` 当前线程引用**~~ ✅ | `GetCurrentThread` 数据节点 | 1 个 C 类节点 |
-| 🟢 低 | ~~**`thread.WaitForFinish`**~~ ✅ | 等待子线程结束 | 1 个 B 类节点 |
-| 🟢 低 | ~~**For + Range 直连**~~ ✅ | `Range.out_range → For.iterable` 自动生成 `for i in Range(0,10)` | evaluate_data_output 分支 |
-| 🟢 低 | ~~**_save / _time / _timediff / _settings**~~ ✅ | 6 个 C 类纯数据节点（含 `_mod` / `_mods`），复用现有模式 | 6 个 NodeType + 定义 |
-| 🟡 中 | **Gallery API** | `.Show()` `.Confirmed()` `.GetSelection()` 3 个对象方法 | 3 个 A 类节点 |
-| 🟡 中 | **list.Insert/Remove/Contains/Count/Clear/GetKeys** | 7 个列表操作方法 | 7 个 B 类节点 |
-| 🟡 中 | **MessengerChat API** | `.Add()` `.SetButtons()` `.Clicked()` | 3 个 A 类节点（Add 参数复杂） |
-| 🔴 高 | **`elseif` 多分支** | If 节点体系重构：多条件链 + UI | 架构级改动 |
+### P2 — UI 与编辑器重构
 
-> **预估总量**：5 个低难度 + 3 个中难度 + 1 个高难度。低/中难度部分约 2-3 个工作日。
+- [ ] 左侧工程树显示 `ThreadContainer` / `LabelContainer` 层级。
+- [ ] 画布切换为“当前选中标签的内部流图”。
+- [ ] 提供线程概览图（状态机视图），显示标签间 `Goto` / `CreateThread` / `CreateListener` 关系。
+- [ ] 移除画布上的 `Start` / `Label` 节点；用容器入口钉替代。
 
-### P2：UI 打磨
+### P3 — 迁移与兼容
 
-| 任务 | 说明 |
-|------|------|
-| 端口吸附环 | 鼠标靠近端口时放大，方便连线 |
-| 电路连接线风格 | 用折线替代贝塞尔曲线 |
-| 画布状态机 Debug 覆盖层 | 开发者模式显示节点执行序 |
-| 节点大小可调节 | Resize handle |
-| 代码预览语法高亮 | TextEdit 升级为 `.code` 语法着色 |
-| 跨文件 Goto 标签 | 多 `.code` 间标签引用 |
-| 条件选择窗口 | 类似命名空间选择器的分类浏览窗口 |
-| 画布 Minimap 预览图 | 右下角可折叠/展开的缩略图 |
-| 缩放画布是否影响节点 | 待用户确认：目前缩放不改变节点大小 |
-
----
-
-## 用户备注区
-
-<!-- 在此处留下你的笔记、发现或待办。Agent 不会覆盖本区域 -->
+- [ ] 实现 v1.x → v2.0 JSON 迁移脚本。
+- [ ] 完成 `docs/migration_guide.md` 中的映射示例。
+- [ ] 保留旧工程打开能力，并在 UI 中提示 deprecated 节点。
 
 ---
 
 ## Agent 交付规则
 
-> 以下规则由系统提示词同步，违反者视为任务未完成。
+1. **更新 `CHANGELOG.md`** — 每次功能交付后追加条目。
+2. **更新 `docs/TODO.md`** — 标记已完成任务 ✅，追加工作日志条目。
+3. **`cargo test` 全过再 commit** — 108 项全部通过为提交门槛。
+4. **任何任务完成后必须提交一次 commit** — 不要留下未提交改动。
+5. **commit message 用中文前缀** — 格式 `<类型>: <简要描述>`，例如：`重构: 容器化图模型`、`文档: 更新节点分类`。
+6. **重大文档变更需归档** — 将旧版按 `{文件名}_{YYYYMMDD}_v{序号}.md` 放入 `docs/archive/`。
 
-| # | 规则 | 说明 |
-|---|------|------|
-| 1 | 任何任务完成后必须提交一次 commit | 只要改动了文件，就应当以 commit 收尾，禁止留未提交改动 |
-| 2 | commit message 用中文前缀 | 格式：`<类型>: <简要描述>`，例如 `修复: Goto 标签自动注册`、`新增: 回归测试` |
-| 3 | 完成任务必须更新 `CHANGELOG.md` | 追加新增/修复/变更/测试条目 |
-| 4 | 完成任务必须更新 `docs/TODO.md` | 标记 ✅ 并追加工作日志 |
-| 5 | `cargo test` 全过再提交 | 全部通过为提交门槛 |
+---
+
+## 用户备注区
+
+- 新架构的核心原则是：编辑器为 `.code` 语法结构服务，而不是让 `.code` 迁就流程图直觉。
+- `main` 只是一个约定俗成的顶层线程标签，不是特殊入口。
+- Listener 是每帧/每秒调用标签的循环；局部监听器捕获创建处作用域。
+- 标签间关系应通过名称引用或 Data 端口表达，不能画 `Flow` 边。
 
 ---
 
 ## Agent 工作日志
 
-| 日期 | 任务 | 说明 | 状态 |
-|------|------|------|------|
-| 2026-07-05 | Phase 0-2 | 项目骨架、数据层、序列化、代码生成 | ✅ |
-| 2026-07-06 | Phase 2 补充 | CreateThread/Listener、并发语义测试；65 tests | ✅ |
-| 2026-07-07 | Phase 3 | egui 界面、canvas、node/edge renderer、interaction、panels | ✅ |
-| 2026-07-07 | 三轮修复 | 快捷键、框选、环检测、多 Start 标签等 24 项；76+7 tests | ✅ |
-| 2026-07-08 | Phase 4-4.5 | 工程管理、多 .code、文件树、meta 编辑器、导出；81+16 tests | ✅ |
-| 2026-07-08 | Phase 5.1.1 | DataFlow 重构；83+16 tests | ✅ |
-| 2026-07-08 | Phase 5.1.2 | ParamType::Enum；90+16 tests | ✅ |
-| 2026-07-08 | Phase 5.1.3 | 命名空间注册表 + 选择器窗口；90+16 tests | ✅ |
-| 2026-07-08 | Phase 5.2.2-5.2.4 | 静态检查、菱形警告、错误详情面板；108 tests | ✅ |
-| 2026-07-08 | Phase 5.4.1 | JSON 加载补填必填参数默认值；108 tests | ✅ |
-| 2026-07-08 | 底栏+Data 面板 | 三合一底栏、巧克力板方块、分隔线拖拽；108 tests | ✅ |
-| 2026-07-08 | egui ID 冲突 | 7 ScrollArea + 1 CollapsingHeader id_salt | ✅ |
-| 2026-07-08 | .code DSL 对齐 | `If()`→`if`、`While()`→`while`、`For()`→`for in` | ✅ |
-| 2026-07-08 | API 文档 | `docs/code_api_reference.md`（基于官方英文 doc + 80+ 例反推） | ✅ |
-| 2026-07-08 | Phase 6 | 7 个 Boolean/Condition 节点 + If 模板 + `evaluate_data_output`；108 tests | ✅ |
-| 2026-07-08 | Bodypaint 修复 | 从 GetStateBool（Boolean）→ GetStateNumber（Number） | ✅ |
-| 2026-07-08 | Break 修复 + Release | code_gen 对齐；v0.1.1 release；字体瘦身 | ✅ |
-| 2026-07-09 | P0 代码生成器重构 | 顶层 CreateThread、`_result=null`、`thread.Goto`、标签自动发现 | ✅ |
-| 2026-07-09 | Phase 6 扩展 | CheckCondition/Equipment/Cosplay 节点；StringConstant | ✅ |
-| 2026-07-09 | Label 管理 | 标签增删改、左栏面板、Label 节点 Data 边注册 | ✅ |
-| 2026-07-09 | 验证器 BFS 重构 | 子标签入口节点可达性；Goto out_label 端口修复 | ✅ |
-| 2026-07-09 | 文档审计 | code_api_reference 修复、NodeType 159、版本同步、旧文档归档 | ✅ |
-| 2026-07-10 | v0.2.2 release + CI 修复 | 夹具同步、tag 重打、文档归档 | ✅ |
-| 2026-07-10 | 标签管理修复 | Ren 内联编辑、删除清理、改名清理、验证器 BFS | ✅ |
-| 2026-07-10 | 字体子集化 | 33MB→5.8MB、OFL 合规改名、发行包 29.5→9.0MB | ✅ |
-| 2026-07-10 | P0 核实 + 标签重命名修复 | 确认 Goto 标签自动注册已工作；修复左栏标签重命名文本框缓冲缺失导致打字被覆盖的 bug（app.rs:962-984） | ✅ |
-| 2026-07-12 | P0 验证回归 | 复核 Goto 标签自动注册逻辑（app.rs:1469-1540 + generator.rs collect_labels），新增回归测试 `test_generate_goto_discovers_label_from_param`，cargo test 全过（94+4+9） | ✅ |
-| 2026-07-12 | P1 低难度 5 项 | 新增 DestroyListener / GetCurrentThread / WaitForThread / For+Range 直连 / 6 个全局变量数据节点；NodeType 159→168；新增 6 个生成测试；修复 CallFunction 函数名引号问题 | ✅ |
-| 2026-07-13 | 实战教程更新 | 重写 `docs/tutorial_make_code.md`，适配实际 `.code` 生成结构（顶层变量名、CreateThread/CreateListener 变量名、Data 节点用法、Goto/Label 状态机、新增 WaitForThread/Range+For/全局变量等章节） | ✅ |
-| 2026-07-13 | 架构评估 | 完成 `docs/architecture_evaluation.md`，基于 `.code` DSL 语义、当前实现和跨编辑器模式研究，评估 Start/Label/Flow 边/节点分类的错配，提出容器化 redesign 方向 | ✅ |
+| 日期 | 任务编号 | 说明 | 状态 |
+|------|----------|------|------|
+| 2026-07-13 | 文档-归档 | 将旧版 `TODO.md` / `node_types.md` 归档到 `docs/archive/` | 已完成 |
+| 2026-07-13 | 文档-新架构 | 完成新架构核心文档：TODO.md、node_types.md、json_schema.md、agent_prompt.md、tutorial_make_code.md、migration_guide.md | 已完成 ✅ |
+| 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |
+
