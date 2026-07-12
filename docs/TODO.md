@@ -114,3 +114,4 @@
 | 2026-07-10 | P0 核实 + 标签重命名修复 | 确认 Goto 标签自动注册已工作；修复左栏标签重命名文本框缓冲缺失导致打字被覆盖的 bug（app.rs:962-984） | ✅ |
 | 2026-07-12 | P0 验证回归 | 复核 Goto 标签自动注册逻辑（app.rs:1469-1540 + generator.rs collect_labels），新增回归测试 `test_generate_goto_discovers_label_from_param`，cargo test 全过（94+4+9） | ✅ |
 | 2026-07-12 | P1 低难度 5 项 | 新增 DestroyListener / GetCurrentThread / WaitForThread / For+Range 直连 / 6 个全局变量数据节点；NodeType 159→168；新增 6 个生成测试；修复 CallFunction 函数名引号问题 | ✅ |
+| 2026-07-13 | 实战教程更新 | 重写 `docs/tutorial_make_code.md`，适配实际 `.code` 生成结构（顶层变量名、CreateThread/CreateListener 变量名、Data 节点用法、Goto/Label 状态机、新增 WaitForThread/Range+For/全局变量等章节） | ✅ |

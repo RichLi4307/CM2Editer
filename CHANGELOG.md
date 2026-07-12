@@ -23,6 +23,7 @@
 - 更新 `docs/agent_prompt.md`：将 commit message 规范改为中文前缀，并明确要求任何任务完成后必须提交一次 commit。
 - 更新 `docs/TODO.md`：新增「Agent 交付规则」小节，规定完成任务必须更新 `CHANGELOG.md`、`docs/TODO.md`，并运行 `cargo test` 全过后再提交。
 - 更新 `docs/node_types.md`：节点数量 159 → 168，新增线程/监听器与全局变量数据节点章节。
+- 重写 `docs/tutorial_make_code.md`：适配实际 `.code` 生成结构、当前 Data 节点连线方式，新增 WaitForThread、Range+For、全局变量等章节，补充常见误区。
 
 ### 测试
 
