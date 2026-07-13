@@ -152,8 +152,8 @@ CM2Editer/
 
 ## 文档
 
+- [AGENTS.md](AGENTS.md)：开发约束、JSON 契约、UI 设计规范和文档地图
 - [docs/TODO.md](docs/TODO.md)：项目进度和任务追踪
-- [docs/agent_prompt.md](docs/agent_prompt.md)：开发约束、JSON 契约和 UI 设计规范
 - [docs/node_types.md](docs/node_types.md)：全部节点类型清单
 - [docs/json_schema.md](docs/json_schema.md)：编辑器保存的 JSON 格式定义
 - [docs/rust_project_skeleton.md](docs/rust_project_skeleton.md)：Rust 项目骨架说明

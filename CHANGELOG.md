@@ -68,6 +68,7 @@
 
 - 重写 `docs/tutorial_make_code.md`：对齐当前 UI 工作流程（默认 `main` 标签、入口钉说明、节点连接、保存与导出），并注明当前 UI 暂不支持新建标签/线程/监听器。
 - 将教程第五步改为使用 `GetStateNumber(Rank)` 读取角色等级/经验，区分 RP、`_state` 状态与 `_save` 存档读取；补充 RP 与角色经验键名说明。
+- 新增项目根目录 `AGENTS.md`（Kilo 风格），集中存放 AI 开发约束、文档置信上下级与查阅指南；原 `docs/agent_prompt.md` 内容已合并迁移。
 
 ---
 

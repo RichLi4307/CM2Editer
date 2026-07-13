@@ -14,7 +14,7 @@
 | TODO 清单 | `docs/archive/TODO_20260713_v8.md` | 本文档 | 已更新 |
 | 节点手册 | `docs/archive/node_types_20260713_v1.md` | `docs/node_types.md` | 已完成 |
 | JSON Schema | `docs/json_schema.md` | `docs/json_schema.md` | 已完成 |
-| 系统提示词 | `docs/agent_prompt.md` | `docs/agent_prompt.md` | 已完成 |
+| 系统提示词 | `docs/agent_prompt.md` | `AGENTS.md`（项目根目录） | 已完成 |
 | 实战教程 | `docs/tutorial_make_code.md` | `docs/tutorial_make_code.md` | 已完成 |
 | 迁移指南 | 无 | `docs/migration_guide.md` | 已完成 |
 | 架构评估 | 无 | `docs/architecture_evaluation.md` | 已完成 ✅ |
@@ -103,3 +103,4 @@
 | 2026-07-13 | 修复-节点 | 修复 `GetSave` 节点：新增 `key` 参数，输出改为 `Any`，生成器输出 `_save.key`，与文档一致 | 已完成 |
 | 2026-07-13 | 文档-教程 | 将实战教程第五步改为 `GetStateNumber(Rank)`，区分 RP、`_state` 状态与 `_save` 存档读取；补充 RP 与角色经验键名说明 | 已完成 |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |
+| 2026-07-13 | 文档-重构 | 合并 `docs/agent_prompt.md` 为项目根目录 `AGENTS.md`，按 Kilo 约定添加文档置信上下级与查阅指南 | 已完成 |
