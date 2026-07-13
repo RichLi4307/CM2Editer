@@ -75,3 +75,42 @@ impl EntryPinRenderer {
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::container::LabelContainer;
+    use crate::graph::node::{Node, Port, Vec2};
+    use crate::graph::types::{NodeType, PortType};
+
+    #[test]
+    fn test_find_entry_port_prefers_top_left_no_incoming_flow() {
+        let mut label = LabelContainer::default();
+        label.id = "label_main".to_string();
+        label.name = "main".to_string();
+
+        let mut a = Node::new(NodeType::Log, Vec2::new(100.0, 0.0));
+        a.id = "a".to_string();
+        a.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        a.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+
+        let mut b = Node::new(NodeType::Log, Vec2::new(0.0, 0.0));
+        b.id = "b".to_string();
+        b.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        b.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+
+        label.nodes.insert(a.id.clone(), a);
+        label.nodes.insert(b.id.clone(), b);
+
+        assert_eq!(
+            EntryPinRenderer::find_entry_port(&label),
+            Some(("b".to_string(), "in_flow".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_find_entry_port_empty_label() {
+        let label = LabelContainer::default();
+        assert_eq!(EntryPinRenderer::find_entry_port(&label), None);
+    }
+}

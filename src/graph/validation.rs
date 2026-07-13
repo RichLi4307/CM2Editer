@@ -200,7 +200,11 @@ impl GraphValidator {
             for edge in label.edges.values() {
                 if edge.edge_type == PortType::Flow && edge.from.node_id == id {
                     let next = &edge.to.node_id;
-                    let count = in_degree.get_mut(next).unwrap();
+                    let count = in_degree.get_mut(next).ok_or_else(|| {
+                        FlowError::Validation(format!(
+                            "Flow edge target node {next} not found in in-degree map"
+                        ))
+                    })?;
                     *count -= 1;
                     if *count == 0 {
                         queue.push_back(next.clone());

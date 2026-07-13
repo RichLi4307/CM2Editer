@@ -56,10 +56,12 @@
 
 - 新增 `ui::panels::overview` 单元测试：验证概览图能从 `Goto` 节点提取目标标签关系并生成唯一布局。
 - 新增 `graph::container::tests::test_entry_node_id_prefers_top_left_no_incoming_flow`，验证入口节点按位置和无入边规则稳定选择。
-- `cargo test --lib`：94 个 lib tests 全部通过。
+- 新增 P3.2 UI 回归测试：`app::tests` 容器切换定位、`ui::entry_pin::tests` 入口钉端口选择、`ui::panels::overview::tests` CreateListener 关系、`project::tests` 工程保存/导出。
+- `cargo test --lib`：100 个 lib tests 全部通过；总测试数 109 项。
 
 ### 修复
 
+- 修复 `cargo clippy` 两个 `unwrap_used` 报错：`graph::validation.rs` 使用 `ok_or_else` 替代 `unwrap()`；`ui::panels::properties.rs` 使用 `if let Some` 替代 `unwrap()`。
 - 统一入口节点判定逻辑：新增 `LabelContainer::entry_node_id()`，按“最靠左上、无 Flow 入边”稳定选择入口节点；`src/ui/entry_pin.rs` 与 `src/code_gen/generator.rs` 复用同一逻辑，避免 HashMap 顺序导致入口钉/生成结果跳动。
 - 修复 `GetSave` 节点定义：新增 `key` 参数，输出类型改为 `Any`，代码生成器输出 `_save.key`，与 `docs/node_types.md` 描述一致。
 - 恢复 `src/main.rs` 启动 eframe 应用，移除 P0 时期的 UI 屏蔽提示。

@@ -58,46 +58,55 @@ CM2Editer/
 #### 我要新增/修改一个节点
 
 **必查：**
+
 - `AGENTS.md` → 节点修改强制规则（A/B/C 类、Data 输出、代码生成器分支）。
 - `docs/documentation.html` / `docs/kb/documentation_part_*.md` → 该节点对应的游戏 API 语义（官方定义 `.code` 行为，必须保证生成正确）。
 - `docs/node_types.md` → 确认分类和命名。
 - `src/api/definitions.rs` → 实际定义端口、参数、颜色。
 
 **选查：**
+
 - `docs/code_api_reference.md` → 生成 `.code` 的语法细节。
 
 #### 我要改代码生成器
 
 **必查：**
+
 - `src/code_gen/generator.rs` → 现有生成逻辑。
 - `docs/documentation.html` / `docs/kb/documentation_part_*.md` → 目标 API 的官方语义（避免生成游戏加载器不认识的 `.code`）。
 - `AGENTS.md` → 模块边界、测试要求。
 - `docs/json_schema.md` → JSON 数据格式。
 
 **选查：**
+
 - `docs/code_api_reference.md` → `.code` 输出格式。
 
 #### 我要改 UI/交互
 
 **必查：**
+
 - `AGENTS.md` → UI 组件速查、ParamTextEdit 强制规则、错误处理策略。
 - `src/ui/` → 现有实现。
 
 **选查：**
+
 - `docs/tutorial_make_code.md` → 用户视角的交互流程。
 
 #### 我要处理序列化/保存/加载
 
 **必查：**
+
 - `docs/json_schema.md` → 格式契约。
 - `src/serializer/` 和 `src/project.rs` → 实现。
 
 **选查：**
+
 - `docs/migration_guide.md` → 旧版迁移规则。
 
 #### 我要写测试
 
 **必查：**
+
 - `AGENTS.md` → 测试要求、禁止 unwrap/expect。
 - `tests/` 和 `src/*/tests` → 现有测试风格。
 

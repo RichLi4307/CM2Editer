@@ -2290,3 +2290,81 @@ fn setup_fonts(ctx: &egui::Context) {
 
     ctx.set_fonts(fonts);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::graph::container::{
+        ContainerGraph, ListenerContainer, ListenerKind, ThreadContainer, Viewport,
+    };
+    use crate::serializer::json::GraphDocument;
+
+    fn sample_doc() -> GraphDocument {
+        let mut graph = ContainerGraph::default();
+        let main_label = LabelContainer {
+            id: "label_main".to_string(),
+            name: "main".to_string(),
+            ..Default::default()
+        };
+        let listener_label = LabelContainer {
+            id: "label_check".to_string(),
+            name: "check".to_string(),
+            ..Default::default()
+        };
+        let listener = ListenerContainer {
+            inner: listener_label,
+            kind: ListenerKind::Listener,
+            variable_name: "var_check_listener".to_string(),
+        };
+        let thread = ThreadContainer {
+            id: "thread_main".to_string(),
+            name: "main".to_string(),
+            variable_name: "var_main_thread".to_string(),
+            auto_start: true,
+            labels: vec![main_label],
+            listeners: vec![listener],
+            position: Vec2::default(),
+        };
+        graph.threads.push(thread);
+        GraphDocument::from_graph(
+            graph,
+            serde_json::Value::Null,
+            Viewport::default(),
+            Vec::new(),
+        )
+    }
+
+    #[test]
+    fn test_label_ref_switches_between_label_and_listener() {
+        let doc = sample_doc();
+        let label_sel = SelectedContainer {
+            thread_idx: 0,
+            kind: ContainerKind::Label(0),
+        };
+        assert_eq!(App::label_ref(&doc, label_sel).name, "main");
+
+        let listener_sel = SelectedContainer {
+            thread_idx: 0,
+            kind: ContainerKind::Listener(0),
+        };
+        assert_eq!(App::label_ref(&doc, listener_sel).name, "check");
+    }
+
+    #[test]
+    fn test_label_mut_switches_between_label_and_listener() {
+        let mut doc = sample_doc();
+        let label_sel = SelectedContainer {
+            thread_idx: 0,
+            kind: ContainerKind::Label(0),
+        };
+        App::label_mut(&mut doc, label_sel).name = "renamed".to_string();
+        assert_eq!(doc.graph.threads[0].labels[0].name, "renamed");
+
+        let listener_sel = SelectedContainer {
+            thread_idx: 0,
+            kind: ContainerKind::Listener(0),
+        };
+        App::label_mut(&mut doc, listener_sel).name = "check2".to_string();
+        assert_eq!(doc.graph.threads[0].listeners[0].inner.name, "check2");
+    }
+}

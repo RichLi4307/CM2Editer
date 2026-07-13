@@ -696,4 +696,40 @@ mod tests {
         assert_eq!(sanitize_name("main.code"), "main");
         assert_eq!(sanitize_name("a/b"), "a_b");
     }
+
+    #[test]
+    fn test_project_save_and_export() -> Result<()> {
+        use crate::graph::node::{Node, Vec2};
+        use crate::graph::types::NodeType;
+
+        let temp = std::env::temp_dir().join(format!("cm2_test_{}", uuid::Uuid::new_v4()));
+        let mut project = Project::create(&temp, "Mission")?;
+
+        if let Some(code_file) = project.active_code_file_mut() {
+            let node = Node::new(NodeType::Log, Vec2::default());
+            code_file
+                .graph_doc
+                .graph
+                .threads[0]
+                .labels[0]
+                .nodes
+                .insert(node.id.clone(), node);
+        }
+
+        project.save()?;
+        let graph_path = project.root.join(EDITOR_DIR).join("main.code.json");
+        assert!(graph_path.exists());
+        let content = std::fs::read_to_string(&graph_path)?;
+        assert!(content.contains("2.0"));
+        assert!(content.contains("Log"));
+
+        let export_dir = temp.join("export");
+        project.export(&export_dir)?;
+        let exported_project = export_dir.join("Mission");
+        assert!(exported_project.join("meta.json").exists());
+        assert!(exported_project.join("main.code").exists());
+
+        let _ = std::fs::remove_dir_all(&temp);
+        Ok(())
+    }
 }

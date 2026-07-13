@@ -261,10 +261,13 @@ impl PropertiesPanel {
                 None
             }
             // Vector/Color：专用多字段编辑器
-            ParamValue::Literal(v) if v.is_array() && !v.as_array().map_or(true, |a| a.is_empty()) => {
-                let arr = v.as_array().unwrap();
-                if let Some(v2) = Self::vector_editor(ui, key, arr) {
-                    return Some((key.to_string(), v2));
+            ParamValue::Literal(v) if v.is_array() => {
+                if let Some(arr) = v.as_array() {
+                    if !arr.is_empty() {
+                        if let Some(v2) = Self::vector_editor(ui, key, arr) {
+                            return Some((key.to_string(), v2));
+                        }
+                    }
                 }
                 None
             }

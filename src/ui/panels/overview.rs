@@ -336,7 +336,7 @@ struct OverviewGraph {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::container::{ContainerGraph, LabelContainer};
+    use crate::graph::container::{ContainerGraph, LabelContainer, ListenerContainer, ListenerKind};
     use crate::graph::node::{Node, ParamValue, Port, Vec2};
     use crate::graph::types::{NodeType, PortType};
     use std::collections::HashMap;
@@ -393,5 +393,36 @@ mod tests {
         let layout = layout_nodes(&nodes, 400.0);
         assert_eq!(layout.len(), 4);
         assert!(layout.values().any(|p| p.x > 0.0));
+    }
+
+    #[test]
+    fn test_build_overview_graph_create_listener() {
+        let mut graph = ContainerGraph::default_main();
+        let mut create_listener = make_node("cl", NodeType::CreateListener);
+        create_listener.set_param(
+            "labelName",
+            ParamValue::Literal(serde_json::json!("check_loop")),
+        );
+        graph.threads[0].labels[0].nodes.insert("cl".to_string(), create_listener);
+
+        let listener_label = LabelContainer {
+            id: "label_check_loop".to_string(),
+            name: "check_loop".to_string(),
+            ..Default::default()
+        };
+        let listener = ListenerContainer {
+            inner: listener_label,
+            kind: ListenerKind::Listener,
+            variable_name: "var_check_loop_listener".to_string(),
+        };
+        graph.threads[0].listeners.push(listener);
+
+        let data = build_overview_graph(&graph);
+        assert_eq!(data.nodes.len(), 2);
+        assert!(data.edges.iter().any(|e| {
+            e.from == "label_main"
+                && e.to == "label_check_loop"
+                && e.kind == OverviewEdgeKind::CreateListener
+        }));
     }
 }

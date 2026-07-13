@@ -60,20 +60,29 @@
 - [x] 提供线程概览图（状态机视图），显示标签间 `Goto` / `CreateThread` / `CreateListener` 关系。
 - [x] 移除画布上的 `Start` / `Label` 节点；用容器入口钉替代。
 
-### P3 — 迁移与兼容
+### P3 — 测试与预览版发布
 
-> 按用户当前要求，**老版本适配暂不纳入本阶段计划**；本章节保留待后续需要时启用。
+#### P3.1 全量回归测试与 clippy
 
-- [ ] 实现 v1.x → v2.0 JSON 迁移脚本。
-- [ ] 完成 `docs/migration_guide.md` 中的映射示例。
-- [ ] 保留旧工程打开能力，并在 UI 中提示 deprecated 节点。
+- [x] 跑全量 `cargo test` / `cargo clippy`，修复 P2 回归。
 
-### P4 — 测试与预览版发布
+#### P3.2 补充 UI 回归测试
 
-- [ ] 跑全量 `cargo test` / `cargo clippy`，修复 P2 回归。
-- [ ] 补充 UI 回归测试：容器切换、入口钉、概览图、工程保存/导出。
+- [x] 容器切换：验证 `SelectedContainer` 在不同线程/标签/监听器间切换后定位正确。
+- [x] 入口钉：验证无 Flow 入边节点的最左上入口规则。
+- [x] 概览图：验证多标签/监听器、Goto 关系能正确构建布局。
+- [x] 工程保存/导出：验证项目创建、重命名、保存、导出 `.code` 完整流程。
+
+#### P3.3 手动冒烟测试
+
 - [ ] 手动验证一个示例任务从新建到导出 `.code` 的完整流程。
+
+#### P3.4 构建与打包
+
 - [ ] 构建 Release 版本并打包字体、命名空间、README、AGENTS.md、LICENSE。
+
+#### P3.5 发布预览版
+
 - [ ] 发布 GitHub Release `v0.3.0-alpha`，附已知限制说明。
 
 ---
@@ -114,4 +123,7 @@
 | 2026-07-13 | 文档-教程 | 将实战教程第五步改为 `GetStateNumber(Rank)`，区分 RP、`_state` 状态与 `_save` 存档读取；补充 RP 与角色经验键名说明 | 已完成 |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |
 | 2026-07-13 | 文档-重构 | 合并 `docs/agent_prompt.md` 为项目根目录 `AGENTS.md`，按 Kilo 约定添加文档置信上下级与查阅指南 | 已完成 |
-| 2026-07-13 | 规划-P4 | 确定下一步：跳过 P3 老版本适配，进入 P4 测试与发布 v0.3.0-alpha 预览版 | 进行中 |
+| 2026-07-13 | 规划-P3 | 将 P3 重新定义为「测试与预览版发布」，并拆分为 P3.1–P3.5 | 已完成 |
+| 2026-07-13 | 测试-P3.1 | `cargo test` 103 项通过，`cargo clippy` 18 个 pre-existing 警告、0 个 error | 已完成 |
+| 2026-07-13 | 测试-P3.2 | 补充 UI 回归测试：容器切换、入口钉、概览图 CreateListener、工程保存/导出 | 已完成 |
+| 2026-07-13 | 修复-P3.1 | 修复 `src/graph/validation.rs` 与 `src/ui/panels/properties.rs` 中的 `unwrap()`，使 clippy 通过 | 已完成 |
