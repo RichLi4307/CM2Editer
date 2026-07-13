@@ -30,7 +30,7 @@ main 线程的 main 标签：
 - **监听器容器** = 每帧/每秒被调用的回调式代码块（高级，当前 UI 暂不支持新建）。
 - `Flow` 边**只在同一个容器内部**表示执行顺序；跨容器用 `Goto` / `CreateThread` / `CreateListener` 等节点表达。
 - 想引用当前线程，使用 **GetCurrentThread** 数据节点，输出 `_this`。
-- 纯数据节点（如 `GetSave`）没有 Flow 端口，只通过 Data 虚线给其它节点喂值。
+- 纯数据节点（如 `GetStateNumber`）没有 Flow 端口，只通过 Data 虚线给其它节点喂值。
 - **入口钉**（画布左侧的小圆点）不是节点，只是视觉标记，指向当前容器的**入口节点**。
 
 ---
@@ -147,34 +147,37 @@ main:
 
 ---
 
-## 第五步：使用全局变量
+## 第五步：读取角色状态（例如 Rank 等级）
 
-> 目标：读取 `_save.TotalScore` 并输出
+> 目标：读取当前角色经验等级 `_state.Rank` 并输出
 
 | 步骤 | 操作 |
 |------|------|
-| 1 | 拖 **GetSave** 数据节点到画布 |
-| 2 | 设置 `key` 参数为 `TotalScore` |
+| 1 | 拖 **GetStateNumber** 数据节点到画布 |
+| 2 | 属性面板 → `stateKey` 选择 `Rank`（角色等级/经验） |
 | 3 | 拖一个 **Log** |
-| 4 | 用 Data 边连接 `GetSave.out_value` → `Log.output` |
+| 4 | 用 Data 边连接 `GetStateNumber.out_value` → `Log.output` |
 
 生成结果：
 
 ```code
 main:
     thread = _this
-    Log(output=_save.TotalScore)
+    Log(output=_state.Rank)
 ```
 
 类似来源：
 
+- `_state.Rank` / `_state.Ecstasy` / `_state.Detection` / `_state.HeartRate` → **GetStateNumber**（下拉框可选）
+- `_state.Futanari` / `_state.Sitting` / `_state.Orgasm` → **GetStateBool**（下拉框可选）
+- 持有货币 RP → **GetCurrentRP** / **AddCurrentRP** / **SetCurrentRP**
+- 本次外出赚取 RP → **GetCurrentEarnRP** / **AddCurrentEarnRP** / **SetCurrentEarnRP**
 - `_time` → **GetTime**
 - `_timediff` → **GetTimeDiff**
-- `_settings.Xxx` → **GetSettings**
-- `_mod.Xxx` → **GetMod**
-- `_mods` → **GetMods**
 
-> 纯数据节点没有 Flow 端口，只要通过 Data 边被引用，代码生成器会自动把它放在合适位置。
+> 注意：
+> - `GetSave` / `GetSettings` / `GetMod` / `GetMods` 返回对象/列表，需要指定键或字段拆分。`GetSave` 现在支持 `key` 参数生成 `_save.key`，但存档不是实时写入的，不适合读取当前分数或经验。
+> - 角色经验/等级没有专门的“增加经验”节点，一般通过 `_state.Rank` 读取等级，或用 `SetPlayerData(dataName="Rank", value=...)` 尝试设置（具体是否生效取决于游戏内部实现）。
 
 ---
 

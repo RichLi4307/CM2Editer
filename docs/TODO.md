@@ -100,4 +100,6 @@
 | 2026-07-13 | 文档-教程 | 重写 `docs/tutorial_make_code.md`，对齐当前 UI 工作流程，注明多容器创建暂不支持 | 已完成 |
 | 2026-07-13 | 文档-教程 | 在实战教程中新增多条件判断（Exposed_All + Cosplay + Ecstasy）、RP 奖励、只执行一次守卫等进阶示例 | 已完成 |
 | 2026-07-13 | 测试 | 新增 `graph::container::tests::test_entry_node_id_prefers_top_left_no_incoming_flow` | 已完成 |
+| 2026-07-13 | 修复-节点 | 修复 `GetSave` 节点：新增 `key` 参数，输出改为 `Any`，生成器输出 `_save.key`，与文档一致 | 已完成 |
+| 2026-07-13 | 文档-教程 | 将实战教程第五步改为 `GetStateNumber(Rank)`，区分 RP、`_state` 状态与 `_save` 存档读取；补充 RP 与角色经验键名说明 | 已完成 |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |

@@ -61,11 +61,13 @@
 ### 修复
 
 - 统一入口节点判定逻辑：新增 `LabelContainer::entry_node_id()`，按“最靠左上、无 Flow 入边”稳定选择入口节点；`src/ui/entry_pin.rs` 与 `src/code_gen/generator.rs` 复用同一逻辑，避免 HashMap 顺序导致入口钉/生成结果跳动。
+- 修复 `GetSave` 节点定义：新增 `key` 参数，输出类型改为 `Any`，代码生成器输出 `_save.key`，与 `docs/node_types.md` 描述一致。
 - 恢复 `src/main.rs` 启动 eframe 应用，移除 P0 时期的 UI 屏蔽提示。
 
 ### 文档
 
 - 重写 `docs/tutorial_make_code.md`：对齐当前 UI 工作流程（默认 `main` 标签、入口钉说明、节点连接、保存与导出），并注明当前 UI 暂不支持新建标签/线程/监听器。
+- 将教程第五步改为使用 `GetStateNumber(Rank)` 读取角色等级/经验，区分 RP、`_state` 状态与 `_save` 存档读取；补充 RP 与角色经验键名说明。
 
 ---
 

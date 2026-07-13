@@ -88,7 +88,7 @@
 |------|------|------|--------------|
 | `Global` | B | 读/写全局变量 | `Global("key", value)` |
 | `Local` | B | 读/写局部变量 | 局部变量存取 |
-| `GetSave` | C | 读取跨会话保存数据 | `_save.SomeKey` |
+| `GetSave` | C | 读取跨会话保存数据中的指定键 | `_save.SomeKey`（参数 `key`） |
 | `GetTime` | C | 读取累计时间 | `_time` |
 | `GetTimeDiff` | C | 读取上一帧时间差 | `_timediff` |
 | `GetSettings` | C | 读取 meta 设置 | `_settings.Key` |

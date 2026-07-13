@@ -586,7 +586,11 @@ impl<'a> CodeGenerator<'a> {
                 }
             }
             NodeType::GetCurrentThread => Some("_this".to_string()),
-            NodeType::GetSave => Some("_save".to_string()),
+            NodeType::GetSave => {
+                let key = self.resolve_param_opt(label, node, "key")?;
+                let key = key.trim_matches('"');
+                Some(format!("_save.{key}"))
+            }
             NodeType::GetTime => Some("_time".to_string()),
             NodeType::GetTimeDiff => Some("_timediff".to_string()),
             NodeType::GetSettings => Some("_settings".to_string()),
@@ -949,7 +953,10 @@ mod tests {
             "name".to_string(),
             ParamValue::Literal(serde_json::json!("l")),
         )].into())?;
-        assert_data_node_generates(NodeType::GetSave, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetSave, "out_value", [(
+            "key".to_string(),
+            ParamValue::Literal(serde_json::json!("TotalScore")),
+        )].into())?;
         assert_data_node_generates(NodeType::GetTime, "out_value", HashMap::new())?;
         assert_data_node_generates(NodeType::GetTimeDiff, "out_value", HashMap::new())?;
         assert_data_node_generates(NodeType::GetSettings, "out_value", HashMap::new())?;

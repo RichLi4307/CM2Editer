@@ -554,10 +554,11 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         NodeDefinition::new(
             NodeType::GetSave, "Variables & Globals",
             "读取存档",
-            "读取跨会话持久存储（`_save`）",
+            "读取跨会话持久存储中的指定键（_save.key）",
             GENERAL_COLOR,
         )
-        .with_outputs(vec![out_data("out_value", PortType::Object, "存档")]),
+        .with_outputs(vec![out_data("out_value", PortType::Any, "值")])
+        .with_params(vec![p_req("key", "键", ParamType::String)]),
         NodeDefinition::new(
             NodeType::GetTime, "Variables & Globals",
             "读取时间",
