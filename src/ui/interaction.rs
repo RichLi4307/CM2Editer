@@ -11,6 +11,9 @@ use crate::ui::canvas::Canvas;
 use crate::ui::canvas::CanvasResponse;
 use crate::ui::theme::Theme;
 
+/// 端口悬停/命中判定半径（像素）。
+const PORT_HIT_RADIUS: f32 = 16.0;
+
 /// 画布交互状态机。
 #[derive(Debug, Clone, Default)]
 pub enum CanvasState {
@@ -523,12 +526,11 @@ impl InteractionController {
     ) {
         if let Some((_, _, center, _, _)) = port_hits
             .iter()
-            .find(|(_, _, c, _, _)| c.distance(mouse_pos) <= 10.0)
+            .find(|(_, _, c, _, _)| c.distance(mouse_pos) <= PORT_HIT_RADIUS)
         {
             let color = target_status.map_or(Theme::WIRE_DEFAULT, |s| s.color());
-            let radius = 10.0;
             ui.painter()
-                .circle_stroke(*center, radius, Stroke::new(2.0, color));
+                .circle_stroke(*center, PORT_HIT_RADIUS, Stroke::new(2.0, color));
         }
     }
 
@@ -541,10 +543,13 @@ impl InteractionController {
     ) {
         if let Some((_, _, center, _, _)) = port_hits
             .iter()
-            .find(|(_, _, c, _, is_input)| !is_input && c.distance(mouse_pos) <= 10.0)
+            .find(|(_, _, c, _, is_input)| !is_input && c.distance(mouse_pos) <= PORT_HIT_RADIUS)
         {
-            ui.painter()
-                .circle_stroke(*center, 10.0, Stroke::new(2.0, Theme::SELECTED_GLOW));
+            ui.painter().circle_stroke(
+                *center,
+                PORT_HIT_RADIUS,
+                Stroke::new(2.0, Theme::SELECTED_GLOW),
+            );
         }
     }
 
@@ -759,10 +764,9 @@ fn find_port_at(
     pos: Pos2,
     port_hits: &[(String, String, Pos2, PortType, bool)],
 ) -> Option<(String, String, PortType, bool)> {
-    const HIT_RADIUS: f32 = 10.0;
     port_hits
         .iter()
-        .find(|(_, _, center, _, _)| center.distance(pos) <= HIT_RADIUS)
+        .find(|(_, _, center, _, _)| center.distance(pos) <= PORT_HIT_RADIUS)
         .map(|(node_id, port_id, _, port_type, is_input)| {
             (
                 node_id.clone(),
