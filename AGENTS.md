@@ -43,12 +43,12 @@ CM2Editer/
 |--------|------|---------|
 | 1（最高） | `src/` 源代码 | 运行时真相。任何文档与代码冲突，以代码为准。 |
 | 2 | `AGENTS.md`（本文件） | 项目级约束：错误处理、模块边界、JSON 契约、测试要求、文档查阅规则。写代码时必须遵守。 |
-| 3 | `docs/node_types.md` | 节点定义权威。新增/修改节点后必须同步更新此文件。 |
-| 4 | `docs/json_schema.md` | 编辑器保存格式权威。序列化/反序列化必须匹配。 |
-| 5 | `docs/code_api_reference.md` | `.code` DSL 语法精简参考。 |
-| 6 | `docs/kb/documentation_part_*.md` | 官方英文文档的 Markdown 分片，游戏 API 行为权威。 |
+| 3 | `docs/documentation.html` 与 `docs/kb/documentation_part_*.md` | 官方游戏 API 文档，定义 `.code` 加载器如何解释脚本。节点定义和代码生成必须与官方语义一致。 |
+| 4 | `docs/code_api_reference.md` | 基于官方文档的 `.code` DSL 精简参考。 |
+| 5 | `docs/node_types.md` | 编辑器节点定义（端口、参数、颜色）。新增/修改节点后必须同步更新，且不能与官方 API 冲突。 |
+| 6 | `docs/json_schema.md` | 编辑器保存格式权威。序列化/反序列化必须匹配。 |
 | 7 | `docs/kb/INDEX.md` | 快速索引，帮助定位具体 API 在哪一分片。 |
-| 8 | `docs/tutorial_make_code.md` | 实战流程，适合写教程和示例，但节点参数细节以 `docs/node_types.md` 和源代码为准。 |
+| 8 | `docs/tutorial_make_code.md` | 实战流程，适合写教程和示例，但节点参数细节以官方文档和 `docs/node_types.md` 为准。 |
 | 9 | `docs/migration_guide.md` | 旧工程迁移规则。 |
 | 10 | `docs/architecture_evaluation.md` | 设计思路与路线图，参考用，不完全等同于当前实现。 |
 | 11（最低） | `docs/archive/` | 历史归档文档，可能已过时。仅在追溯旧设计时参考。 |
@@ -59,23 +59,23 @@ CM2Editer/
 
 **必查：**
 - `AGENTS.md` → 节点修改强制规则（A/B/C 类、Data 输出、代码生成器分支）。
+- `docs/documentation.html` / `docs/kb/documentation_part_*.md` → 该节点对应的游戏 API 语义（官方定义 `.code` 行为，必须保证生成正确）。
 - `docs/node_types.md` → 确认分类和命名。
 - `src/api/definitions.rs` → 实际定义端口、参数、颜色。
 
 **选查：**
-- `docs/kb/INDEX.md` / `docs/kb/documentation_part_*.md` → 该节点对应的游戏 API 语义。
 - `docs/code_api_reference.md` → 生成 `.code` 的语法细节。
 
 #### 我要改代码生成器
 
 **必查：**
 - `src/code_gen/generator.rs` → 现有生成逻辑。
+- `docs/documentation.html` / `docs/kb/documentation_part_*.md` → 目标 API 的官方语义（避免生成游戏加载器不认识的 `.code`）。
 - `AGENTS.md` → 模块边界、测试要求。
 - `docs/json_schema.md` → JSON 数据格式。
 
 **选查：**
 - `docs/code_api_reference.md` → `.code` 输出格式。
-- `docs/kb/documentation_part_*.md` → 具体 API 行为。
 
 #### 我要改 UI/交互
 
@@ -130,7 +130,8 @@ CM2Editer/
 |------|----------|
 | 只看 `docs/archive/` 就写代码 | 归档文档已过时，先查 `src/` 和 `AGENTS.md` |
 | 用 `README.md` 判断节点是否存在 | 以 `src/api/definitions.rs` 和 `docs/node_types.md` 为准 |
-| 认为 `docs/kb/` 是项目实现规范 | 它是官方游戏 API 参考，项目实现可能有简化或不同 |
+| 认为 `docs/kb/` 是项目实现规范 | 它是官方游戏 API 参考，项目实现最终必须与之对齐 |
+| 用 `docs/node_types.md` 否定官方 API 文档 | 节点定义以官方 API 语义为最终依据，不能生成正确 `.code` 的节点定义是无效的 |
 | 不更新 `docs/node_types.md` 就新增节点 | 每次节点变更必须同步更新 |
 | 忽略 `AGENTS.md` 的约束 | 这是写代码的硬性规则，优先于其它说明 |
 
