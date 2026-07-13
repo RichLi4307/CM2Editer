@@ -25,6 +25,7 @@
 
 ### 修复
 
+- **服装选择窗口多选可发现性**：`EquipCosplay` / `UnequipCosplay` / `OwnCosplay` / `CheckCosplay` 的 `cosplayKeys` 参数均支持多选。`EquipCosplay` / `UnequipCosplay` / `OwnCosplay` 生成数组参数；`CheckCosplay` 生成 `(Cosplay_A && Cosplay_B)` 这种带括号的逻辑与表达式，便于与 `LogicAnd` / `LogicOr` 节点组合。属性页弹窗分类视图在多选模式下使用 checkbox 列表，窗口标题显示“命名空间选择器 (可多选)”。左栏资产管理面板新增“多选”开关，可批量勾选复制 key。
 - **CallFunction 函数名引号**：动态函数名现在不再被额外包裹引号，生成 `Foo(args)` 而非 `"Foo"(args)`。
 
 ### 文档

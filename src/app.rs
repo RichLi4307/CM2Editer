@@ -236,6 +236,10 @@ pub struct App {
     pub label_renaming: Option<String>,
     pub ns_add_name: String,
     pub ns_add_target: String,
+    /// 左栏命名空间面板是否处于多选模式。
+    pub left_ns_multi: bool,
+    /// 左栏命名空间面板多选模式下选中的 key。
+    pub left_ns_selected: HashSet<String>,
     /// 坐标添加表单
     pub coord_add_id: String,
     pub coord_add_name: String,
@@ -309,6 +313,8 @@ impl App {
             cached_json_version: 0,
             graph_version: 0,
             bottom_panel_height: 200.0,
+            left_ns_multi: false,
+            left_ns_selected: HashSet::new(),
             left_panel_tab: LeftPanelTab::default(),
             new_project_dialog_open: false,
             new_project_parent: None,
@@ -1068,47 +1074,48 @@ impl eframe::App for App {
                     LeftPanelTab::Namespace => {
                         ui.heading("命名空间");
                         ui.separator();
-                        ui.horizontal(|ui| {
-                            if ui.button("Import 导入").clicked() {
-                                if let Some(path) = rfd::FileDialog::new()
-                                    .add_filter("JSON", &["json"])
-                                    .pick_file()
-                                {
-                                    let dir = std::path::PathBuf::from("assets/namespaces");
-                                    let _ = std::fs::create_dir_all(&dir);
-                                    let dest = dir.join(path.file_name().unwrap_or_default());
-                                    if let Err(e) = std::fs::copy(&path, &dest) {
-                                        self.status_message = format!("导入失败: {}", e);
-                                    } else {
-                                        self.namespace_registry = NamespaceRegistry::load_bundled();
-                                        self.status_message = format!("已导入 {}", path.display());
+                            ui.horizontal(|ui| {
+                                if ui.button("Import 导入").clicked() {
+                                    if let Some(path) = rfd::FileDialog::new()
+                                        .add_filter("JSON", &["json"])
+                                        .pick_file()
+                                    {
+                                        let dir = std::path::PathBuf::from("assets/namespaces");
+                                        let _ = std::fs::create_dir_all(&dir);
+                                        let dest = dir.join(path.file_name().unwrap_or_default());
+                                        if let Err(e) = std::fs::copy(&path, &dest) {
+                                            self.status_message = format!("导入失败: {}", e);
+                                        } else {
+                                            self.namespace_registry = NamespaceRegistry::load_bundled();
+                                            self.status_message = format!("已导入 {}", path.display());
+                                        }
                                     }
                                 }
-                            }
-                            if ui.button("Export 导出").clicked() {
-                                if let Some(path) = rfd::FileDialog::new()
-                                    .add_filter("JSON", &["json"])
-                                    .save_file()
-                                {
-                                    let all_entries: std::collections::BTreeMap<_, _> = self
-                                        .namespace_registry
-                                        .namespace_names()
-                                        .iter()
-                                        .filter_map(|n| {
-                                            self.namespace_registry
-                                                .get(n)
-                                                .map(|ns| (n.to_string(), ns.entries.clone()))
-                                        })
-                                        .collect();
-                                    if let Ok(j) = serde_json::to_string_pretty(&all_entries) {
-                                        let _ = std::fs::write(&path, j);
+                                if ui.button("Export 导出").clicked() {
+                                    if let Some(path) = rfd::FileDialog::new()
+                                        .add_filter("JSON", &["json"])
+                                        .save_file()
+                                    {
+                                        let all_entries: std::collections::BTreeMap<_, _> = self
+                                            .namespace_registry
+                                            .namespace_names()
+                                            .iter()
+                                            .filter_map(|n| {
+                                                self.namespace_registry
+                                                    .get(n)
+                                                    .map(|ns| (n.to_string(), ns.entries.clone()))
+                                            })
+                                            .collect();
+                                        if let Ok(j) = serde_json::to_string_pretty(&all_entries) {
+                                            let _ = std::fs::write(&path, j);
+                                        }
                                     }
                                 }
-                            }
-                            if ui.button("Add 新增").clicked() {
-                                let _ = ui.ctx();
-                            }
-                        });
+                                if ui.button("Add 新增").clicked() {
+                                    let _ = ui.ctx();
+                                }
+                                ui.checkbox(&mut self.left_ns_multi, "多选");
+                            });
                         // 内联添加表单
                         ui.horizontal(|ui| {
                             ui.label("空间:");
@@ -1162,6 +1169,26 @@ impl eframe::App for App {
                             }
                         });
                         ui.separator();
+                        if self.left_ns_multi {
+                            ui.horizontal(|ui| {
+                                if ui.button(format!("复制已选 ({})", self.left_ns_selected.len())).clicked() {
+                                    let keys: Vec<_> = self.left_ns_selected.iter().cloned().collect();
+                                    let text = if keys.len() == 1 {
+                                        keys[0].clone()
+                                    } else {
+                                        format!(r#"["{}"]"#, keys.join("\", \""))
+                                    };
+                                    ui.ctx().output_mut(|o| {
+                                        o.commands.push(egui::OutputCommand::CopyText(text.clone()));
+                                    });
+                                    self.status_message = format!("已复制 {} 项: {}", keys.len(), text);
+                                }
+                                if ui.button("清空").clicked() {
+                                    self.left_ns_selected.clear();
+                                }
+                            });
+                            ui.separator();
+                        }
                         if self.namespace_registry.namespace_names().is_empty() {
                             ui.label("未加载到命名空间");
                             ui.label("请检查 assets/namespaces/");
@@ -1204,16 +1231,25 @@ impl eframe::App for App {
                                                         .show(ui, |ui| {
                                                             ui.horizontal_wrapped(|ui| {
                                                                 for e in entries {
-                                                                    if ui.add(ns_card(e, name)).clicked() {
-                                                                        ui.ctx().output_mut(|o| {
-                                                                            o.commands.push(
-                                                                                egui::OutputCommand::CopyText(
-                                                                                    e.key.clone(),
-                                                                                ),
-                                                                            )
-                                                                        });
-                                                                        self.status_message =
-                                                                            format!("已复制: {}", e.key);
+                                                                    let is_selected = self.left_ns_selected.contains(&e.key);
+                                                                    if ui.add(ns_card(e, name, is_selected)).clicked() {
+                                                                        if self.left_ns_multi {
+                                                                            if is_selected {
+                                                                                self.left_ns_selected.remove(&e.key);
+                                                                            } else {
+                                                                                self.left_ns_selected.insert(e.key.clone());
+                                                                            }
+                                                                        } else {
+                                                                            ui.ctx().output_mut(|o| {
+                                                                                o.commands.push(
+                                                                                    egui::OutputCommand::CopyText(
+                                                                                        e.key.clone(),
+                                                                                    ),
+                                                                                )
+                                                                            });
+                                                                            self.status_message =
+                                                                                format!("已复制: {}", e.key);
+                                                                        }
                                                                     }
                                                                 }
                                                             });
@@ -1227,16 +1263,25 @@ impl eframe::App for App {
                                             .show(ui, |ui| {
                                                 ui.horizontal_wrapped(|ui| {
                                                     for e in &ns.entries {
-                                                        if ui.add(ns_card(e, name)).clicked() {
-                                                            ui.ctx().output_mut(|o| {
-                                                                o.commands.push(
-                                                                    egui::OutputCommand::CopyText(
-                                                                        e.key.clone(),
-                                                                    ),
-                                                                )
-                                                            });
-                                                            self.status_message =
-                                                                format!("已复制: {}", e.key);
+                                                        let is_selected = self.left_ns_selected.contains(&e.key);
+                                                        if ui.add(ns_card(e, name, is_selected)).clicked() {
+                                                            if self.left_ns_multi {
+                                                                if is_selected {
+                                                                    self.left_ns_selected.remove(&e.key);
+                                                                } else {
+                                                                    self.left_ns_selected.insert(e.key.clone());
+                                                                }
+                                                            } else {
+                                                                ui.ctx().output_mut(|o| {
+                                                                    o.commands.push(
+                                                                        egui::OutputCommand::CopyText(
+                                                                            e.key.clone(),
+                                                                        ),
+                                                                    )
+                                                                });
+                                                                self.status_message =
+                                                                    format!("已复制: {}", e.key);
+                                                            }
                                                         }
                                                     }
                                                 });
@@ -2140,8 +2185,13 @@ impl App {
     }
 }
 
-/// 命名空间条目卡片 — 居中粗体标题 + 彩色边框，点击复制 key。
-fn ns_card<'a>(entry: &'a crate::api::namespace::NamespaceEntry, cat: &'a str) -> impl egui::Widget + 'a {
+/// 命名空间条目卡片 — 居中粗体标题 + 彩色边框。
+/// 单选模式下点击复制 key；多选模式下由调用方维护 `is_selected` 状态。
+fn ns_card<'a>(
+    entry: &'a crate::api::namespace::NamespaceEntry,
+    cat: &'a str,
+    is_selected: bool,
+) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         let (rect, response) =
             ui.allocate_exact_size(egui::vec2(130.0, 50.0), egui::Sense::click());
@@ -2158,12 +2208,14 @@ fn ns_card<'a>(entry: &'a crate::api::namespace::NamespaceEntry, cat: &'a str) -
             egui::Color32::from_rgb(121, 85, 72),
         ];
         let accent = palette[(hash as usize) % palette.len()];
-        let fill = if response.hovered() {
+        let fill = if is_selected {
+            accent.gamma_multiply(0.25)
+        } else if response.hovered() {
             accent.gamma_multiply(0.12)
         } else {
             egui::Color32::from_gray(30)
         };
-        let border = if response.hovered() {
+        let border = if is_selected || response.hovered() {
             accent
         } else {
             accent.gamma_multiply(0.5)
@@ -2200,7 +2252,7 @@ fn ns_card<'a>(entry: &'a crate::api::namespace::NamespaceEntry, cat: &'a str) -
                 egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("ns_tooltip")),
                 egui::Id::new(format!("ns_card_{}", entry.key)),
                 |ui: &mut egui::Ui| {
-                    ui.label(format!("点击复制: {}", entry.key));
+                    ui.label(format!("{}", entry.key));
                 },
             );
         }

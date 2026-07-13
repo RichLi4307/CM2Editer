@@ -2272,9 +2272,9 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         NodeDefinition::new(NodeType::CheckEquipment, "Conditions & Queries", "检查装备", "是否装备指定玩具", CONDITIONS_COLOR)
             .with_outputs(vec![out_data("out_value", PortType::Boolean, "结果")])
             .with_params(vec![e("equipType", "装备类型", &["Handcuff","KeyHandcuff","TimerHandcuff","Vibrator","EyeMask","TitRotor","KuriRotor","PistonAnal","PistonPussy","AnalPlug"])]),
-        NodeDefinition::new(NodeType::CheckCosplay, "Conditions & Queries", "检查服装", "是否穿着指定服装", CONDITIONS_COLOR)
+        NodeDefinition::new(NodeType::CheckCosplay, "Conditions & Queries", "检查服装", "是否穿着指定服装（多件用逻辑与连接）", CONDITIONS_COLOR)
             .with_outputs(vec![out_data("out_value", PortType::Boolean, "结果")])
-            .with_params(vec![p_req("cosplayKey", "服装键", ParamType::String)]),
+            .with_params(vec![p_req("cosplayKeys", "服装键", ParamType::List)]),
         NodeDefinition::new(NodeType::StringConstant, "Literals", "字符串常量", "输出字符串常量", LITERALS_COLOR)
             .with_outputs(vec![out_data("out_value", PortType::String, "字符串")])
             .with_params(vec![p_req("value", "值", ParamType::String)]),

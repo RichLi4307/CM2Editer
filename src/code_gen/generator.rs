@@ -520,9 +520,22 @@ impl<'a> CodeGenerator<'a> {
                 Some(format!("_state.AdultToys.{t} != null"))
             }
             NodeType::CheckCosplay => {
-                let k = self.resolve_param_opt(label, node, "cosplayKey")?;
-                let k = k.trim_matches('"');
-                Some(format!("Cosplay_{k}"))
+                let keys_str = self.resolve_param_opt(label, node, "cosplayKeys")?;
+                let keys = parse_string_list(&keys_str).ok()?;
+                if keys.is_empty() {
+                    return Some("true".to_string());
+                }
+                if keys.len() == 1 {
+                    return Some(format!("Cosplay_{}", keys[0]));
+                }
+                // 多件服装用逻辑与连接并加括号，方便与 LogicAnd/LogicOr 节点组合。
+                Some(format!(
+                    "({})",
+                    keys.iter()
+                        .map(|k| format!("Cosplay_{k}"))
+                        .collect::<Vec<_>>()
+                        .join(" && ")
+                ))
             }
             NodeType::GetStateBool => {
                 let key = self.resolve_param_opt(label, node, "stateKey")?;
@@ -660,6 +673,27 @@ fn format_literal(value: &serde_json::Value) -> String {
                 .collect();
             format!("{{{}}}", parts.join(", "))
         }
+    }
+}
+
+/// 解析 `.code` 格式的字符串数组字面量（如 `["A", "B"]`）为字符串列表。
+fn parse_string_list(s: &str) -> Result<Vec<String>> {
+    let s = s.trim();
+    if s == "null" || s.is_empty() || s == "[]" {
+        return Ok(Vec::new());
+    }
+    let value: serde_json::Value =
+        serde_json::from_str(s).map_err(|e| FlowError::Validation(format!("Invalid string list: {e}")))?;
+    match value {
+        serde_json::Value::Array(arr) => arr
+            .iter()
+            .map(|v| {
+                v.as_str()
+                    .map(|s| s.to_string())
+                    .ok_or_else(|| FlowError::Validation("List element must be string".to_string()))
+            })
+            .collect(),
+        _ => Err(FlowError::Validation(format!("Expected string list, got: {s}"))),
     }
 }
 
@@ -1094,8 +1128,12 @@ mod tests {
             ParamValue::Literal(serde_json::json!("Vibrator")),
         )].into())?;
         assert_data_node_generates(NodeType::CheckCosplay, "out_value", [(
-            "cosplayKey".to_string(),
-            ParamValue::Literal(serde_json::json!("nurse")),
+            "cosplayKeys".to_string(),
+            ParamValue::Literal(serde_json::json!(["nurse"])),
+        )].into())?;
+        assert_data_node_generates(NodeType::CheckCosplay, "out_value", [(
+            "cosplayKeys".to_string(),
+            ParamValue::Literal(serde_json::json!(["Maid", "Bunny"])),
         )].into())?;
         assert_data_node_generates(NodeType::GetStateBool, "out_value", [(
             "stateKey".to_string(),
@@ -1117,6 +1155,29 @@ mod tests {
     }
 
     #[test]
+    fn test_generate_check_cosplay_multiple_keys() -> Result<()> {
+        let mut graph = make_graph();
+        add_data_node_through_setvar(
+            &mut graph,
+            "n1",
+            NodeType::CheckCosplay,
+            "out_value",
+            [(
+                "cosplayKeys".to_string(),
+                ParamValue::Literal(serde_json::json!(["Maid", "Bunny"])),
+            )]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("(Cosplay_Maid && Cosplay_Bunny)"),
+            "Expected CheckCosplay with multiple keys to generate parenthesized AND expression, got:\n{}",
+            code
+        );
+        Ok(())
+    }
+
+    #[test]
     fn test_generate_game_api_items_and_equipment() -> Result<()> {
         for ty in [
             NodeType::DropItem,
@@ -1134,6 +1195,28 @@ mod tests {
         ] {
             assert_flow_node_generates(ty, HashMap::new())?;
         }
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_equip_cosplay_multiple_keys() -> Result<()> {
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::EquipCosplay,
+            [(
+                "cosplayKeys".to_string(),
+                ParamValue::Literal(serde_json::json!(["Maid", "Bunny"])),
+            )]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"EquipCosplay(cosplayKeys=["Maid", "Bunny"])"#),
+            "Expected multi-select cosplay keys to be generated as array, got:\n{}",
+            code
+        );
         Ok(())
     }
 

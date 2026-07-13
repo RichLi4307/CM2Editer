@@ -381,15 +381,9 @@ fn infer_default_literal(node: &Node, param_name: &str) -> ParamValue {
 /// Maps a parameter to its namespace and whether it supports multiple selections.
 fn namespace_for_param(node_type: NodeType, param_name: &str) -> Option<(&'static str, bool)> {
     match (node_type, param_name) {
-        (NodeType::EquipCosplay | NodeType::UnequipCosplay | NodeType::OwnCosplay, "cosplayKeys") => {
+        (NodeType::EquipCosplay | NodeType::UnequipCosplay | NodeType::OwnCosplay | NodeType::CheckCosplay, "cosplayKeys") => {
             Some(("cosplay", true))
         }
-        (NodeType::EquipAdultToy | NodeType::UnequipAdultToy, "toyNames") => {
-            Some(("adult_toy", true))
-        }
-        (NodeType::CreateNPC, "avatarType") => Some(("avatar_type", false)),
-        (NodeType::SetPlayerData, "dataName") => Some(("player_data", false)),
-        (NodeType::CheckCosplay, "cosplayKey") => Some(("cosplay", false)),
         _ => None,
     }
 }

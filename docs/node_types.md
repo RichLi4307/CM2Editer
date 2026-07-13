@@ -138,7 +138,7 @@
 |------|------|------|--------------|
 | `CheckCondition` | C | 检查 Condition 对象 | `{cond}.Check()` |
 | `CheckEquipment` | C | 检查装备状态 | `_state.AdultToys.X != null` |
-| `CheckCosplay` | C | 检查 cosplay 状态 | `Cosplay_{key}` |
+| `CheckCosplay` | C | 检查 cosplay 状态（多件用 `&&` 连接） | `Cosplay_{key}` / `(Cosplay_A && Cosplay_B)` |
 | `GetStateBool` | C | 读取布尔状态 | `_state.Futanari` |
 | `GetStateNumber` | C | 读取数值状态 | `_state.Ecstasy` |
 

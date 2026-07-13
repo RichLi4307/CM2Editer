@@ -58,7 +58,7 @@ impl NamespacePicker {
         let mut confirmed = false;
         let mut cancelled = false;
 
-        egui::Window::new("命名空间选择器")
+        egui::Window::new(if state.multi { "命名空间选择器 (可多选)" } else { "命名空间选择器" })
             .id(egui::Id::new("namespace_picker"))
             .collapsible(false)
             .resizable(true)
@@ -106,22 +106,35 @@ impl NamespacePicker {
                                 egui::CollapsingHeader::new(cat_header)
                                     .id_salt(format!("nspick_{}_{}", state.namespace, cat))
                                     .show(ui, |ui| {
-                                        ui.horizontal_wrapped(|ui| {
+                                        if state.multi {
+                                            // 多选模式：使用 checkbox 列表，交互明确。
                                             for entry in cat_entries {
-                                                if ui.add(ns_picker_card(entry, state)).clicked() {
-                                                    if state.multi {
-                                                        if state.selected.contains(&entry.key) {
-                                                            state.selected.remove(&entry.key);
-                                                        } else {
-                                                            state.selected.insert(entry.key.clone());
-                                                        }
+                                                let display = entry.display_name("zh");
+                                                let label = if display == entry.key {
+                                                    entry.key.clone()
+                                                } else {
+                                                    format!("{} ({})", display, entry.key)
+                                                };
+                                                let mut selected = state.selected.contains(&entry.key);
+                                                if ui.checkbox(&mut selected, label).changed() {
+                                                    if selected {
+                                                        state.selected.insert(entry.key.clone());
                                                     } else {
+                                                        state.selected.remove(&entry.key);
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            // 单选模式：使用卡片，点击即选中。
+                                            ui.horizontal_wrapped(|ui| {
+                                                for entry in cat_entries {
+                                                    if ui.add(ns_picker_card(entry, state)).clicked() {
                                                         state.selected.clear();
                                                         state.selected.insert(entry.key.clone());
                                                     }
                                                 }
-                                            }
-                                        });
+                                            });
+                                        }
                                     });
                             }
                         });
@@ -186,6 +199,7 @@ impl NamespacePicker {
 }
 
 /// 命名空间选择器卡片 — 紧凑版，显示中文名，选中高亮。
+/// 当前仅用于分类视图的单选模式。
 fn ns_picker_card<'a>(
     entry: &'a crate::api::namespace::NamespaceEntry,
     state: &'a NamespacePickerState,
@@ -206,6 +220,7 @@ fn ns_picker_card<'a>(
         };
         ui.painter().rect_filled(rect, 4.0, fill);
         ui.painter().rect_stroke(rect, 4.0, egui::Stroke::new(1.2, accent), egui::StrokeKind::Middle);
+
         let zh = entry.display_name("zh");
         ui.painter().text(
             rect.center(),

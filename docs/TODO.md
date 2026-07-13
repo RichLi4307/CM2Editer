@@ -127,3 +127,4 @@
 | 2026-07-13 | 测试-P3.1 | `cargo test` 103 项通过，`cargo clippy` 18 个 pre-existing 警告、0 个 error | 已完成 |
 | 2026-07-13 | 测试-P3.2 | 补充 UI 回归测试：容器切换、入口钉、概览图 CreateListener、工程保存/导出 | 已完成 |
 | 2026-07-13 | 修复-P3.1 | 修复 `src/graph/validation.rs` 与 `src/ui/panels/properties.rs` 中的 `unwrap()`，使 clippy 通过 | 已完成 |
+| 2026-07-14 | 修复-UI | 服装命名空间选择器 (`cosplay`) 属性页弹窗分类视图改为多选 checkbox 列表并加窗口标题提示；左栏资产管理面板新增“多选”开关支持批量勾选复制；`CheckCosplay` 参数改为 `cosplayKeys` (List) 并生成 `(Cosplay_A && Cosplay_B)` 便于与 LogicAnd/LogicOr 组合；新增对应生成器测试 | 已完成 |
