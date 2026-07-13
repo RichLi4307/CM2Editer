@@ -349,14 +349,7 @@ impl App {
     }
 
     fn node_param(&self, node_id: &str, key: &str) -> ParamValue {
-        let (thread_idx, label_idx) = (
-            self.selected_container.thread_idx,
-            match self.selected_container.kind {
-                ContainerKind::Label(idx) => idx,
-                _ => 0,
-            },
-        );
-        let label = &self.graph_doc.graph.threads[thread_idx].labels[label_idx];
+        let label = self.current_label();
         label
             .nodes
             .get(node_id)
@@ -444,14 +437,7 @@ impl App {
     /// 这样可以单独删除 Data 虚线而不误删节点。
     fn delete_selected(&mut self) {
         let (edges_to_remove, nodes_to_remove) = {
-            let (thread_idx, label_idx) = (
-                self.selected_container.thread_idx,
-                match self.selected_container.kind {
-                    ContainerKind::Label(idx) => idx,
-                    _ => 0,
-                },
-            );
-            let label = &self.graph_doc.graph.threads[thread_idx].labels[label_idx];
+            let label = self.current_label();
             if !self.selected_edges.is_empty() {
                 let mut edges_to_remove = Vec::new();
                 for edge in label.edges.values() {
@@ -509,14 +495,7 @@ impl App {
             return;
         }
         let (nodes, edges) = {
-            let (thread_idx, label_idx) = (
-                self.selected_container.thread_idx,
-                match self.selected_container.kind {
-                    ContainerKind::Label(idx) => idx,
-                    _ => 0,
-                },
-            );
-            let label = &self.graph_doc.graph.threads[thread_idx].labels[label_idx];
+            let label = self.current_label();
             let mut nodes: Vec<Node> = Vec::new();
             let mut old_to_new = HashMap::new();
             for id in &self.selected_nodes {
@@ -1423,14 +1402,7 @@ impl eframe::App for App {
                     }
                 } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
                     edited_node_id = Some(node_id.clone());
-                    let (thread_idx, label_idx) = (
-                        self.selected_container.thread_idx,
-                        match self.selected_container.kind {
-                            ContainerKind::Label(idx) => idx,
-                            _ => 0,
-                        },
-                    );
-                    let label = self.graph_doc.graph.threads[thread_idx].labels[label_idx].clone();
+                    let label = self.current_label().clone();
                     if let Some(node) = label.nodes.get(&node_id).cloned() {
                         if let Some((key, value)) = PropertiesPanel::show(
                             ui,
@@ -1442,11 +1414,7 @@ impl eframe::App for App {
                             &mut self.coordinate_picker,
                             &mut self.edit_buffers,
                         ) {
-                            let from = self.graph_doc.graph.threads[thread_idx].labels[label_idx]
-                                .nodes
-                                .get(&node_id)
-                                .and_then(|n| n.params.get(&key).cloned())
-                                .unwrap_or(ParamValue::Null);
+                            let from = self.node_param(&node_id, &key);
                             self.push_command(Command::SetParam {
                                 node_id: node_id.clone(),
                                 key,
@@ -1650,15 +1618,9 @@ impl eframe::App for App {
                     egui::vec2(panel_w - rs2.right_top().x, panel_h),
                 );
                 ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc3), |ui| {
-                    let (thread_idx, label_idx) = (
-                        self.selected_container.thread_idx,
-                        match self.selected_container.kind {
-                            ContainerKind::Label(idx) => idx,
-                            _ => 0,
-                        },
-                    );
+                    let label = self.current_label().clone();
                     if let Some(node_id) =
-                        DataMenuPanel::show(ui, &self.graph_doc.graph.threads[thread_idx].labels[label_idx], &self.selected_nodes)
+                        DataMenuPanel::show(ui, &label, &self.selected_nodes)
                     {
                         self.selected_nodes.clear();
                         self.selected_nodes.insert(node_id);
