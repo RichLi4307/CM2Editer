@@ -38,8 +38,6 @@ pub struct CodeGenerator<'a> {
     registry: &'a HashMap<NodeType, NodeDefinition>,
     formatter: &'a mut CodeFormatter,
     visited: HashSet<String>,
-    /// True if the current label already wrote `_result = ...`
-    result_written: bool,
 }
 
 impl<'a> CodeGenerator<'a> {
@@ -54,7 +52,6 @@ impl<'a> CodeGenerator<'a> {
             registry,
             formatter,
             visited: HashSet::new(),
-            result_written: false,
         }
     }
 
@@ -100,7 +97,6 @@ impl<'a> CodeGenerator<'a> {
 
     /// 生成单个标签体的代码
     fn generate_label(&mut self, label: &LabelContainer) -> Result<()> {
-        self.result_written = false;
         self.formatter.write_line(&format!("{}:", label.name));
         self.formatter.indent();
         self.formatter.write_line("thread = _this");
@@ -112,9 +108,6 @@ impl<'a> CodeGenerator<'a> {
             self.generate_sequence(label, &entry_id, None)?;
         }
 
-        if !self.result_written {
-            self.formatter.write_line("_result = null");
-        }
         self.formatter.dedent();
         Ok(())
     }
@@ -191,7 +184,6 @@ impl<'a> CodeGenerator<'a> {
                     .resolve_param(label, node, "value")
                     .unwrap_or_else(|_| "null".to_string());
                 self.formatter.write_line(&format!("_result = {value}"));
-                self.result_written = true;
             }
             NodeType::CallFunction => {
                 let func = self.require_param(label, node, "function")?;
@@ -227,6 +219,15 @@ impl<'a> CodeGenerator<'a> {
                 let thread = self.require_param(label, node, "thread")?;
                 self.formatter
                     .write_line(&format!("{thread}.WaitForFinish()"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
+            NodeType::SetVariable => {
+                let name = self.require_param(label, node, "name")?;
+                let name = name.trim_matches('"');
+                let value = self
+                    .resolve_param_opt(label, node, "value")
+                    .unwrap_or_else(|| "null".to_string());
+                self.formatter.write_line(&format!("{name} = {value}"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             _ => {
@@ -610,6 +611,10 @@ impl<'a> CodeGenerator<'a> {
             NodeType::GetSettings => Some("_settings".to_string()),
             NodeType::GetMod => Some("_mod".to_string()),
             NodeType::GetMods => Some("_mods".to_string()),
+            NodeType::Variable => {
+                let name = self.resolve_param_opt(label, node, "name")?;
+                Some(name.trim_matches('"').to_string())
+            }
             NodeType::Range => {
                 let start = self.resolve_param_opt(label, node, "start")?;
                 let stop = self.resolve_param_opt(label, node, "stop")?;
@@ -719,7 +724,9 @@ fn find_join_node(label: &LabelContainer, a: &str, b: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::node::{Node, Port, Vec2};
+    use crate::graph::container::{ContainerGraph, LabelContainer};
+    use crate::graph::edge::{Edge, EdgeEndpoint};
+    use crate::graph::node::{Node, ParamValue, Port, Vec2};
     use crate::graph::types::{NodeType, PortType};
     use std::collections::HashMap;
 
@@ -747,7 +754,7 @@ mod tests {
         let code = generate_code(&graph)?;
         assert!(code.contains("main:"));
         assert!(code.contains("thread = _this"));
-        assert!(code.contains("_result = null"));
+        assert!(!code.contains("_result = null"));
         Ok(())
     }
 
@@ -760,6 +767,514 @@ mod tests {
         // log1 没有入 Flow 边，会作为入口节点
         let code = generate_code(&graph)?;
         assert!(code.contains("Log(output=\"hello\")"));
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------
+    // P1-D: comprehensive node generation tests by category
+    // -----------------------------------------------------------------
+
+    fn add_flow_node(
+        graph: &mut ContainerGraph,
+        id: &str,
+        node_type: NodeType,
+        params: HashMap<String, ParamValue>,
+    ) {
+        let mut node = make_node(id, node_type);
+        node.params = params;
+        graph.threads[0].labels[0].nodes.insert(id.to_string(), node);
+    }
+
+    fn make_data_node(id: &str, node_type: NodeType, output_port: &str) -> Node {
+        let mut node = make_node(id, node_type);
+        // Data nodes have no Flow ports; remove the default flow I/O and add
+        // the requested data output so the generator routes through
+        // `evaluate_data_output` rather than `generate_node_call`.
+        node.inputs.retain(|p| p.port_type != PortType::Flow);
+        node.outputs.retain(|p| p.port_type != PortType::Flow);
+        node.outputs.push(Port::new(output_port, PortType::Any, "值"));
+        node
+    }
+
+    fn connect_data(
+        label: &mut LabelContainer,
+        from_node: &str,
+        from_port: &str,
+        to_node: &str,
+        to_port: &str,
+        port_type: PortType,
+    ) {
+        let edge = Edge::new(
+            EdgeEndpoint::new(from_node, from_port),
+            EdgeEndpoint::new(to_node, to_port),
+            port_type,
+        );
+        label.edges.insert(edge.id.clone(), edge);
+    }
+
+    /// Insert a data node and wire it into a SetVariable so that
+    /// `evaluate_data_output` is exercised during code generation.
+    fn add_data_node_through_setvar(
+        graph: &mut ContainerGraph,
+        id: &str,
+        node_type: NodeType,
+        output_port: &str,
+        params: HashMap<String, ParamValue>,
+    ) {
+        let mut data_node = make_data_node(id, node_type, output_port);
+        data_node.params = params;
+        graph.threads[0].labels[0]
+            .nodes
+            .insert(id.to_string(), data_node);
+
+        let mut setvar = make_node("setvar", NodeType::SetVariable);
+        setvar.inputs.push(Port::new("value", PortType::Any, "值").required(true));
+        setvar.set_param("name", ParamValue::Literal(serde_json::json!("testVar")));
+        graph.threads[0].labels[0]
+            .nodes
+            .insert("setvar".to_string(), setvar);
+
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            id,
+            output_port,
+            "setvar",
+            "value",
+            PortType::Any,
+        );
+    }
+
+    fn expect_flow_pattern(node_type: NodeType) -> &'static str {
+        match node_type {
+            NodeType::Goto => "thread.Goto",
+            NodeType::If => "if ",
+            NodeType::While => "while ",
+            NodeType::For => "for i in ",
+            NodeType::Break => "break",
+            NodeType::Return => "_result =",
+            NodeType::DestroyListener => "listener = null",
+            NodeType::WaitForThread => ".WaitForFinish()",
+            NodeType::CallFunction => "myFunc",
+            NodeType::CallMethod => "CallMethod",
+            NodeType::ForeachNode => "Foreach",
+            NodeType::SetVariable => "testVar =",
+            NodeType::Meta | NodeType::Comment | NodeType::Group => "",
+            _ => {
+                let name = format!("{:?}", node_type);
+                // leak a static string for the test lifetime
+                Box::leak(name.into_boxed_str())
+            }
+        }
+    }
+
+    fn assert_flow_node_generates(node_type: NodeType, params: HashMap<String, ParamValue>) -> Result<()> {
+        let mut graph = make_graph();
+        add_flow_node(&mut graph, "n1", node_type, params);
+        let code = generate_code(&graph)?;
+        let pattern = expect_flow_pattern(node_type);
+        if !pattern.is_empty() {
+            assert!(
+                code.contains(pattern),
+                "Expected code for {:?} to contain '{}', got:\n{}",
+                node_type,
+                pattern,
+                code
+            );
+        }
+        Ok(())
+    }
+
+    fn assert_data_node_generates(
+        node_type: NodeType,
+        output_port: &str,
+        params: HashMap<String, ParamValue>,
+    ) -> Result<()> {
+        let mut graph = make_graph();
+        add_data_node_through_setvar(&mut graph, "n1", node_type, output_port, params);
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("testVar ="),
+            "Expected code for {:?} to contain 'testVar =', got:\n{}",
+            node_type,
+            code
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_threading_and_concurrency() -> Result<()> {
+        assert_flow_node_generates(NodeType::CreateThread, [(
+            "labelName".to_string(),
+            ParamValue::Literal(serde_json::json!("sub")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::CreateListener, [(
+            "labelName".to_string(),
+            ParamValue::Literal(serde_json::json!("sub")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::CreateListenerLocal, [(
+            "labelName".to_string(),
+            ParamValue::Literal(serde_json::json!("sub")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::DestroyListener, HashMap::new())?;
+        assert_data_node_generates(NodeType::GetCurrentThread, "out_value", HashMap::new())?;
+        assert_flow_node_generates(NodeType::WaitForThread, [(
+            "thread".to_string(),
+            ParamValue::Literal(serde_json::json!("t")),
+        )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_control_flow() -> Result<()> {
+        assert_flow_node_generates(NodeType::Goto, [(
+            "label".to_string(),
+            ParamValue::Literal(serde_json::json!("sub")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::If, [(
+            "condition".to_string(),
+            ParamValue::Literal(serde_json::json!(true)),
+        )].into())?;
+        assert_flow_node_generates(NodeType::While, [(
+            "condition".to_string(),
+            ParamValue::Literal(serde_json::json!(true)),
+        )].into())?;
+        assert_flow_node_generates(NodeType::For, [(
+            "iterable".to_string(),
+            ParamValue::Literal(serde_json::json!([])),
+        )].into())?;
+        assert_flow_node_generates(NodeType::Break, HashMap::new())?;
+        assert_flow_node_generates(NodeType::Return, [(
+            "value".to_string(),
+            ParamValue::Literal(serde_json::json!(1)),
+        )].into())?;
+        assert_flow_node_generates(NodeType::Wait, [(
+            "seconds".to_string(),
+            ParamValue::Literal(serde_json::json!(1)),
+        )].into())?;
+        assert_flow_node_generates(NodeType::WaitForEvent, [(
+            "eventName".to_string(),
+            ParamValue::Literal(serde_json::json!("evt")),
+        )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_variables_and_globals() -> Result<()> {
+        assert_flow_node_generates(NodeType::Global, [(
+            "name".to_string(),
+            ParamValue::Literal(serde_json::json!("g")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::Local, [(
+            "name".to_string(),
+            ParamValue::Literal(serde_json::json!("l")),
+        )].into())?;
+        assert_data_node_generates(NodeType::GetSave, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetTime, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetTimeDiff, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetSettings, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetMod, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetMods, "out_value", HashMap::new())?;
+        assert_flow_node_generates(NodeType::SetEvent, [
+            ("name".to_string(), ParamValue::Literal(serde_json::json!("evt"))),
+            ("value".to_string(), ParamValue::Literal(serde_json::json!(1))),
+        ].into())?;
+        assert_flow_node_generates(NodeType::GetEvent, [(
+            "name".to_string(),
+            ParamValue::Literal(serde_json::json!("evt")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::DumpVariables, HashMap::new())?;
+        assert_flow_node_generates(NodeType::DumpVariable, [(
+            "var".to_string(),
+            ParamValue::Literal(serde_json::json!("v")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::GetType, [(
+            "value".to_string(),
+            ParamValue::Literal(serde_json::json!(1)),
+        )].into())?;
+        assert_data_node_generates(NodeType::GetLanguage, "out_language", HashMap::new())?;
+        assert_data_node_generates(NodeType::Variable, "out_value", [(
+            "name".to_string(),
+            ParamValue::Literal(serde_json::json!("myVar")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::SetVariable, [(
+            "name".to_string(),
+            ParamValue::Literal(serde_json::json!("testVar")),
+        )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_literals() -> Result<()> {
+        assert_data_node_generates(NodeType::NumberConstant, "out_value", [(
+            "value".to_string(),
+            ParamValue::Literal(serde_json::json!(42)),
+        )].into())?;
+        assert_data_node_generates(NodeType::StringConstant, "out_value", [(
+            "value".to_string(),
+            ParamValue::Literal(serde_json::json!("hello")),
+        )].into())?;
+        assert_data_node_generates(NodeType::Boolean, "out_value", [(
+            "value".to_string(),
+            ParamValue::Literal(serde_json::json!(true)),
+        )].into())?;
+        assert_flow_node_generates(NodeType::Color, [
+            ("r".to_string(), ParamValue::Literal(serde_json::json!(1))),
+            ("g".to_string(), ParamValue::Literal(serde_json::json!(1))),
+            ("b".to_string(), ParamValue::Literal(serde_json::json!(1))),
+            ("a".to_string(), ParamValue::Literal(serde_json::json!(1))),
+        ].into())?;
+        assert_flow_node_generates(NodeType::Range, [
+            ("start".to_string(), ParamValue::Literal(serde_json::json!(0))),
+            ("stop".to_string(), ParamValue::Literal(serde_json::json!(10))),
+        ].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_math_and_logic() -> Result<()> {
+        for ty in [
+            NodeType::Random,
+            NodeType::RandomInt,
+            NodeType::Sin,
+            NodeType::Cos,
+            NodeType::Tan,
+            NodeType::Asin,
+            NodeType::Acos,
+            NodeType::Atan,
+            NodeType::Floor,
+            NodeType::Ceil,
+            NodeType::Round,
+            NodeType::Trunc,
+            NodeType::Sign,
+            NodeType::Abs,
+            NodeType::LogN,
+            NodeType::Log2,
+            NodeType::Log10,
+            NodeType::Min,
+            NodeType::Max,
+            NodeType::Vector,
+            NodeType::Quaternion,
+            NodeType::Vector3Length,
+            NodeType::Vector3SqrLength,
+            NodeType::Vector3Add,
+            NodeType::Vector3Sub,
+            NodeType::Vector3Scale,
+            NodeType::Vector3Dot,
+            NodeType::Vector3Cross,
+            NodeType::Vector3Rotate,
+            NodeType::Vector3Distance,
+        ] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
+        assert_data_node_generates(NodeType::CompareNumbers, "out_result", [
+            ("a".to_string(), ParamValue::Literal(serde_json::json!(1))),
+            ("b".to_string(), ParamValue::Literal(serde_json::json!(2))),
+            ("operator".to_string(), ParamValue::Literal(serde_json::json!(">="))),
+        ].into())?;
+        assert_data_node_generates(NodeType::LogicAnd, "out_result", [
+            ("a".to_string(), ParamValue::Literal(serde_json::json!(true))),
+            ("b".to_string(), ParamValue::Literal(serde_json::json!(true))),
+        ].into())?;
+        assert_data_node_generates(NodeType::LogicOr, "out_result", [
+            ("a".to_string(), ParamValue::Literal(serde_json::json!(true))),
+            ("b".to_string(), ParamValue::Literal(serde_json::json!(true))),
+        ].into())?;
+        assert_data_node_generates(NodeType::LogicNot, "out_result", [(
+            "a".to_string(),
+            ParamValue::Literal(serde_json::json!(false)),
+        )].into())?;
+        assert_data_node_generates(NodeType::MakeVector, "out_vec", [
+            ("x".to_string(), ParamValue::Literal(serde_json::json!(1))),
+            ("y".to_string(), ParamValue::Literal(serde_json::json!(2))),
+            ("z".to_string(), ParamValue::Literal(serde_json::json!(3))),
+        ].into())?;
+        assert_data_node_generates(NodeType::BreakVector, "x", [(
+            "in_vec".to_string(),
+            ParamValue::Literal(serde_json::json!([1, 2, 3])),
+        )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_conditions_and_queries() -> Result<()> {
+        assert_data_node_generates(NodeType::CheckCondition, "out_result", [(
+            "cond".to_string(),
+            ParamValue::Literal(serde_json::json!("cond")),
+        )].into())?;
+        assert_data_node_generates(NodeType::CheckEquipment, "out_value", [(
+            "equipType".to_string(),
+            ParamValue::Literal(serde_json::json!("Vibrator")),
+        )].into())?;
+        assert_data_node_generates(NodeType::CheckCosplay, "out_value", [(
+            "cosplayKey".to_string(),
+            ParamValue::Literal(serde_json::json!("nurse")),
+        )].into())?;
+        assert_data_node_generates(NodeType::GetStateBool, "out_value", [(
+            "stateKey".to_string(),
+            ParamValue::Literal(serde_json::json!("Futanari")),
+        )].into())?;
+        assert_data_node_generates(NodeType::GetStateNumber, "out_value", [(
+            "stateKey".to_string(),
+            ParamValue::Literal(serde_json::json!("Ecstasy")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::CreateCondition, [(
+            "condition".to_string(),
+            ParamValue::Literal(serde_json::json!("Always")),
+        )].into())?;
+        assert_flow_node_generates(NodeType::CreateItemCondition, [(
+            "itemtype".to_string(),
+            ParamValue::Literal(serde_json::json!("Key")),
+        )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_game_api_items_and_equipment() -> Result<()> {
+        for ty in [
+            NodeType::DropItem,
+            NodeType::CollectItem,
+            NodeType::SetVibrator,
+            NodeType::SetPiston,
+            NodeType::LockHandcuffs,
+            NodeType::UnlockHandcuffs,
+            NodeType::EquipCosplay,
+            NodeType::UnequipCosplay,
+            NodeType::UnequipAllCosplay,
+            NodeType::OwnCosplay,
+            NodeType::EquipAdultToy,
+            NodeType::UnequipAdultToy,
+        ] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_game_api_player_state() -> Result<()> {
+        for ty in [
+            NodeType::SetPlayerPosition,
+            NodeType::SetStage,
+            NodeType::SetCamera,
+            NodeType::SetAction,
+            NodeType::SetFutanari,
+            NodeType::SetSkill,
+            NodeType::SetPlayerData,
+            NodeType::SetSkillShortcut,
+            NodeType::GetSkillShortcut,
+            NodeType::GetRandomPosition,
+        ] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_game_api_control_and_graphics() -> Result<()> {
+        for ty in [
+            NodeType::CanGameOver,
+            NodeType::TriggerGameOver,
+            NodeType::PlaySoundEffect,
+            NodeType::SetStageRankLimit,
+            NodeType::GetStageRankLimit,
+            NodeType::SetPortalEnabled,
+            NodeType::GetAllWaypoints,
+            NodeType::SetSexPosition,
+            NodeType::DeactivateSex,
+            NodeType::SetSexMenu,
+            NodeType::ShowBlackscreen,
+            NodeType::GetSnapshotData,
+            NodeType::GetAllSnapshots,
+            NodeType::DeleteSnapshot,
+            NodeType::GetImageReference,
+            NodeType::SetGraphicsOption,
+            NodeType::GetGraphicsOption,
+        ] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_game_api_stats() -> Result<()> {
+        for ty in [
+            NodeType::AddCurrentEarnRP,
+            NodeType::SetCurrentEarnRP,
+            NodeType::GetCurrentEarnRP,
+            NodeType::AddCurrentRP,
+            NodeType::SetCurrentRP,
+            NodeType::GetCurrentRP,
+            NodeType::SetEcstasy,
+            NodeType::AddEcstasy,
+            NodeType::GetEcstasy,
+            NodeType::SetStamina,
+            NodeType::AddStamina,
+            NodeType::GetStamina,
+            NodeType::SetMoisture,
+            NodeType::AddMoisture,
+            NodeType::GetMoisture,
+            NodeType::SetItemCount,
+            NodeType::AddItemCount,
+            NodeType::GetItemCount,
+        ] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_objects() -> Result<()> {
+        for ty in [
+            NodeType::CreateMissionPanel,
+            NodeType::CreateMissionMenuItem,
+            NodeType::CreateArea,
+            NodeType::CreateZone,
+            NodeType::CreateInteractArea,
+            NodeType::CreateText,
+            NodeType::CreateMessengerChat,
+            NodeType::CreateAudio,
+            NodeType::CreateGallery,
+            NodeType::CreateSnapshot,
+            NodeType::CreateNPC,
+            NodeType::CreateInput,
+            NodeType::CallMethod,
+            NodeType::ForeachNode,
+        ] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
+        assert_flow_node_generates(NodeType::CallFunction, [(
+            "function".to_string(),
+            ParamValue::Literal(serde_json::json!("myFunc")),
+        )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_string_file_list() -> Result<()> {
+        for ty in [
+            NodeType::Length,
+            NodeType::Lower,
+            NodeType::Upper,
+            NodeType::Find,
+            NodeType::SubString,
+            NodeType::Format,
+            NodeType::ToNumber,
+            NodeType::FileExists,
+            NodeType::GetFiles,
+            NodeType::GetFileExtension,
+            NodeType::CreateList,
+            NodeType::Copy,
+            NodeType::CreateListFromJson,
+        ] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_editor_only() -> Result<()> {
+        for ty in [NodeType::Meta, NodeType::Comment, NodeType::Group] {
+            assert_flow_node_generates(ty, HashMap::new())?;
+        }
         Ok(())
     }
 }

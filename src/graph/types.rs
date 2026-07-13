@@ -64,6 +64,10 @@ pub enum NodeType {
     GetMod,
     /// 读取所有已激活 mod 的数据（`_mods`）
     GetMods,
+    /// 读取当前作用域中指定名称的变量值
+    Variable,
+    /// 将值赋给当前作用域中的变量
+    SetVariable,
 
     // ── 游戏功能：物品与装备 ──
     /// 在世界中掉落一个物品
@@ -622,8 +626,10 @@ mod tests {
             NodeType::GetSettings,
             NodeType::GetMod,
             NodeType::GetMods,
+            NodeType::Variable,
+            NodeType::SetVariable,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 166);
+        assert_eq!(variants.len(), 168);
     }
 }

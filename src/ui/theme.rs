@@ -42,35 +42,47 @@ impl Theme {
 /// 根据节点分类返回标题栏颜色。
 ///
 /// 输入的 `category` 对应 `NodeDefinition::category` 中使用的英文标识符。
-/// 颜色映射与 `docs/node_types.md` 第 12 节的节点分类颜色编码表保持一致。
+/// 颜色映射与 `docs/node_types.md` 2.1-2.10 中定义的节点分类颜色编码表保持一致。
 ///
 /// 未知分类默认返回特殊节点的灰色，避免 UI 因未覆盖分类而 panic。
 #[must_use]
 pub fn category_color(category: &str) -> Color32 {
     match category {
         // 控制流 - 紫色
+        "Control Flow" => Color32::from_rgb(156, 39, 176),
+        // 变量与全局 - 蓝色
+        "Variables & Globals" => Color32::from_rgb(33, 150, 243),
+        // 游戏 API - 绿色
+        "Game API" => Color32::from_rgb(76, 175, 80),
+        // 数值统计 - 橙色
+        "Game API: Stats" => Color32::from_rgb(255, 152, 0),
+        // 线程与并发 - 青色
+        "Threading & Concurrency" => Color32::from_rgb(0, 188, 212),
+        // 对象构造 - 青色
+        "Objects" => Color32::from_rgb(0, 188, 212),
+        // 数学与逻辑 - 灰色
+        "Math & Logic" => Color32::from_rgb(96, 125, 139),
+        // 字面量 - 蓝绿色
+        "Literals" => Color32::from_rgb(0, 150, 136),
+        // 条件与查询 - 紫粉色
+        "Conditions & Queries" => Color32::from_rgb(171, 71, 188),
+        // 字符串 / 文件 / 列表 - 粉色
+        "String / File / List" => Color32::from_rgb(233, 30, 99),
+        // 编辑器专用 - 深灰色
+        "Editor-only" => Color32::from_rgb(117, 117, 117),
+        // 兼容旧分类（UI 恢复过渡期）
         "Control" => Color32::from_rgb(156, 39, 176),
-        // 通用函数 - 蓝色
         "General Functions" => Color32::from_rgb(33, 150, 243),
-        // 游戏动作 - 绿色
         "Game Functions: Items"
         | "Game Functions: Player"
         | "Game Functions: Additional"
         | "Game Functions: Control"
         | "Graphics" => Color32::from_rgb(76, 175, 80),
-        // 数值操作 - 橙色
         "Game Functions: Stats" => Color32::from_rgb(255, 152, 0),
-        // 对象构造 - 青色
-        "Objects" => Color32::from_rgb(0, 188, 212),
-        // 数学 - 灰色
         "Math" | "Math: Vector" => Color32::from_rgb(96, 125, 139),
-        // 字符串 - 粉色
         "String" => Color32::from_rgb(233, 30, 99),
-        // 文件 - 棕色
         "File" => Color32::from_rgb(121, 85, 72),
-        // 等待/事件 - 黄色（当前注册表中 Wait 归入 Control，此处为预留）
         "Wait" | "Wait/Event" => Color32::from_rgb(255, 235, 59),
-        // 特殊 - 灰色
         "Special" | "Meta" | "Comment" | "Group" => Color32::from_rgb(117, 117, 117),
         // 对象方法（当前注册表未使用独立分类，预留）
         "Object Methods" => Color32::from_rgb(3, 169, 244),
@@ -104,20 +116,43 @@ mod tests {
 
     #[test]
     fn category_color_matches_doc_table() {
-        assert_eq!(category_color("Control"), Color32::from_rgb(156, 39, 176));
         assert_eq!(
-            category_color("General Functions"),
+            category_color("Control Flow"),
+            Color32::from_rgb(156, 39, 176)
+        );
+        assert_eq!(
+            category_color("Variables & Globals"),
             Color32::from_rgb(33, 150, 243)
         );
         assert_eq!(
-            category_color("Game Functions: Stats"),
+            category_color("Game API: Stats"),
             Color32::from_rgb(255, 152, 0)
         );
+        assert_eq!(
+            category_color("Threading & Concurrency"),
+            Color32::from_rgb(0, 188, 212)
+        );
         assert_eq!(category_color("Objects"), Color32::from_rgb(0, 188, 212));
-        assert_eq!(category_color("Math"), Color32::from_rgb(96, 125, 139));
-        assert_eq!(category_color("String"), Color32::from_rgb(233, 30, 99));
-        assert_eq!(category_color("File"), Color32::from_rgb(121, 85, 72));
-        assert_eq!(category_color("Special"), Color32::from_rgb(117, 117, 117));
+        assert_eq!(
+            category_color("Math & Logic"),
+            Color32::from_rgb(96, 125, 139)
+        );
+        assert_eq!(
+            category_color("Literals"),
+            Color32::from_rgb(0, 150, 136)
+        );
+        assert_eq!(
+            category_color("Conditions & Queries"),
+            Color32::from_rgb(171, 71, 188)
+        );
+        assert_eq!(
+            category_color("String / File / List"),
+            Color32::from_rgb(233, 30, 99)
+        );
+        assert_eq!(
+            category_color("Editor-only"),
+            Color32::from_rgb(117, 117, 117)
+        );
     }
 
     #[test]

@@ -29,7 +29,7 @@ fn generate_code_from_container_graph() -> Result<()> {
     let code = generate_code(&graph)?;
     assert!(code.contains("main:"));
     assert!(code.contains("Log(output=\"init\")"));
-    assert!(code.contains("_result = null"));
+    assert!(!code.contains("_result = null"));
     Ok(())
 }
 

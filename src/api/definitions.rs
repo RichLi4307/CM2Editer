@@ -220,9 +220,9 @@ const STATS_COLOR: [u8; 4] = [255, 152, 0, 255]; // orange
 const OBJECT_COLOR: [u8; 4] = [0, 188, 212, 255]; // cyan
 const MATH_COLOR: [u8; 4] = [96, 125, 139, 255]; // grey
 const STRING_COLOR: [u8; 4] = [233, 30, 99, 255]; // pink
-const FILE_COLOR: [u8; 4] = [121, 85, 72, 255]; // brown
-const WAIT_COLOR: [u8; 4] = [255, 235, 59, 255]; // yellow
 const SPECIAL_COLOR: [u8; 4] = [117, 117, 117, 255]; // dark grey
+const LITERALS_COLOR: [u8; 4] = [0, 150, 136, 255]; // teal
+const CONDITIONS_COLOR: [u8; 4] = [171, 71, 188, 255]; // purple-pink
 
 // -------------------------------------------------------------------------
 // Port helpers
@@ -312,11 +312,10 @@ fn default_param_value(param_type: ParamType) -> ParamValue {
 pub fn all_definitions() -> Vec<NodeDefinition> {
     vec![
         // -----------------------------------------------------------------
-        // Control
+        // Control Flow
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::Goto,
-            "Control",
+            NodeType::Goto, "Control Flow",
             "跳转",
             "跳转到指定标签",
             CONTROL_COLOR,
@@ -327,13 +326,12 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("label", "标签", ParamType::String),
             p_opt("params", "参数", ParamType::Object),
         ]),
-        NodeDefinition::new(NodeType::If, "Control", "如果", "条件分支", CONTROL_COLOR)
+        NodeDefinition::new(NodeType::If, "Control Flow", "如果", "条件分支", CONTROL_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![out_true(), out_false()])
             .with_params(vec![p_req("condition", "条件", ParamType::Boolean)]),
         NodeDefinition::new(
-            NodeType::While,
-            "Control",
+            NodeType::While, "Control Flow",
             "循环",
             "条件成立时循环",
             CONTROL_COLOR,
@@ -341,21 +339,19 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow(), out_break()])
         .with_params(vec![p_req("condition", "条件", ParamType::Boolean)]),
-        NodeDefinition::new(NodeType::For, "Control", "遍历", "遍历列表", CONTROL_COLOR)
+        NodeDefinition::new(NodeType::For, "Control Flow", "遍历", "遍历列表", CONTROL_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![out_flow(), out_break()])
             .with_params(vec![p_req("iterable", "列表", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::Break,
-            "Control",
+            NodeType::Break, "Control Flow",
             "跳出",
             "提前退出循环",
             CONTROL_COLOR,
         )
         .with_inputs(vec![in_flow()]),
         NodeDefinition::new(
-            NodeType::Return,
-            "Control",
+            NodeType::Return, "Control Flow",
             "返回",
             "函数返回，设置 _result",
             CONTROL_COLOR,
@@ -363,41 +359,37 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_params(vec![p_opt("value", "返回值", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::Wait,
-            "Control",
+            NodeType::Wait, "Control Flow",
             "等待",
             "延迟等待（秒）",
-            WAIT_COLOR,
+            CONTROL_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("seconds", "秒数", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::WaitForEvent,
-            "Control",
+            NodeType::WaitForEvent, "Control Flow",
             "等待事件",
             "阻塞当前线程直到事件触发",
-            WAIT_COLOR,
+            CONTROL_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("eventName", "事件名", ParamType::String)]),
         // -----------------------------------------------------------------
-        // General Functions
+        // Variables & Globals
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::Log,
-            "General Functions",
+            NodeType::Log, "Game API",
             "日志",
             "控制台输出",
-            GENERAL_COLOR,
+            GAME_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("output", "输出", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::Global,
-            "General Functions",
+            NodeType::Global, "Variables & Globals",
             "全局变量",
             "读写全局变量",
             GENERAL_COLOR,
@@ -412,8 +404,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("value", "值", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::Local,
-            "General Functions",
+            NodeType::Local, "Variables & Globals",
             "局部变量",
             "读写局部变量（线程/标签作用域）",
             GENERAL_COLOR,
@@ -428,8 +419,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("value", "值", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::GetType,
-            "General Functions",
+            NodeType::GetType, "Variables & Globals",
             "获取类型",
             "获取值的类型名称",
             GENERAL_COLOR,
@@ -441,8 +431,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "值", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::GetLanguage,
-            "General Functions",
+            NodeType::GetLanguage, "Variables & Globals",
             "获取语言",
             "获取当前语言代码",
             GENERAL_COLOR,
@@ -453,8 +442,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_language", PortType::String, "语言"),
         ]),
         NodeDefinition::new(
-            NodeType::DumpVariables,
-            "General Functions",
+            NodeType::DumpVariables, "Variables & Globals",
             "打印所有变量",
             "打印所有变量到日志",
             GENERAL_COLOR,
@@ -463,8 +451,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_opt("recursion", "递归深度", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::DumpVariable,
-            "General Functions",
+            NodeType::DumpVariable, "Variables & Globals",
             "打印变量",
             "打印单个变量到日志",
             GENERAL_COLOR,
@@ -476,11 +463,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("recursion", "递归深度", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::CallFunction,
-            "General Functions",
+            NodeType::CallFunction, "Objects",
             "调用函数",
             "动态调用函数名",
-            GENERAL_COLOR,
+            OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -492,11 +478,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
-            NodeType::CallMethod,
-            "General Functions",
+            NodeType::CallMethod, "Objects",
             "调用方法",
             "动态调用对象方法",
-            GENERAL_COLOR,
+            OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -509,11 +494,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
-            NodeType::Color,
-            "General Functions",
+            NodeType::Color, "Literals",
             "颜色",
             "创建颜色列表",
-            GENERAL_COLOR,
+            LITERALS_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -527,11 +511,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("a", "透明度", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::Range,
-            "General Functions",
+            NodeType::Range, "Literals",
             "范围",
             "生成数字范围",
-            GENERAL_COLOR,
+            LITERALS_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -544,8 +527,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("step", "步长", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::SetEvent,
-            "General Functions",
+            NodeType::SetEvent, "Variables & Globals",
             "设置事件",
             "设置跨线程/跨帧事件数据",
             GENERAL_COLOR,
@@ -557,8 +539,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("value", "值", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::GetEvent,
-            "General Functions",
+            NodeType::GetEvent, "Variables & Globals",
             "获取事件",
             "获取事件数据",
             GENERAL_COLOR,
@@ -571,59 +552,74 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_params(vec![p_req("name", "事件名", ParamType::String)]),
         // ── P1 低难度：全局变量数据节点 ──
         NodeDefinition::new(
-            NodeType::GetSave,
-            "General Functions",
+            NodeType::GetSave, "Variables & Globals",
             "读取存档",
             "读取跨会话持久存储（`_save`）",
             GENERAL_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Object, "存档")]),
         NodeDefinition::new(
-            NodeType::GetTime,
-            "General Functions",
+            NodeType::GetTime, "Variables & Globals",
             "读取时间",
             "读取累计时间（`_time`）",
             GENERAL_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Number, "时间")]),
         NodeDefinition::new(
-            NodeType::GetTimeDiff,
-            "General Functions",
+            NodeType::GetTimeDiff, "Variables & Globals",
             "读取时间差",
             "读取上一帧到当前帧时间差（`_timediff`）",
             GENERAL_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Number, "时间差")]),
         NodeDefinition::new(
-            NodeType::GetSettings,
-            "General Functions",
+            NodeType::GetSettings, "Variables & Globals",
             "读取设置",
             "读取 meta.json 设置菜单中的值（`_settings`）",
             GENERAL_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Object, "设置")]),
         NodeDefinition::new(
-            NodeType::GetMod,
-            "General Functions",
+            NodeType::GetMod, "Variables & Globals",
             "读取Mod数据",
             "读取共享给其他 mod 的数据（`_mod`）",
             GENERAL_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::List, "Mod数据")]),
         NodeDefinition::new(
-            NodeType::GetMods,
-            "General Functions",
+            NodeType::GetMods, "Variables & Globals",
             "读取所有Mod数据",
             "读取所有已激活 mod 的数据（`_mods`）",
             GENERAL_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Object, "Mods")]),
+        NodeDefinition::new(
+            NodeType::Variable,
+            "Variables & Globals",
+            "变量",
+            "读取当前作用域中指定名称的变量值",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Any, "值")])
+        .with_params(vec![p_req("name", "变量名", ParamType::String)]),
+        NodeDefinition::new(
+            NodeType::SetVariable,
+            "Variables & Globals",
+            "设置变量",
+            "将值赋给当前作用域中的变量",
+            GENERAL_COLOR,
+        )
+        .with_inputs(vec![
+            in_flow(),
+            PortDefinition::new("value", PortType::Any, "值").required(true),
+        ])
+        .with_outputs(vec![out_flow()])
+        .with_params(vec![p_req("name", "变量名", ParamType::String)]),
         // -----------------------------------------------------------------
-        // Game Functions: Items & Equipment
+        // Game API: Items & Equipment
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::DropItem,
-            "Game Functions: Items",
+            NodeType::DropItem, "Game API",
             "掉落物品",
             "在指定场景掉落物品",
             GAME_COLOR,
@@ -641,8 +637,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("compass", "指南针", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::CollectItem,
-            "Game Functions: Items",
+            NodeType::CollectItem, "Game API",
             "拾取物品",
             "捡起指定类型物品",
             GAME_COLOR,
@@ -657,8 +652,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("position", "位置", ParamType::Vector),
         ]),
         NodeDefinition::new(
-            NodeType::SetVibrator,
-            "Game Functions: Items",
+            NodeType::SetVibrator, "Game API",
             "设置跳蛋",
             "设置跳蛋强度",
             GAME_COLOR,
@@ -667,8 +661,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![e("strength", "强度", VIBRATOR_STRENGTHS)]),
         NodeDefinition::new(
-            NodeType::SetPiston,
-            "Game Functions: Items",
+            NodeType::SetPiston, "Game API",
             "设置活塞",
             "设置活塞强度",
             GAME_COLOR,
@@ -677,8 +670,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![e("strength", "强度", PISTON_STRENGTHS)]),
         NodeDefinition::new(
-            NodeType::LockHandcuffs,
-            "Game Functions: Items",
+            NodeType::LockHandcuffs, "Game API",
             "锁手铐",
             "给玩家锁上手铐",
             GAME_COLOR,
@@ -691,8 +683,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("duration", "持续时间", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::UnlockHandcuffs,
-            "Game Functions: Items",
+            NodeType::UnlockHandcuffs, "Game API",
             "解锁手铐",
             "解锁手铐",
             GAME_COLOR,
@@ -700,8 +691,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()]),
         NodeDefinition::new(
-            NodeType::EquipCosplay,
-            "Game Functions: Items",
+            NodeType::EquipCosplay, "Game API",
             "装备 Cosplay",
             "装备角色扮演服装",
             GAME_COLOR,
@@ -710,8 +700,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("cosplayKeys", "服装键", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::UnequipCosplay,
-            "Game Functions: Items",
+            NodeType::UnequipCosplay, "Game API",
             "卸下 Cosplay",
             "卸下角色扮演服装",
             GAME_COLOR,
@@ -720,8 +709,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("cosplayKeys", "服装键", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::UnequipAllCosplay,
-            "Game Functions: Items",
+            NodeType::UnequipAllCosplay, "Game API",
             "卸下全部 Cosplay",
             "卸下全部角色扮演服装",
             GAME_COLOR,
@@ -729,8 +717,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()]),
         NodeDefinition::new(
-            NodeType::OwnCosplay,
-            "Game Functions: Items",
+            NodeType::OwnCosplay, "Game API",
             "拥有 Cosplay",
             "设置服装拥有状态",
             GAME_COLOR,
@@ -742,8 +729,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("cosplayKeys", "服装键", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::EquipAdultToy,
-            "Game Functions: Items",
+            NodeType::EquipAdultToy, "Game API",
             "装备成人玩具",
             "装备成人玩具",
             GAME_COLOR,
@@ -752,8 +738,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("toyNames", "玩具名", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::UnequipAdultToy,
-            "Game Functions: Items",
+            NodeType::UnequipAdultToy, "Game API",
             "卸下成人玩具",
             "卸下成人玩具",
             GAME_COLOR,
@@ -762,11 +747,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("toyNames", "玩具名", ParamType::List)]),
         // -----------------------------------------------------------------
-        // Game Functions: Player State
+        // Game API: Player State
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::SetPlayerPosition,
-            "Game Functions: Player",
+            NodeType::SetPlayerPosition, "Game API",
             "设置玩家位置",
             "设置玩家的位置和旋转",
             GAME_COLOR,
@@ -778,8 +762,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("rotation", "旋转", ParamType::Quaternion),
         ]),
         NodeDefinition::new(
-            NodeType::SetStage,
-            "Game Functions: Player",
+            NodeType::SetStage, "Game API",
             "切换场景",
             "切换到不同场景",
             GAME_COLOR,
@@ -791,8 +774,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("daytime", "白天", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::SetCamera,
-            "Game Functions: Player",
+            NodeType::SetCamera, "Game API",
             "设置相机",
             "设置相机参数",
             GAME_COLOR,
@@ -805,8 +787,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("lock", "锁定", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::SetAction,
-            "Game Functions: Player",
+            NodeType::SetAction, "Game API",
             "设置动作",
             "设置玩家当前动作",
             GAME_COLOR,
@@ -815,8 +796,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![e("action", "动作", ACTIONS)]),
         NodeDefinition::new(
-            NodeType::SetFutanari,
-            "Game Functions: Player",
+            NodeType::SetFutanari, "Game API",
             "设置双性状态",
             "设置扶她状态",
             GAME_COLOR,
@@ -825,8 +805,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("active", "启用", ParamType::Boolean)]),
         NodeDefinition::new(
-            NodeType::SetSkill,
-            "Game Functions: Player",
+            NodeType::SetSkill, "Game API",
             "设置技能",
             "启用或禁用技能",
             GAME_COLOR,
@@ -838,8 +817,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("enabled", "启用", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::SetPlayerData,
-            "Game Functions: Player",
+            NodeType::SetPlayerData, "Game API",
             "设置玩家数据",
             "设置任意玩家数据",
             GAME_COLOR,
@@ -851,8 +829,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("value", "值", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::SetSkillShortcut,
-            "Game Functions: Player",
+            NodeType::SetSkillShortcut, "Game API",
             "设置技能快捷栏",
             "设置技能快捷栏",
             GAME_COLOR,
@@ -864,8 +841,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("actionIndex", "动作索引", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::GetSkillShortcut,
-            "Game Functions: Player",
+            NodeType::GetSkillShortcut, "Game API",
             "获取技能快捷栏",
             "获取技能快捷栏",
             GAME_COLOR,
@@ -877,8 +853,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("slot", "槽位", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::GetRandomPosition,
-            "Game Functions: Player",
+            NodeType::GetRandomPosition, "Game API",
             "随机位置",
             "获取随机位置",
             GAME_COLOR,
@@ -890,11 +865,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_opt("minRange", "最小范围", ParamType::Number)]),
         // -----------------------------------------------------------------
-        // Game Functions: Stats
+        // Game API: Stats
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::AddCurrentEarnRP,
-            "Game Functions: Stats",
+            NodeType::AddCurrentEarnRP, "Game API: Stats",
             "增加本次 RP",
             "增加本次外出赚取 RP",
             STATS_COLOR,
@@ -906,8 +880,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::SetCurrentEarnRP,
-            "Game Functions: Stats",
+            NodeType::SetCurrentEarnRP, "Game API: Stats",
             "设置本次 RP",
             "设置本次外出赚取 RP",
             STATS_COLOR,
@@ -919,8 +892,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::GetCurrentEarnRP,
-            "Game Functions: Stats",
+            NodeType::GetCurrentEarnRP, "Game API: Stats",
             "获取本次 RP",
             "获取本次外出赚取 RP",
             STATS_COLOR,
@@ -931,8 +903,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_value", PortType::Number, "值"),
         ]),
         NodeDefinition::new(
-            NodeType::AddCurrentRP,
-            "Game Functions: Stats",
+            NodeType::AddCurrentRP, "Game API: Stats",
             "增加持有 RP",
             "增加持有 RP",
             STATS_COLOR,
@@ -944,8 +915,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::SetCurrentRP,
-            "Game Functions: Stats",
+            NodeType::SetCurrentRP, "Game API: Stats",
             "设置持有 RP",
             "设置持有 RP",
             STATS_COLOR,
@@ -957,8 +927,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::GetCurrentRP,
-            "Game Functions: Stats",
+            NodeType::GetCurrentRP, "Game API: Stats",
             "获取持有 RP",
             "获取持有 RP",
             STATS_COLOR,
@@ -969,8 +938,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_value", PortType::Number, "值"),
         ]),
         NodeDefinition::new(
-            NodeType::SetEcstasy,
-            "Game Functions: Stats",
+            NodeType::SetEcstasy, "Game API: Stats",
             "设置快感",
             "设置快感值",
             STATS_COLOR,
@@ -982,8 +950,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::AddEcstasy,
-            "Game Functions: Stats",
+            NodeType::AddEcstasy, "Game API: Stats",
             "增加快感",
             "增加快感值",
             STATS_COLOR,
@@ -995,8 +962,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::GetEcstasy,
-            "Game Functions: Stats",
+            NodeType::GetEcstasy, "Game API: Stats",
             "获取快感",
             "获取快感值",
             STATS_COLOR,
@@ -1007,8 +973,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_value", PortType::Number, "值"),
         ]),
         NodeDefinition::new(
-            NodeType::SetStamina,
-            "Game Functions: Stats",
+            NodeType::SetStamina, "Game API: Stats",
             "设置体力",
             "设置体力",
             STATS_COLOR,
@@ -1020,8 +985,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::AddStamina,
-            "Game Functions: Stats",
+            NodeType::AddStamina, "Game API: Stats",
             "增加体力",
             "增加体力",
             STATS_COLOR,
@@ -1033,8 +997,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::GetStamina,
-            "Game Functions: Stats",
+            NodeType::GetStamina, "Game API: Stats",
             "获取体力",
             "获取体力",
             STATS_COLOR,
@@ -1045,8 +1008,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_value", PortType::Number, "值"),
         ]),
         NodeDefinition::new(
-            NodeType::SetMoisture,
-            "Game Functions: Stats",
+            NodeType::SetMoisture, "Game API: Stats",
             "设置湿润度",
             "设置膀胱/湿润度",
             STATS_COLOR,
@@ -1058,8 +1020,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::AddMoisture,
-            "Game Functions: Stats",
+            NodeType::AddMoisture, "Game API: Stats",
             "增加湿润度",
             "增加膀胱/湿润度",
             STATS_COLOR,
@@ -1071,8 +1032,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "数值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::GetMoisture,
-            "Game Functions: Stats",
+            NodeType::GetMoisture, "Game API: Stats",
             "获取湿润度",
             "获取膀胱/湿润度",
             STATS_COLOR,
@@ -1083,8 +1043,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_value", PortType::Number, "值"),
         ]),
         NodeDefinition::new(
-            NodeType::SetItemCount,
-            "Game Functions: Stats",
+            NodeType::SetItemCount, "Game API: Stats",
             "设置物品数量",
             "设置物品数量",
             STATS_COLOR,
@@ -1099,8 +1058,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("count", "数量", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::AddItemCount,
-            "Game Functions: Stats",
+            NodeType::AddItemCount, "Game API: Stats",
             "增加物品数量",
             "增加物品数量",
             STATS_COLOR,
@@ -1115,8 +1073,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("count", "数量", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::GetItemCount,
-            "Game Functions: Stats",
+            NodeType::GetItemCount, "Game API: Stats",
             "获取物品数量",
             "获取物品数量",
             STATS_COLOR,
@@ -1128,11 +1085,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("item", "物品", ParamType::String)]),
         // -----------------------------------------------------------------
-        // Game Functions: Game Control
+        // Game API: Game Control
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::CanGameOver,
-            "Game Functions: Control",
+            NodeType::CanGameOver, "Game API",
             "可游戏结束",
             "设置或获取是否可游戏结束",
             GAME_COLOR,
@@ -1144,8 +1100,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_opt("value", "是否可结束", ParamType::Boolean)]),
         NodeDefinition::new(
-            NodeType::TriggerGameOver,
-            "Game Functions: Control",
+            NodeType::TriggerGameOver, "Game API",
             "触发游戏结束",
             "强制触发游戏结束",
             GAME_COLOR,
@@ -1153,8 +1108,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()]),
         NodeDefinition::new(
-            NodeType::PlaySoundEffect,
-            "Game Functions: Control",
+            NodeType::PlaySoundEffect, "Game API",
             "播放音效",
             "播放音效",
             GAME_COLOR,
@@ -1167,8 +1121,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("position", "位置", ParamType::Vector),
         ]),
         NodeDefinition::new(
-            NodeType::SetStageRankLimit,
-            "Game Functions: Control",
+            NodeType::SetStageRankLimit, "Game API",
             "设置场景等级限制",
             "设置场景等级限制",
             GAME_COLOR,
@@ -1180,8 +1133,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("rank", "等级", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::GetStageRankLimit,
-            "Game Functions: Control",
+            NodeType::GetStageRankLimit, "Game API",
             "获取场景等级限制",
             "获取场景等级限制",
             GAME_COLOR,
@@ -1193,8 +1145,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("stage", "场景", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::SetPortalEnabled,
-            "Game Functions: Control",
+            NodeType::SetPortalEnabled, "Game API",
             "设置传送门",
             "启用或禁用传送门",
             GAME_COLOR,
@@ -1206,8 +1157,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("enabled", "启用", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::GetAllWaypoints,
-            "Game Functions: Control",
+            NodeType::GetAllWaypoints, "Game API",
             "获取路径点",
             "获取所有路径点",
             GAME_COLOR,
@@ -1218,8 +1168,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_waypoints", PortType::List, "路径点"),
         ]),
         NodeDefinition::new(
-            NodeType::SetSexPosition,
-            "Game Functions: Control",
+            NodeType::SetSexPosition, "Game API",
             "设置性爱体位",
             "设置性爱体位",
             GAME_COLOR,
@@ -1228,8 +1177,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![e("position", "体位", SEX_POSITIONS)]),
         NodeDefinition::new(
-            NodeType::DeactivateSex,
-            "Game Functions: Control",
+            NodeType::DeactivateSex, "Game API",
             "停用性爱",
             "停用性爱",
             GAME_COLOR,
@@ -1237,8 +1185,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()]),
         NodeDefinition::new(
-            NodeType::SetSexMenu,
-            "Game Functions: Control",
+            NodeType::SetSexMenu, "Game API",
             "设置性爱菜单",
             "配置性爱菜单",
             GAME_COLOR,
@@ -1250,11 +1197,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("canposition", "可换体位", ParamType::List),
         ]),
         // -----------------------------------------------------------------
-        // Additional Game Functions
+        // Game API: Additional
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::ShowBlackscreen,
-            "Game Functions: Additional",
+            NodeType::ShowBlackscreen, "Game API",
             "黑屏过渡",
             "显示全屏黑屏/颜色覆盖层",
             GAME_COLOR,
@@ -1269,8 +1215,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("fadeout", "淡出", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::GetSnapshotData,
-            "Game Functions: Additional",
+            NodeType::GetSnapshotData, "Game API",
             "获取快照数据",
             "获取快照元数据",
             GAME_COLOR,
@@ -1282,8 +1227,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("imageRef", "图像引用", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::GetAllSnapshots,
-            "Game Functions: Additional",
+            NodeType::GetAllSnapshots, "Game API",
             "获取所有快照",
             "获取所有快照引用",
             GAME_COLOR,
@@ -1298,8 +1242,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("hidden", "包含隐藏", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::DeleteSnapshot,
-            "Game Functions: Additional",
+            NodeType::DeleteSnapshot, "Game API",
             "删除快照",
             "标记删除快照",
             GAME_COLOR,
@@ -1308,8 +1251,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_outputs(vec![out_flow()])
         .with_params(vec![p_req("imageRef", "图像引用", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::GetImageReference,
-            "Game Functions: Additional",
+            NodeType::GetImageReference, "Game API",
             "获取图像引用",
             "从文件路径获取图片引用",
             GAME_COLOR,
@@ -1321,11 +1263,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("filePath", "文件路径", ParamType::String)]),
         // -----------------------------------------------------------------
-        // Graphics
+        // Game API: Graphics
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::SetGraphicsOption,
-            "Graphics",
+            NodeType::SetGraphicsOption, "Game API",
             "设置图形选项",
             "设置图形选项",
             GAME_COLOR,
@@ -1337,8 +1278,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("value", "值", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::GetGraphicsOption,
-            "Graphics",
+            NodeType::GetGraphicsOption, "Game API",
             "获取图形选项",
             "获取图形选项值",
             GAME_COLOR,
@@ -1350,9 +1290,9 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![e("option", "选项", GRAPHICS_OPTIONS)]),
         // -----------------------------------------------------------------
-        // Math: Standard
+        // Math & Logic: Standard
         // -----------------------------------------------------------------
-        NodeDefinition::new(NodeType::Random, "Math", "随机数", "随机浮点数", MATH_COLOR)
+        NodeDefinition::new(NodeType::Random, "Math & Logic", "随机数", "随机浮点数", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
@@ -1363,8 +1303,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
                 p_req("max", "最大值", ParamType::Number),
             ]),
         NodeDefinition::new(
-            NodeType::RandomInt,
-            "Math",
+            NodeType::RandomInt, "Math & Logic",
             "随机整数",
             "随机整数",
             MATH_COLOR,
@@ -1378,91 +1317,91 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("min", "最小值", ParamType::Number),
             p_req("max", "最大值", ParamType::Number),
         ]),
-        NodeDefinition::new(NodeType::Sin, "Math", "正弦", "正弦值", MATH_COLOR)
+        NodeDefinition::new(NodeType::Sin, "Math & Logic", "正弦", "正弦值", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("angle", "角度", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Cos, "Math", "余弦", "余弦值", MATH_COLOR)
+        NodeDefinition::new(NodeType::Cos, "Math & Logic", "余弦", "余弦值", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("angle", "角度", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Tan, "Math", "正切", "正切值", MATH_COLOR)
+        NodeDefinition::new(NodeType::Tan, "Math & Logic", "正切", "正切值", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("angle", "角度", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Asin, "Math", "反正弦", "反正弦", MATH_COLOR)
+        NodeDefinition::new(NodeType::Asin, "Math & Logic", "反正弦", "反正弦", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Acos, "Math", "反余弦", "反余弦", MATH_COLOR)
+        NodeDefinition::new(NodeType::Acos, "Math & Logic", "反余弦", "反余弦", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Atan, "Math", "反正切", "反正切", MATH_COLOR)
+        NodeDefinition::new(NodeType::Atan, "Math & Logic", "反正切", "反正切", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Floor, "Math", "向下取整", "向下取整", MATH_COLOR)
+        NodeDefinition::new(NodeType::Floor, "Math & Logic", "向下取整", "向下取整", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Ceil, "Math", "向上取整", "向上取整", MATH_COLOR)
+        NodeDefinition::new(NodeType::Ceil, "Math & Logic", "向上取整", "向上取整", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Round, "Math", "四舍五入", "四舍五入", MATH_COLOR)
+        NodeDefinition::new(NodeType::Round, "Math & Logic", "四舍五入", "四舍五入", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Trunc, "Math", "截断", "截断小数部分", MATH_COLOR)
+        NodeDefinition::new(NodeType::Trunc, "Math & Logic", "截断", "截断小数部分", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Sign, "Math", "符号", "数值符号", MATH_COLOR)
+        NodeDefinition::new(NodeType::Sign, "Math & Logic", "符号", "数值符号", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::Abs, "Math", "绝对值", "绝对值", MATH_COLOR)
+        NodeDefinition::new(NodeType::Abs, "Math & Logic", "绝对值", "绝对值", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
                 out_data("out_value", PortType::Number, "值"),
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::LogN, "Math", "自然对数", "自然对数", MATH_COLOR)
+        NodeDefinition::new(NodeType::LogN, "Math & Logic", "自然对数", "自然对数", MATH_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![
                 out_flow(),
@@ -1470,8 +1409,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             ])
             .with_params(vec![p_req("value", "值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::Log2,
-            "Math",
+            NodeType::Log2, "Math & Logic",
             "Log2",
             "以 2 为底的对数",
             MATH_COLOR,
@@ -1483,8 +1421,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::Log10,
-            "Math",
+            NodeType::Log10, "Math & Logic",
             "Log10",
             "以 10 为底的对数",
             MATH_COLOR,
@@ -1496,8 +1433,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("value", "值", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::Min,
-            "Math",
+            NodeType::Min, "Math & Logic",
             "最小值",
             "一组数字中的最小值",
             MATH_COLOR,
@@ -1509,8 +1445,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("values", "数值列表", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::Max,
-            "Math",
+            NodeType::Max, "Math & Logic",
             "最大值",
             "一组数字中的最大值",
             MATH_COLOR,
@@ -1522,11 +1457,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("values", "数值列表", ParamType::List)]),
         // -----------------------------------------------------------------
-        // Math: Vector
+        // Math & Logic: Vector
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::Vector,
-            "Math: Vector",
+            NodeType::Vector, "Math & Logic",
             "向量",
             "创建 3D 向量",
             MATH_COLOR,
@@ -1542,8 +1476,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("z", "Z", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::Quaternion,
-            "Math: Vector",
+            NodeType::Quaternion, "Math & Logic",
             "四元数",
             "创建四元数",
             MATH_COLOR,
@@ -1560,8 +1493,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("rw", "RW", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::Vector3Length,
-            "Math: Vector",
+            NodeType::Vector3Length, "Math & Logic",
             "向量长度",
             "向量长度",
             MATH_COLOR,
@@ -1573,8 +1505,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("v", "向量", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::Vector3SqrLength,
-            "Math: Vector",
+            NodeType::Vector3SqrLength, "Math & Logic",
             "向量长度平方",
             "向量长度平方",
             MATH_COLOR,
@@ -1586,8 +1517,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("v", "向量", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::Vector3Add,
-            "Math: Vector",
+            NodeType::Vector3Add, "Math & Logic",
             "向量加",
             "向量相加",
             MATH_COLOR,
@@ -1602,8 +1532,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("v2", "向量 2", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::Vector3Sub,
-            "Math: Vector",
+            NodeType::Vector3Sub, "Math & Logic",
             "向量减",
             "向量相减",
             MATH_COLOR,
@@ -1618,8 +1547,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("v2", "向量 2", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::Vector3Scale,
-            "Math: Vector",
+            NodeType::Vector3Scale, "Math & Logic",
             "向量缩放",
             "向量缩放",
             MATH_COLOR,
@@ -1634,8 +1562,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("scalar", "缩放", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::Vector3Dot,
-            "Math: Vector",
+            NodeType::Vector3Dot, "Math & Logic",
             "向量点积",
             "向量点积",
             MATH_COLOR,
@@ -1650,8 +1577,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("v2", "向量 2", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::Vector3Cross,
-            "Math: Vector",
+            NodeType::Vector3Cross, "Math & Logic",
             "向量叉积",
             "向量叉积",
             MATH_COLOR,
@@ -1666,8 +1592,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("v2", "向量 2", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::Vector3Rotate,
-            "Math: Vector",
+            NodeType::Vector3Rotate, "Math & Logic",
             "旋转向量",
             "用四元数旋转向量",
             MATH_COLOR,
@@ -1682,8 +1607,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("v", "向量", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::Vector3Distance,
-            "Math: Vector",
+            NodeType::Vector3Distance, "Math & Logic",
             "向量距离",
             "两个向量之间的距离",
             MATH_COLOR,
@@ -1698,11 +1622,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("v2", "向量 2", ParamType::List),
         ]),
         // -----------------------------------------------------------------
-        // String
+        // String / File / List
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::Length,
-            "String",
+            NodeType::Length, "String / File / List",
             "字符串长度",
             "字符串长度",
             STRING_COLOR,
@@ -1714,8 +1637,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("s", "字符串", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::Lower,
-            "String",
+            NodeType::Lower, "String / File / List",
             "转小写",
             "转换为小写",
             STRING_COLOR,
@@ -1727,8 +1649,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("s", "字符串", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::Upper,
-            "String",
+            NodeType::Upper, "String / File / List",
             "转大写",
             "转换为大写",
             STRING_COLOR,
@@ -1740,8 +1661,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("s", "字符串", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::Find,
-            "String",
+            NodeType::Find, "String / File / List",
             "查找",
             "查找子串索引",
             STRING_COLOR,
@@ -1756,8 +1676,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_req("s", "字符串", ParamType::String),
         ]),
         NodeDefinition::new(
-            NodeType::SubString,
-            "String",
+            NodeType::SubString, "String / File / List",
             "截取",
             "提取子串",
             STRING_COLOR,
@@ -1774,8 +1693,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("length", "长度", ParamType::Number),
         ]),
         NodeDefinition::new(
-            NodeType::Format,
-            "String",
+            NodeType::Format, "String / File / List",
             "格式化",
             "格式化字符串",
             STRING_COLOR,
@@ -1790,8 +1708,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
-            NodeType::ToNumber,
-            "String",
+            NodeType::ToNumber, "String / File / List",
             "转数字",
             "字符串转数字",
             STRING_COLOR,
@@ -1803,14 +1720,13 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("s", "字符串", ParamType::String)]),
         // -----------------------------------------------------------------
-        // File
+        // String / File / List (continued)
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::FileExists,
-            "File",
+            NodeType::FileExists, "String / File / List",
             "文件存在",
             "文件是否存在",
-            FILE_COLOR,
+            STRING_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -1819,11 +1735,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("path", "路径", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::GetFiles,
-            "File",
+            NodeType::GetFiles, "String / File / List",
             "获取文件",
             "获取文件列表",
-            FILE_COLOR,
+            STRING_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -1835,11 +1750,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("subfolders", "包含子文件夹", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::GetFileExtension,
-            "File",
+            NodeType::GetFileExtension, "String / File / List",
             "获取扩展名",
             "获取文件扩展名",
-            FILE_COLOR,
+            STRING_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -1848,14 +1762,13 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("path", "路径", ParamType::String)]),
         // -----------------------------------------------------------------
-        // Objects
+        // Threading & Concurrency / Objects / Conditions & Queries
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::CreateList,
-            "Objects",
+            NodeType::CreateList, "String / File / List",
             "创建列表",
             "创建列表",
-            OBJECT_COLOR,
+            STRING_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -1864,11 +1777,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_opt("keyValues", "键值", ParamType::Object)]),
         NodeDefinition::new(
-            NodeType::Copy,
-            "Objects",
+            NodeType::Copy, "String / File / List",
             "复制列表",
             "复制列表",
-            OBJECT_COLOR,
+            STRING_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -1880,11 +1792,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("deepCopy", "深拷贝", ParamType::Boolean),
         ]),
         NodeDefinition::new(
-            NodeType::CreateListFromJson,
-            "Objects",
+            NodeType::CreateListFromJson, "String / File / List",
             "从 JSON 创建列表",
             "从 JSON 文件创建列表",
-            OBJECT_COLOR,
+            STRING_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -1893,8 +1804,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("file", "文件", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::CreateThread,
-            "Objects",
+            NodeType::CreateThread, "Threading & Concurrency",
             "创建线程",
             "创建线程",
             OBJECT_COLOR,
@@ -1910,11 +1820,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
-            NodeType::CreateListener,
-            "Objects",
+            NodeType::CreateListener, "Threading & Concurrency",
             "创建监听器",
             "创建监听器（父作用域）",
-            WAIT_COLOR,
+            OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -1927,11 +1836,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
-            NodeType::CreateListenerLocal,
-            "Objects",
+            NodeType::CreateListenerLocal, "Threading & Concurrency",
             "创建局部监听器",
             "创建监听器（当前作用域）",
-            WAIT_COLOR,
+            OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
          .with_outputs(vec![
@@ -1944,28 +1852,25 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
-            NodeType::DestroyListener,
-            "Objects",
+            NodeType::DestroyListener, "Threading & Concurrency",
             "销毁监听器",
             "销毁当前 listener（`listener = null`）",
-            WAIT_COLOR,
+            OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()]),
         NodeDefinition::new(
-            NodeType::GetCurrentThread,
-            "Objects",
+            NodeType::GetCurrentThread, "Threading & Concurrency",
             "当前线程",
             "获取当前线程引用（`_this`）",
             OBJECT_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Object, "线程")]),
         NodeDefinition::new(
-            NodeType::WaitForThread,
-            "Objects",
+            NodeType::WaitForThread, "Threading & Concurrency",
             "等待线程结束",
             "等待子线程结束（`thread.WaitForFinish()`）",
-            WAIT_COLOR,
+            OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
@@ -2030,11 +1935,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("areas", "区域列表", ParamType::List)]),
         NodeDefinition::new(
-            NodeType::CreateCondition,
-            "Objects",
+            NodeType::CreateCondition, "Conditions & Queries",
             "创建条件",
             "创建条件对象",
-            OBJECT_COLOR,
+            CONDITIONS_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -2046,11 +1950,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("id", "ID", ParamType::String),
         ]),
         NodeDefinition::new(
-            NodeType::CreateItemCondition,
-            "Objects",
+            NodeType::CreateItemCondition, "Conditions & Queries",
             "物品条件",
             "创建物品条件",
-            OBJECT_COLOR,
+            CONDITIONS_COLOR,
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![
@@ -2203,11 +2106,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("interaction", "交互", ParamType::String),
         ]),
         // -----------------------------------------------------------------
-        // Special
+        // Editor-only
         // -----------------------------------------------------------------
         NodeDefinition::new(
-            NodeType::Meta,
-            "Special",
+            NodeType::Meta, "Editor-only",
             "元数据",
             "任务元数据",
             SPECIAL_COLOR,
@@ -2218,16 +2120,14 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("settings", "设置", ParamType::List),
         ]),
         NodeDefinition::new(
-            NodeType::Comment,
-            "Special",
+            NodeType::Comment, "Editor-only",
             "注释",
             "注释节点",
             SPECIAL_COLOR,
         )
         .with_params(vec![p_opt("text", "文本", ParamType::String)]),
         NodeDefinition::new(
-            NodeType::Group,
-            "Special",
+            NodeType::Group, "Editor-only",
             "分组",
             "可视化分组框",
             SPECIAL_COLOR,
@@ -2239,20 +2139,18 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         // ── Phase 6: Data-only 布尔/条件节点 ──
         // 纯数据输出，无 Flow 端口。通过 DataFlow 连入 If/While 的 condition。
         NodeDefinition::new(
-            NodeType::Boolean,
-            "Math",
+            NodeType::Boolean, "Literals",
             "布尔值",
             "输出布尔常量 true 或 false",
-            MATH_COLOR,
+            LITERALS_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Boolean, "布尔值")])
         .with_params(vec![e("value", "值", &["true", "false"])]),
         NodeDefinition::new(
-            NodeType::GetStateBool,
-            "Game Functions: Player",
+            NodeType::GetStateBool, "Conditions & Queries",
             "读取布尔状态",
             "读取 _state 中任意布尔变量",
-            GAME_COLOR,
+            CONDITIONS_COLOR,
         )
         .with_outputs(vec![out_data(
             "out_value",
@@ -2270,11 +2168,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             ],
         )]),
         NodeDefinition::new(
-            NodeType::GetStateNumber,
-            "Game Functions: Player",
+            NodeType::GetStateNumber, "Conditions & Queries",
             "读取数值状态",
             "读取 _state 中任意数值变量",
-            GAME_COLOR,
+            CONDITIONS_COLOR,
         )
         .with_outputs(vec![out_data(
             "out_value",
@@ -2290,8 +2187,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             ],
         )]),
         NodeDefinition::new(
-            NodeType::CompareNumbers,
-            "Math",
+            NodeType::CompareNumbers, "Math & Logic",
             "数值比较",
             "比较两个数值（>=、==、!=、>、<、<=）",
             MATH_COLOR,
@@ -2307,8 +2203,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             e("operator", "操作符", &[">=", "==", "!=", ">", "<", "<="]),
         ]),
         NodeDefinition::new(
-            NodeType::LogicAnd,
-            "Math",
+            NodeType::LogicAnd, "Math & Logic",
             "逻辑与",
             "两个布尔值的逻辑与（&&）",
             MATH_COLOR,
@@ -2323,8 +2218,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "结果",
         )]),
         NodeDefinition::new(
-            NodeType::LogicOr,
-            "Math",
+            NodeType::LogicOr, "Math & Logic",
             "逻辑或",
             "两个布尔值的逻辑或（||）",
             MATH_COLOR,
@@ -2339,8 +2233,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "结果",
         )]),
         NodeDefinition::new(
-            NodeType::LogicNot,
-            "Math",
+            NodeType::LogicNot, "Math & Logic",
             "逻辑非",
             "布尔值的逻辑取反（!）",
             MATH_COLOR,
@@ -2354,38 +2247,37 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "结果",
         )]),
         // ── Phase 7: 坐标系统 ──
-        NodeDefinition::new(NodeType::GetPosition, "Game Functions: Player", "坐标预设", "从预设坐标库选取位置", GAME_COLOR)
+        NodeDefinition::new(NodeType::GetPosition, "Game API", "坐标预设", "从预设坐标库选取位置", GAME_COLOR)
             .with_outputs(vec![out_data("out_position", PortType::List, "坐标"), out_data("out_stage", PortType::String, "场景")])
             .with_params(vec![p_req("coord_id", "坐标ID", ParamType::String), e("stage", "场景", STAGE_TYPES), p_req("x", "X", ParamType::Number), p_req("y", "Y", ParamType::Number), p_req("z", "Z", ParamType::Number)]),
-        NodeDefinition::new(NodeType::MakeVector, "Math: Vector", "构造向量", "x,y,z → Vector", MATH_COLOR)
+        NodeDefinition::new(NodeType::MakeVector, "Math & Logic", "构造向量", "x,y,z → Vector", MATH_COLOR)
             .with_inputs(vec![PortDefinition::new("x", PortType::Number, "X").required(true), PortDefinition::new("y", PortType::Number, "Y").required(true), PortDefinition::new("z", PortType::Number, "Z").required(true)])
             .with_outputs(vec![out_data("out_vec", PortType::List, "向量")])
             .with_params(vec![p_req("x", "X", ParamType::Number), p_req("y", "Y", ParamType::Number), p_req("z", "Z", ParamType::Number)]),
         NodeDefinition::new(
-            NodeType::NumberConstant,
-            "Math",
+            NodeType::NumberConstant, "Literals",
             "数值常量",
             "输出一个数值常量（如 0, 1, 90）",
-            MATH_COLOR,
+            LITERALS_COLOR,
         )
         .with_outputs(vec![out_data("out_value", PortType::Number, "数值")])
         .with_params(vec![p_req("value", "值", ParamType::Number)]),
-        NodeDefinition::new(NodeType::BreakVector, "Math: Vector", "拆分向量", "Vector → x,y,z", MATH_COLOR)
+        NodeDefinition::new(NodeType::BreakVector, "Math & Logic", "拆分向量", "Vector → x,y,z", MATH_COLOR)
             .with_inputs(vec![PortDefinition::new("in_vec", PortType::List, "向量").required(true)])
             .with_outputs(vec![out_data("x", PortType::Number, "X"), out_data("y", PortType::Number, "Y"), out_data("z", PortType::Number, "Z")]),
-        NodeDefinition::new(NodeType::CheckCondition, "Math", "检查条件", "条件对象→布尔值", MATH_COLOR)
+        NodeDefinition::new(NodeType::CheckCondition, "Conditions & Queries", "检查条件", "条件对象→布尔值", CONDITIONS_COLOR)
             .with_inputs(vec![PortDefinition::new("cond", PortType::Object, "条件对象").required(true)])
             .with_outputs(vec![out_data("out_result", PortType::Boolean, "结果")]),
-        NodeDefinition::new(NodeType::CheckEquipment, "Game Functions: Items", "检查装备", "是否装备指定玩具", GAME_COLOR)
+        NodeDefinition::new(NodeType::CheckEquipment, "Conditions & Queries", "检查装备", "是否装备指定玩具", CONDITIONS_COLOR)
             .with_outputs(vec![out_data("out_value", PortType::Boolean, "结果")])
             .with_params(vec![e("equipType", "装备类型", &["Handcuff","KeyHandcuff","TimerHandcuff","Vibrator","EyeMask","TitRotor","KuriRotor","PistonAnal","PistonPussy","AnalPlug"])]),
-        NodeDefinition::new(NodeType::CheckCosplay, "Game Functions: Items", "检查服装", "是否穿着指定服装", GAME_COLOR)
+        NodeDefinition::new(NodeType::CheckCosplay, "Conditions & Queries", "检查服装", "是否穿着指定服装", CONDITIONS_COLOR)
             .with_outputs(vec![out_data("out_value", PortType::Boolean, "结果")])
             .with_params(vec![p_req("cosplayKey", "服装键", ParamType::String)]),
-        NodeDefinition::new(NodeType::StringConstant, "Math", "字符串常量", "输出字符串常量", MATH_COLOR)
+        NodeDefinition::new(NodeType::StringConstant, "Literals", "字符串常量", "输出字符串常量", LITERALS_COLOR)
             .with_outputs(vec![out_data("out_value", PortType::String, "字符串")])
             .with_params(vec![p_req("value", "值", ParamType::String)]),
-        NodeDefinition::new(NodeType::ForeachNode, "Flow", "Foreach", "遍历列表，每元素调用标签", WAIT_COLOR)
+        NodeDefinition::new(NodeType::ForeachNode, "Objects", "Foreach", "遍历列表，每元素调用标签", OBJECT_COLOR)
             .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow(), out_data("out_label", PortType::String, "标签名")])
             .with_params(vec![p_req("list", "列表", ParamType::String), p_req("threadVar", "标签名", ParamType::String)]),
@@ -2399,7 +2291,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 166);
+        assert_eq!(all.len(), 168);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2408,7 +2300,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 166);
+        assert_eq!(seen.len(), 168);
     }
 
 
