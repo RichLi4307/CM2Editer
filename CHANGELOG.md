@@ -55,7 +55,8 @@
 ### 测试
 
 - 新增 `ui::panels::overview` 单元测试：验证概览图能从 `Goto` 节点提取目标标签关系并生成唯一布局。
-- `cargo test --lib`：93 个 lib tests 全部通过。
+- 新增 `graph::container::tests::test_entry_node_id_prefers_top_left_no_incoming_flow`，验证入口节点按位置和无入边规则稳定选择。
+- `cargo test --lib`：94 个 lib tests 全部通过。
 
 ### 修复
 

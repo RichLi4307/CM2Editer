@@ -59,7 +59,7 @@ main 线程的 main 标签：
        └── main 标签
 ```
 
-4. 点击 `main` 标签，画布显示一个入口钉，文字为 `入口: main`。
+1. 点击 `main` 标签，画布显示一个入口钉，文字为 `入口: main`。
 5. 底部 `.code` 预览会显示 `main` 线程框架（目前只有 `thread = _this`）。
 
 ---
@@ -187,6 +187,131 @@ main:
 
 ---
 
+## 第七步：多条件组合判断
+
+> 目标：当 **完全暴露** 且 **穿着指定 Cosplay** 且 **快感值 >= 90** 时，才执行后续操作。
+
+### 7.1 检查“完全暴露”
+
+1. 拖 **创建条件**（`CreateCondition`）到画布。
+2. 属性面板 → `condition` 选择 `Exposed_All`。
+3. 拖 **检查条件**（`CheckCondition`）。
+4. 用 Data 边连接 `CreateCondition.out_condition` → `CheckCondition.cond`。
+5. 把 `CreateCondition` 接入 Flow 链（它有 `in_flow` / `out_flow`）。
+
+### 7.2 检查“穿着某件 Cosplay”
+
+1. 拖 **检查服装**（`CheckCosplay`）。
+2. 属性面板 → `cosplayKey` 输入服装键，例如 `Bunny`。
+
+### 7.3 检查“快感值 >= 90”
+
+1. 拖 **GetStateNumber**，`stateKey` 选 `Ecstasy`。
+2. 拖 **CompareNumbers**，`b` = `90.0`，`operator` = `>=`。
+3. 用 Data 边连接 `GetStateNumber.out_value` → `CompareNumbers.a`。
+
+### 7.4 把三个条件合并成一个布尔
+
+1. 拖两个 **逻辑与**（`LogicAnd`）。
+2. 连接：
+   - `CheckCondition.out_result` → `LogicAnd1.a`
+   - `CheckCosplay.out_value` → `LogicAnd1.b`
+   - `LogicAnd1.out_result` → `LogicAnd2.a`
+   - `CompareNumbers.out_result` → `LogicAnd2.b`
+3. 拖一个 **If**，把 `LogicAnd2.out_result` → `If.condition`。
+
+生成结果（示意）：
+
+```code
+main:
+    thread = _this
+    Log(output="开始")
+    var_cond = CreateCondition(condition="Exposed_All")
+    if (var_cond.Check()) && (Cosplay_Bunny) && (_state.Ecstasy >= 90.0)
+        ...
+    else
+        ...
+```
+
+> 注意：
+> - `CreateCondition` 是 Flow 节点，必须放在 Flow 链里才会生成变量。
+> - `CheckCondition` 是 Data 节点，把条件对象转成布尔值，才能接入 `LogicAnd` / `If`。
+> - 实际变量名（如 `var_cond`）由节点 ID 自动生成，不必手动写。
+
+---
+
+## 第八步：修改游戏数据（增加 RP）
+
+> 目标：满足上述三个条件时，增加 **10 点持有 RP**。
+
+| 步骤 | 操作 |
+|------|------|
+| 1 | 拖 **增加持有 RP**（`AddCurrentRP`）到 If 的 True 分支后方 |
+| 2 | 属性面板 → `value` 输入 `10` |
+| 3 | Flow 边连接 `If.out_true` → `AddCurrentRP.in_flow` |
+| 4 | 若需要继续后续逻辑，从 `AddCurrentRP.out_flow` 连向下一个节点 |
+
+生成结果：
+
+```code
+    if (var_cond.Check()) && (Cosplay_Bunny) && (_state.Ecstasy >= 90.0)
+        AddCurrentRP(value=10)
+    else
+        Log(output="条件不满足")
+```
+
+> 类似节点：
+> - **AddCurrentEarnRP** — 增加本次外出赚取的 RP。
+> - **SetCurrentRP** / **SetCurrentEarnRP** — 直接设置，而不是增加。
+
+---
+
+## 第九步：只执行一次，不要每帧加分
+
+Flow 链里的节点只会在 Flow 到达它时执行一次。所以上面的 `AddCurrentRP` 在 `main` 标签的 Flow 链里只会加一次分。
+
+**但如果你把它放进监听器（Listener）容器，监听器每帧都会执行，RP 就会每帧都增加。** 这是最常见的新手错误。
+
+当前 UI 暂不支持新建监听器，因此你基本不会遇到这个问题。但如果以后你手动创建监听器，请务必加“只执行一次”守卫：
+
+1. 拖 **Boolean** 节点，设为 `false`。
+2. 拖 **SetVariable**，`name` 填 `reward_given`；用 Data 边把 `Boolean.out_value` 连到 `SetVariable.value`。
+3. 在加分前，拖 **Variable**，`name` 填 `reward_given`。
+4. 拖 **LogicNot**，把 `Variable.out_value` 连到 `LogicNot.a`。
+5. 用 **LogicAnd** 把 `LogicNot.out_result` 与条件结果组合，作为 `If.condition` 的输入。
+6. 加分后，再拖一个 **Boolean** 节点设为 `true`，连到另一个 **SetVariable(name=reward_given)** 的 `value` 端口，把 `reward_given` 设为 `true`。
+
+守卫逻辑示意：
+
+```text
+入口钉 → SetVariable(reward_given=false)
+            ↓
+         Log("开始")
+            ↓
+         CreateCondition(Exposed_All)
+            ↓
+         If (条件 && !reward_given)
+        ┌───────────┴───────────┐
+   True: AddCurrentRP(value=10)   False: 跳过
+            ↓
+         SetVariable(reward_given=true)
+```
+
+生成 `.code`（示意）：
+
+```code
+main:
+    thread = _this
+    reward_given = false
+    Log(output="开始")
+    var_node_xxx = CreateCondition(condition="Exposed_All")
+    if (var_node_xxx.Check()) && (Cosplay_Bunny) && (_state.Ecstasy >= 90.0) && (!reward_given)
+        AddCurrentRP(value=10)
+        reward_given = true
+```
+
+---
+
 ## 常见误区
 
 | 误区 | 正确做法 |
@@ -197,10 +322,12 @@ main:
 | 给 `Log.output` 加引号 | String 参数直接写内容，编辑器会生成正确引号 |
 | 把 Data 节点拖到 Flow 链里 | 纯 Data 节点没有 Flow 端口，只能连 Data 边 |
 | 入口钉指向了错误节点 | 把正确节点移到最靠左上的位置，或确保其它节点已有 Flow 入边 |
+| `CreateCondition` 后直接接 `If` | 需要 `CheckCondition` 把条件对象转成布尔值再连 `If` / `LogicAnd` |
+| 在监听器里加分不做守卫 | 监听器每帧执行，必须加布尔变量保证只加一次 |
 
 ---
 
-## 完整示例：一个简单状态机片段
+## 完整示例：条件奖励
 
 工程结构：
 
@@ -215,12 +342,14 @@ main:
 ```text
 入口钉 → Log("开始")
             ↓
-         If (_state.Ecstasy >= 90)
-       ┌────────┴────────┐
-   True: Log("高")   False: Log("低")
+         CreateCondition(Exposed_All)
+            ↓
+         If ((cond.Check()) && (Cosplay_Bunny) && (_state.Ecstasy >= 90.0))
+        ┌──────────────────┴──────────────────┐
+   True: AddCurrentRP(value=10)             False: Log("条件不满足")
 ```
 
-生成 `.code`：
+生成 `.code`（变量名示意）：
 
 ```code
 var_main_thread = CreateThread("main")
@@ -228,10 +357,44 @@ var_main_thread = CreateThread("main")
 main:
     thread = _this
     Log(output="开始")
-    if _state.Ecstasy >= 90
-        Log(output="高")
+    var_node_xxx = CreateCondition(condition="Exposed_All")
+    if (var_node_xxx.Check()) && (Cosplay_Bunny) && (_state.Ecstasy >= 90.0)
+        AddCurrentRP(value=10)
     else
-        Log(output="低")
+        Log(output="条件不满足")
+```
+
+---
+
+## 完整示例：只执行一次的奖励
+
+如果你担心这段逻辑会被反复触发，可以加一个守卫变量：
+
+```text
+入口钉 → SetVariable(reward_given=false)
+            ↓
+         Log("开始")
+            ↓
+         CreateCondition(Exposed_All)
+            ↓
+         If (条件 && !reward_given)
+        ┌───────────┴───────────┐
+   True: AddCurrentRP(value=10)   False: 跳过
+            ↓
+         SetVariable(reward_given=true)
+```
+
+生成 `.code`（示意）：
+
+```code
+main:
+    thread = _this
+    reward_given = false
+    Log(output="开始")
+    var_node_xxx = CreateCondition(condition="Exposed_All")
+    if (var_node_xxx.Check()) && (Cosplay_Bunny) && (_state.Ecstasy >= 90.0) && (!reward_given)
+        AddCurrentRP(value=10)
+        reward_given = true
 ```
 
 ---

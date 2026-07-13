@@ -260,6 +260,10 @@ pub enum ContainerLocation<'a> {
 
 #[cfg(test)]
 mod tests {
+    use crate::graph::edge::{Edge, EdgeEndpoint};
+    use crate::graph::node::Port;
+    use crate::graph::types::{NodeType, PortType};
+
     use super::*;
 
     #[test]
@@ -269,5 +273,43 @@ mod tests {
         assert_eq!(g.threads[0].name, "main");
         assert_eq!(g.threads[0].labels.len(), 1);
         assert_eq!(g.threads[0].labels[0].name, "main");
+    }
+
+    #[test]
+    fn test_entry_node_id_prefers_top_left_no_incoming_flow() {
+        let mut label = LabelContainer {
+            id: "label".to_string(),
+            name: "test".to_string(),
+            params: vec![],
+            nodes: HashMap::new(),
+            edges: HashMap::new(),
+            entry_pin: Vec2::default(),
+            position: Vec2::default(),
+        };
+
+        let mut a = Node::new(NodeType::Log, Vec2::new(100.0, 0.0));
+        a.id = "a".to_string();
+        a.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        a.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+
+        let mut b = Node::new(NodeType::Log, Vec2::new(0.0, 0.0));
+        b.id = "b".to_string();
+        b.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        b.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+
+        label.nodes.insert(a.id.clone(), a);
+        label.nodes.insert(b.id.clone(), b);
+
+        // 两者都无入边；b 更靠左，因此入口应为 b。
+        assert_eq!(label.entry_node_id(), Some("b".to_string()));
+
+        // 给 b 加一条 Flow 入边，a 变成唯一无入边节点。
+        let edge = Edge::new(
+            EdgeEndpoint::new("a", "out_flow"),
+            EdgeEndpoint::new("b", "in_flow"),
+            PortType::Flow,
+        );
+        label.edges.insert(edge.id.clone(), edge);
+        assert_eq!(label.entry_node_id(), Some("a".to_string()));
     }
 }
