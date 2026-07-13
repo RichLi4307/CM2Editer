@@ -62,9 +62,19 @@
 
 ### P3 — 迁移与兼容
 
+> 按用户当前要求，**老版本适配暂不纳入本阶段计划**；本章节保留待后续需要时启用。
+
 - [ ] 实现 v1.x → v2.0 JSON 迁移脚本。
 - [ ] 完成 `docs/migration_guide.md` 中的映射示例。
 - [ ] 保留旧工程打开能力，并在 UI 中提示 deprecated 节点。
+
+### P4 — 测试与预览版发布
+
+- [ ] 跑全量 `cargo test` / `cargo clippy`，修复 P2 回归。
+- [ ] 补充 UI 回归测试：容器切换、入口钉、概览图、工程保存/导出。
+- [ ] 手动验证一个示例任务从新建到导出 `.code` 的完整流程。
+- [ ] 构建 Release 版本并打包字体、命名空间、README、AGENTS.md、LICENSE。
+- [ ] 发布 GitHub Release `v0.3.0-alpha`，附已知限制说明。
 
 ---
 
@@ -104,3 +114,4 @@
 | 2026-07-13 | 文档-教程 | 将实战教程第五步改为 `GetStateNumber(Rank)`，区分 RP、`_state` 状态与 `_save` 存档读取；补充 RP 与角色经验键名说明 | 已完成 |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |
 | 2026-07-13 | 文档-重构 | 合并 `docs/agent_prompt.md` 为项目根目录 `AGENTS.md`，按 Kilo 约定添加文档置信上下级与查阅指南 | 已完成 |
+| 2026-07-13 | 规划-P4 | 确定下一步：跳过 P3 老版本适配，进入 P4 测试与发布 v0.3.0-alpha 预览版 | 进行中 |
