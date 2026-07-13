@@ -17,10 +17,13 @@ from pathlib import Path
 from typing import List, Tuple
 
 # 强制使用 UTF-8 输出，避免在 Windows 终端出现中文乱码
-if hasattr(sys.stdout, "reconfigure"):
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-if hasattr(sys.stderr, "reconfigure"):
-    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
+if callable(stdout_reconfigure):
+    stdout_reconfigure(encoding="utf-8", errors="replace")
+
+stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
+if callable(stderr_reconfigure):
+    stderr_reconfigure(encoding="utf-8", errors="replace")
 
 
 def collect_rust_files(root: Path) -> List[Path]:
