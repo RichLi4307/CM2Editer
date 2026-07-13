@@ -280,7 +280,7 @@ impl InteractionController {
     fn handle_idle(
         &mut self,
         ctx: &egui::Context,
-        _ui: &mut egui::Ui,
+        ui: &mut egui::Ui,
         response: &Response,
         canvas_rect: Rect,
         mouse_pos: Option<Pos2>,
@@ -382,6 +382,11 @@ impl InteractionController {
                     self.context_node = None;
                 }
             }
+        }
+
+        // 鼠标靠近输出端口时高亮提示，方便开始拉线
+        if let Some(pos) = mouse_pos {
+            self.paint_source_port_hover(ui, pos, port_hits);
         }
     }
 
@@ -524,6 +529,22 @@ impl InteractionController {
             let radius = 10.0;
             ui.painter()
                 .circle_stroke(*center, radius, Stroke::new(2.0, color));
+        }
+    }
+
+    /// 在空闲状态下，鼠标靠近输出端口时绘制高亮提示，方便用户开始拉线。
+    fn paint_source_port_hover(
+        &mut self,
+        ui: &mut egui::Ui,
+        mouse_pos: Pos2,
+        port_hits: &[(String, String, Pos2, PortType, bool)],
+    ) {
+        if let Some((_, _, center, _, _)) = port_hits
+            .iter()
+            .find(|(_, _, c, _, is_input)| !is_input && c.distance(mouse_pos) <= 10.0)
+        {
+            ui.painter()
+                .circle_stroke(*center, 10.0, Stroke::new(2.0, Theme::SELECTED_GLOW));
         }
     }
 
