@@ -114,26 +114,7 @@ impl<'a> CodeGenerator<'a> {
 
     /// 找到标签的入口节点
     fn find_entry_node(&self, label: &LabelContainer) -> Option<String> {
-        // 优先返回有 out_flow 但没有 in_flow 的节点
-        for (id, node) in &label.nodes {
-            if node.outputs.iter().any(|p| p.port_type == PortType::Flow)
-                && !self.has_incoming_flow(label, id)
-            {
-                return Some(id.clone());
-            }
-        }
-        // 兜底：返回第一个有 out_flow 的节点
-        label
-            .nodes
-            .values()
-            .find(|n| n.outputs.iter().any(|p| p.port_type == PortType::Flow))
-            .map(|n| n.id.clone())
-    }
-
-    fn has_incoming_flow(&self, label: &LabelContainer, node_id: &str) -> bool {
-        label.edges.values().any(|e| {
-            e.edge_type == PortType::Flow && e.to.node_id == node_id && e.to.port_id == "in_flow"
-        })
+        label.entry_node_id()
     }
 
     /// 递归生成从某个节点开始的代码序列

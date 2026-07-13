@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use super::{
     edge::Edge,
     node::{Node, ParamValue, Vec2},
+    types::PortType,
 };
 
 /// 标签容器
@@ -19,6 +20,56 @@ pub struct LabelContainer {
     pub edges: HashMap<String, Edge>,
     pub entry_pin: Vec2,
     pub position: Vec2,
+}
+
+impl LabelContainer {
+    /// 返回当前标签的入口节点 ID。
+    ///
+    /// 规则：
+    /// 1. 候选节点必须带有 Flow 类型输出端口（如 `out_flow`）。
+    /// 2. 优先选择没有 Flow 边连入 `in_flow` 的节点。
+    /// 3. 若存在多个候选，选择位置最靠左上（x 最小，其次 y 最小）的节点，保证稳定。
+    /// 4. 若无无入边节点，则回退到任意 Flow 输出节点（同样按左上位置）。
+    pub fn entry_node_id(&self) -> Option<String> {
+        let has_incoming_flow = |node_id: &str| {
+            self.edges.values().any(|e| {
+                e.edge_type == PortType::Flow
+                    && e.to.node_id == node_id
+                    && e.to.port_id == "in_flow"
+            })
+        };
+
+        let mut candidates: Vec<&Node> = self
+            .nodes
+            .values()
+            .filter(|n| n.outputs.iter().any(|p| p.port_type == PortType::Flow))
+            .collect();
+
+        let with_no_incoming: Vec<&Node> = candidates
+            .iter()
+            .copied()
+            .filter(|n| !has_incoming_flow(&n.id))
+            .collect();
+
+        if !with_no_incoming.is_empty() {
+            candidates = with_no_incoming;
+        }
+
+        candidates.sort_by(|a, b| {
+            a.position
+                .x
+                .partial_cmp(&b.position.x)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| {
+                    a.position
+                        .y
+                        .partial_cmp(&b.position.y)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+        });
+
+        candidates.first().map(|n| n.id.clone())
+    }
 }
 
 /// 标签参数签名

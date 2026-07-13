@@ -96,4 +96,6 @@
 | 2026-07-13 | 文档-归档 | 将旧版 `TODO.md` / `node_types.md` 归档到 `docs/archive/` | 已完成 |
 | 2026-07-13 | 文档-新架构 | 完成新架构核心文档：TODO.md、node_types.md、json_schema.md、agent_prompt.md、tutorial_make_code.md、migration_guide.md | 已完成 ✅ |
 | 2026-07-13 | 实现-P2 | 完成 UI 与编辑器重构：`src/app.rs` 迁移到 `ContainerGraph`；工程树显示 Thread/Label/Listener 层级；画布切换为当前容器内部流图；新增入口钉渲染；新增线程概览图面板 | 已完成 ✅ |
+| 2026-07-13 | 修复-P2 | 统一入口节点判定：`LabelContainer::entry_node_id()` 按最左上的无 Flow 入边节点稳定选择入口；入口钉渲染与代码生成器共用同一逻辑；修复 `main.rs` 启动 UI | 已完成 |
+| 2026-07-13 | 文档-教程 | 重写 `docs/tutorial_make_code.md`，对齐当前 UI 工作流程，注明多容器创建暂不支持 | 已完成 |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |

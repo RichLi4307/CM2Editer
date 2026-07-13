@@ -1904,7 +1904,7 @@ impl App {
             entry_pin_screen = entry_pin_renderer.screen_pos(&self.canvas, label.entry_pin, canvas_rect);
             entry_target = EntryPinRenderer::find_entry_port(label).and_then(|(node_id, port_id)| {
                 port_positions
-                    .get(&(node_id.to_string(), port_id.to_string()))
+                    .get(&(node_id, port_id))
                     .copied()
             });
             label_name = label.name.clone();

@@ -39,38 +39,10 @@ impl EntryPinRenderer {
 
     /// 查找当前标签的入口端口。
     ///
-    /// 逻辑与代码生成器保持一致：优先返回有 `out_flow` 输出且没有 Flow 入边的
-    /// 节点的 `in_flow` 输入端口；否则退回到第一个拥有 `out_flow` 输出和
-    /// `in_flow` 输入的节点。
-    pub fn find_entry_port(label: &LabelContainer) -> Option<(&str, &str)> {
-        let has_incoming_flow = |node_id: &str| {
-            label.edges.values().any(|e| {
-                e.edge_type == PortType::Flow
-                    && e.to.node_id == node_id
-                    && e.to.port_id == "in_flow"
-            })
-        };
-
-        for (id, node) in &label.nodes {
-            let has_out_flow = node
-                .outputs
-                .iter()
-                .any(|p| p.port_type == PortType::Flow);
-            if has_out_flow && !has_incoming_flow(id) {
-                if node.inputs.iter().any(|p| p.id == "in_flow") {
-                    return Some((id.as_str(), "in_flow"));
-                }
-            }
-        }
-
-        label
-            .nodes
-            .values()
-            .find(|n| {
-                n.outputs.iter().any(|p| p.port_type == PortType::Flow)
-                    && n.inputs.iter().any(|p| p.id == "in_flow")
-            })
-            .map(|n| (n.id.as_str(), "in_flow"))
+    /// 逻辑与代码生成器保持一致：使用 `LabelContainer::entry_node_id()` 选择
+    /// 最靠左上的无 Flow 入边节点，并返回其 `in_flow` 输入端口。
+    pub fn find_entry_port(label: &LabelContainer) -> Option<(String, String)> {
+        label.entry_node_id().map(|id| (id, "in_flow".to_string()))
     }
 
     /// 从入口钉到目标端口绘制 Flow 连线。
