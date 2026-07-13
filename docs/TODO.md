@@ -55,10 +55,10 @@
 
 ### P2 — UI 与编辑器重构
 
-- [ ] 左侧工程树显示 `ThreadContainer` / `LabelContainer` 层级。
-- [ ] 画布切换为“当前选中标签的内部流图”。
-- [ ] 提供线程概览图（状态机视图），显示标签间 `Goto` / `CreateThread` / `CreateListener` 关系。
-- [ ] 移除画布上的 `Start` / `Label` 节点；用容器入口钉替代。
+- [x] 左侧工程树显示 `ThreadContainer` / `LabelContainer` 层级。
+- [x] 画布切换为“当前选中标签的内部流图”。
+- [x] 提供线程概览图（状态机视图），显示标签间 `Goto` / `CreateThread` / `CreateListener` 关系。
+- [x] 移除画布上的 `Start` / `Label` 节点；用容器入口钉替代。
 
 ### P3 — 迁移与兼容
 
@@ -85,7 +85,7 @@
 - `main` 只是一个约定俗成的顶层线程标签，不是特殊入口。
 - Listener 是每帧/每秒调用标签的循环；局部监听器捕获创建处作用域。
 - 标签间关系应通过名称引用或 Data 端口表达，不能画 `Flow` 边。
-- `app` 和 `ui` 模块已暂时从 `src/lib.rs` 中屏蔽，待核心稳定后逐步恢复。
+- `app` 和 `ui` 模块已重新在 `src/lib.rs` 中启用，并迁移到容器化模型。
 
 ---
 
@@ -95,5 +95,5 @@
 |------|----------|------|------|
 | 2026-07-13 | 文档-归档 | 将旧版 `TODO.md` / `node_types.md` 归档到 `docs/archive/` | 已完成 |
 | 2026-07-13 | 文档-新架构 | 完成新架构核心文档：TODO.md、node_types.md、json_schema.md、agent_prompt.md、tutorial_make_code.md、migration_guide.md | 已完成 ✅ |
-| 2026-07-13 | 实现-P1 | 完成节点分类、移除自动 `_result=null`、新增 Variable/SetVariable、全量代码生成测试 | 已完成 ✅ |
+| 2026-07-13 | 实现-P2 | 完成 UI 与编辑器重构：`src/app.rs` 迁移到 `ContainerGraph`；工程树显示 Thread/Label/Listener 层级；画布切换为当前容器内部流图；新增入口钉渲染；新增线程概览图面板 | 已完成 ✅ |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |

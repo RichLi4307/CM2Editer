@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::graph::container::{LabelContainer, ListenerContainer, ThreadContainer};
 use crate::project::Project;
 
 /// 左栏工程文件树面板。
@@ -7,7 +8,13 @@ pub struct ProjectTreePanel;
 
 impl ProjectTreePanel {
     /// 显示工程文件树，返回用户触发的动作。
-    pub fn show(ui: &mut egui::Ui, project: Option<&mut Project>) -> ProjectTreeAction {
+    pub fn show(
+        ui: &mut egui::Ui,
+        project: Option<&mut Project>,
+        selected_code: &str,
+        selected_thread: usize,
+        selected_container: Option<ContainerKind>,
+    ) -> ProjectTreeAction {
         let mut action = ProjectTreeAction::None;
 
         ui.horizontal(|ui| {
@@ -42,23 +49,43 @@ impl ProjectTreePanel {
         egui::ScrollArea::vertical()
             .id_salt("project_tree_scroll")
             .show(ui, |ui| {
-            for code_file in &project.code_files {
-                let is_active = project.active_code == code_file.name;
-                ui.horizontal(|ui| {
-                    let name_label = format!("[{name}].code", name=code_file.name);
-                    let response = ui.selectable_label(is_active, &name_label);
-                    if response.clicked() {
-                        action = ProjectTreeAction::SelectCode(code_file.name.clone());
-                    }
-                    if !is_active && ui.small_button("Del").on_hover_text("删除").clicked() {
-                        action = ProjectTreeAction::DeleteCode(code_file.name.clone());
-                    }
-                    if ui.small_button("Ren").on_hover_text("重命名").clicked() {
-                        action = ProjectTreeAction::RenameCode(code_file.name.clone());
-                    }
-                });
-            }
-        });
+                for (cf_idx, code_file) in project.code_files.iter().enumerate() {
+                    let is_active = project.active_code == code_file.name
+                        || (selected_code == code_file.name && project.active_code.is_empty());
+                    let header_id = ui.id().with(("code_file", cf_idx));
+                    egui::collapsing_header::CollapsingState::load_with_default_open(
+                        ui.ctx(),
+                        header_id,
+                        true,
+                    )
+                    .show_header(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            let name_label = format!("[{}].code", code_file.name);
+                            let response = ui.selectable_label(is_active, &name_label);
+                            if response.clicked() {
+                                action = ProjectTreeAction::SelectCode(code_file.name.clone());
+                            }
+                            if !is_active && ui.small_button("Del").on_hover_text("删除").clicked()
+                            {
+                                action = ProjectTreeAction::DeleteCode(code_file.name.clone());
+                            }
+                            if ui.small_button("Ren").on_hover_text("重命名").clicked() {
+                                action = ProjectTreeAction::RenameCode(code_file.name.clone());
+                            }
+                        });
+                    })
+                    .body(|ui| {
+                        Self::show_threads(
+                            ui,
+                            &code_file.graph_doc.graph.threads,
+                            selected_code == code_file.name,
+                            selected_thread,
+                            selected_container,
+                            &mut action,
+                        );
+                    });
+                }
+            });
 
         ui.separator();
         if ui.button("+ 新建 .code").clicked() {
@@ -72,6 +99,112 @@ impl ProjectTreePanel {
         }
 
         action
+    }
+
+    fn show_threads(
+        ui: &mut egui::Ui,
+        threads: &[ThreadContainer],
+        code_active: bool,
+        selected_thread: usize,
+        selected_container: Option<ContainerKind>,
+        action: &mut ProjectTreeAction,
+    ) {
+        for (t_idx, thread) in threads.iter().enumerate() {
+            let thread_active = code_active && selected_thread == t_idx;
+            let thread_id = ui.id().with(("thread", t_idx));
+            let thread_label = if thread.auto_start {
+                format!("▶ {}", thread.name)
+            } else {
+                thread.name.clone()
+            };
+            egui::collapsing_header::CollapsingState::load_with_default_open(
+                ui.ctx(),
+                thread_id,
+                true,
+            )
+            .show_header(ui, |ui| {
+                ui.horizontal(|ui| {
+                    let response = ui.selectable_label(thread_active, &thread_label);
+                    if response.clicked() && !thread_active {
+                        *action = ProjectTreeAction::SelectContainer {
+                            thread_idx: t_idx,
+                            container: ContainerKind::Label(0),
+                        };
+                    }
+                });
+            })
+            .body(|ui| {
+                Self::show_labels(
+                    ui,
+                    &thread.labels,
+                    thread_active,
+                    selected_container,
+                    t_idx,
+                    action,
+                );
+                if !thread.listeners.is_empty() {
+                    ui.separator();
+                    Self::show_listeners(
+                        ui,
+                        &thread.listeners,
+                        thread_active,
+                        selected_container,
+                        t_idx,
+                        action,
+                    );
+                }
+            });
+        }
+    }
+
+    fn show_labels(
+        ui: &mut egui::Ui,
+        labels: &[LabelContainer],
+        thread_active: bool,
+        selected_container: Option<ContainerKind>,
+        thread_idx: usize,
+        action: &mut ProjectTreeAction,
+    ) {
+        ui.label("标签");
+        for (l_idx, label) in labels.iter().enumerate() {
+            let is_active =
+                thread_active && selected_container == Some(ContainerKind::Label(l_idx));
+            let response = ui.selectable_label(
+                is_active,
+                format!("  {}: {}", label.name, label.nodes.len()),
+            );
+            if response.clicked() && !is_active {
+                *action = ProjectTreeAction::SelectContainer {
+                    thread_idx,
+                    container: ContainerKind::Label(l_idx),
+                };
+            }
+        }
+    }
+
+    fn show_listeners(
+        ui: &mut egui::Ui,
+        listeners: &[ListenerContainer],
+        thread_active: bool,
+        selected_container: Option<ContainerKind>,
+        thread_idx: usize,
+        action: &mut ProjectTreeAction,
+    ) {
+        ui.label("监听器");
+        for (l_idx, listener) in listeners.iter().enumerate() {
+            let is_active =
+                thread_active && selected_container == Some(ContainerKind::Listener(l_idx));
+            let response = ui.selectable_label(
+                is_active,
+                format!("  {}: {}", listener.name(), listener.nodes().len()),
+            );
+            if response.clicked() && !is_active {
+                *action = ProjectTreeAction::SelectContainer {
+                    thread_idx,
+                    container: ContainerKind::Listener(l_idx),
+                };
+            }
+        }
     }
 
     /// 显示新建 `.code` 文件对话框。
@@ -199,10 +332,26 @@ pub enum ProjectTreeAction {
     SelectMeta,
     /// 切换到指定 `.code` 文件。
     SelectCode(String),
+    /// 选择容器（线程、标签或监听器）。
+    SelectContainer {
+        /// 线程在线程数组中的索引。
+        thread_idx: usize,
+        /// 选中的容器（标签或监听器）。
+        container: ContainerKind,
+    },
     /// 新建 `.code` 文件对话框。
     NewCodeDialog,
     /// 删除指定 `.code` 文件。
     DeleteCode(String),
     /// 重命名指定 `.code` 文件。
     RenameCode(String),
+}
+
+/// 容器中可被编辑的实体类型（工程树专用）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ContainerKind {
+    /// 标签容器。
+    Label(usize),
+    /// 监听器容器。
+    Listener(usize),
 }

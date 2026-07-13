@@ -9,6 +9,7 @@ pub mod json_preview;
 pub mod meta_editor;
 pub mod namespace_picker;
 pub mod node_library;
+pub mod overview;
 pub mod param_text_edit;
 pub mod project_tree;
 pub mod properties;

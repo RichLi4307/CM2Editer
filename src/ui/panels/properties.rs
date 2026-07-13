@@ -1,7 +1,7 @@
 use crate::api::namespace::NamespaceRegistry;
 use crate::api::coordinate::CoordinateRegistry;
 use crate::api::registry::get_definition;
-use crate::graph::graph::Graph;
+use crate::graph::container::LabelContainer;
 use crate::graph::node::{Node, ParamValue};
 use crate::graph::types::{NodeType, PortType};
 use crate::ui::panels::namespace_picker::NamespacePickerState;
@@ -17,7 +17,7 @@ impl PropertiesPanel {
     pub fn show(
         ui: &mut egui::Ui,
         node: &Node,
-        graph: &Graph,
+        label: &LabelContainer,
         registry: &NamespaceRegistry,
         picker: &mut Option<NamespacePickerState>,
         coord: &CoordinateRegistry,
@@ -46,7 +46,7 @@ impl PropertiesPanel {
             ui.vertical(|ui| {
                 ui.label(format!("{} {}", key, type_hint));
                 if let Some((new_key, new_value)) =
-                    Self::param_editor(ui, node, graph, registry, picker, coord, coord_picker, edit_bufs, key, value)
+                    Self::param_editor(ui, node, label, registry, picker, coord, coord_picker, edit_bufs, key, value)
                 {
                     changed = Some((new_key, new_value));
                 }
@@ -77,7 +77,7 @@ impl PropertiesPanel {
     fn param_editor(
         ui: &mut egui::Ui,
         node: &Node,
-        graph: &Graph,
+        label: &LabelContainer,
         registry: &NamespaceRegistry,
         picker: &mut Option<NamespacePickerState>,
         _coord: &CoordinateRegistry,
@@ -87,7 +87,7 @@ impl PropertiesPanel {
         value: &ParamValue,
     ) -> Option<(String, ParamValue)> {
         // 如果该参数对应的 Data 输入端口已被连接，则只读显示来源。
-        if let Some((src_node, src_port)) = connected_data_source(graph, &node.id, key) {
+        if let Some((src_node, src_port)) = connected_data_source(label, &node.id, key) {
             ui.label(format!("🔗 {}.{}", src_node, src_port));
             return None;
         }
@@ -148,7 +148,7 @@ impl PropertiesPanel {
         }
 
         // 否则使用数据源选择器 + 字面量编辑器。
-        Self::source_editor(ui, node, graph, key, value, edit_bufs)
+        Self::source_editor(ui, node, label, key, value, edit_bufs)
     }
 
     /// 枚举参数下拉框编辑器。
@@ -182,13 +182,13 @@ impl PropertiesPanel {
     fn source_editor(
         ui: &mut egui::Ui,
         node: &Node,
-        graph: &Graph,
+        label: &LabelContainer,
         key: &str,
         value: &ParamValue,
         edit_bufs: &mut EditBuffers,
     ) -> Option<(String, ParamValue)> {
         // 收集可选数据源：所有兼容类型的非 Flow 输出端口。
-        let options = available_data_sources(graph, node, key);
+        let options = available_data_sources(label, node, key);
 
         let selected_label = match value {
             ParamValue::Ref { node, port } => format!("{}.{} (ref)", node, port),
@@ -323,20 +323,20 @@ impl PropertiesPanel {
 ///
 /// 参数名与 Data 输入端口 ID 相同。当存在入边时返回源节点和端口。
 fn connected_data_source(
-    graph: &Graph,
+    label: &LabelContainer,
     node_id: &str,
     param_name: &str,
 ) -> Option<(String, String)> {
-    graph
-        .incoming_edges(node_id)
-        .iter()
-        .find(|e| e.to.port_id == param_name && e.edge_type != PortType::Flow)
+    label
+        .edges
+        .values()
+        .find(|e| e.to.node_id == node_id && e.to.port_id == param_name && e.edge_type != PortType::Flow)
         .map(|e| (e.from.node_id.clone(), e.from.port_id.clone()))
 }
 
 /// 收集当前图中可供参数引用的所有兼容数据输出。
 fn available_data_sources(
-    graph: &Graph,
+    label: &LabelContainer,
     node: &Node,
     param_name: &str,
 ) -> Vec<(String, ParamValue)> {
@@ -345,7 +345,7 @@ fn available_data_sources(
         .map(|p| p.param_type.port_type());
 
     let mut sources = Vec::new();
-    for (other_id, other) in &graph.nodes {
+    for (other_id, other) in &label.nodes {
         if other_id == &node.id {
             continue;
         }
@@ -509,7 +509,7 @@ use crate::api::definitions::ParamType;
 #[cfg(test)]
 mod tests {
     use crate::graph::edge::{Edge, EdgeEndpoint};
-    use crate::graph::graph::Graph;
+    use crate::graph::container::LabelContainer;
     use crate::graph::node::{Node, ParamValue, Port, Vec2};
     use crate::graph::types::{NodeType, PortType};
 
@@ -526,7 +526,7 @@ mod tests {
 
     #[test]
     fn test_connected_data_source_finds_data_edge() {
-        let mut graph = Graph::default();
+        let mut label = LabelContainer::default();
         let n1 = make_node_with_data_output("n1", NodeType::Random);
         let mut n2 = Node::new(NodeType::Log, Vec2::ZERO);
         n2.id = "n2".to_string();
@@ -535,26 +535,26 @@ mod tests {
             Port::new("output", PortType::String, "输出"),
         ];
         n2.set_param("output", ParamValue::Literal(serde_json::json!("")));
-        graph.add_node(n1);
-        graph.add_node(n2);
+        label.nodes.insert(n1.id.clone(), n1);
+        label.nodes.insert(n2.id.clone(), n2);
 
         let edge = Edge::new(
             EdgeEndpoint::new("n1", "out_value"),
             EdgeEndpoint::new("n2", "output"),
             PortType::Number,
         );
-        graph.add_edge(edge).unwrap();
+        label.edges.insert(edge.id.clone(), edge);
 
         assert_eq!(
-            super::connected_data_source(&graph, "n2", "output"),
+            super::connected_data_source(&label, "n2", "output"),
             Some(("n1".to_string(), "out_value".to_string()))
         );
-        assert_eq!(super::connected_data_source(&graph, "n1", "output"), None);
+        assert_eq!(super::connected_data_source(&label, "n1", "output"), None);
     }
 
     #[test]
     fn test_available_data_sources_filters_flow_and_compatible() {
-        let mut graph = Graph::default();
+        let mut label = LabelContainer::default();
         let n1 = make_node_with_data_output("n1", NodeType::Random);
         let mut n2 = Node::new(NodeType::SetEcstasy, Vec2::ZERO);
         n2.id = "n2".to_string();
@@ -563,10 +563,10 @@ mod tests {
             Port::new("value", PortType::Number, "数值"),
         ];
         n2.set_param("value", ParamValue::Literal(serde_json::json!(0.0)));
-        graph.add_node(n1);
+        label.nodes.insert(n1.id.clone(), n1);
 
-        let sources = super::available_data_sources(&graph, &n2, "value");
-        graph.add_node(n2);
+        let sources = super::available_data_sources(&label, &n2, "value");
+        label.nodes.insert(n2.id.clone(), n2);
 
         assert_eq!(sources.len(), 1);
         assert_eq!(sources[0].1, ParamValue::from_ref("n1", "out_value"));

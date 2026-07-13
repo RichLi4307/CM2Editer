@@ -1,4 +1,4 @@
-use crate::graph::graph::Graph;
+use crate::graph::container::LabelContainer;
 use crate::graph::types::PortType;
 use crate::ui::theme::port_color;
 use std::collections::HashSet;
@@ -9,7 +9,7 @@ pub struct DataMenuPanel;
 impl DataMenuPanel {
     pub fn show(
         ui: &mut egui::Ui,
-        graph: &Graph,
+        label: &LabelContainer,
         selected_nodes: &HashSet<String>,
     ) -> Option<String> {
         ui.horizontal(|ui| {
@@ -21,7 +21,7 @@ impl DataMenuPanel {
         let mut any = false;
         let mut node_groups: Vec<(String, Vec<DataTile>)> = Vec::new();
 
-        for (node_id, node) in &graph.nodes {
+        for (node_id, node) in &label.nodes {
             let data_outputs: Vec<_> = node.outputs.iter().filter(|p| p.port_type != PortType::Flow).collect();
             if data_outputs.is_empty() {
                 continue;
@@ -149,9 +149,9 @@ mod tests {
         let mut node = Node::new(NodeType::Random, Vec2::ZERO);
         node.id = "n1".to_string();
         node.outputs.push(Port::new("out_value", PortType::Number, "值"));
-        let mut graph = Graph::default();
-        graph.add_node(node);
+        let mut label = LabelContainer::default();
+        label.nodes.insert(node.id.clone(), node);
         let selected: HashSet<String> = HashSet::new();
-        let _ = (&graph, &selected);
+        let _ = (&label, &selected);
     }
 }

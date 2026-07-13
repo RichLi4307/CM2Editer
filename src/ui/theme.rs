@@ -37,6 +37,8 @@ impl Theme {
     pub const WIRE_INVALID: Color32 = Color32::from_rgb(244, 67, 54);
     /// 临时连线已占用颜色（橙色）
     pub const WIRE_OCCUPIED: Color32 = Color32::from_rgb(255, 152, 0);
+    /// 入口钉颜色（琥珀色）
+    pub const ENTRY_PIN: Color32 = Color32::from_rgb(255, 193, 7);
 }
 
 /// 根据节点分类返回标题栏颜色。

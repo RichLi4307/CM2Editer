@@ -11,7 +11,7 @@ use crate::api::registry::get_definition;
 use crate::code_gen::generator::generate_code_to_file;
 use crate::error::{FlowError, Result};
 use crate::graph::edge::Edge;
-use crate::graph::graph::Graph;
+use crate::graph::container::{ContainerGraph, LabelContainer, Viewport};
 use crate::graph::node::{Node, ParamValue, Port, Vec2};
 use crate::graph::types::{NodeType, PortType};
 use crate::graph::validation::GraphValidator;
@@ -21,6 +21,7 @@ use crate::serializer::json::GraphDocument;
 use crate::api::coordinate::CoordinateRegistry;
 use crate::ui::canvas::Canvas;
 use crate::ui::edge_renderer::EdgeRenderer;
+use crate::ui::entry_pin::EntryPinRenderer;
 use crate::ui::interaction::InteractionController;
 use crate::ui::node_renderer::{NodeRenderer, PortGeometry};
 use crate::ui::panels::{
@@ -32,6 +33,7 @@ use crate::ui::panels::{
     meta_editor::MetaEditorPanel,
     namespace_picker::{NamespacePicker, NamespacePickerState},
     node_library::{NodeLibraryAction, NodeLibraryPanel},
+    overview::{OverviewAction, OverviewContainerKind, OverviewPanel},
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::PropertiesPanel,
     status_bar::StatusBarPanel,
@@ -49,6 +51,30 @@ enum LeftPanelTab {
     Namespace,
     /// 坐标预设。
     Coordinate,
+    /// 线程概览图。
+    Overview,
+}
+
+/// 当前选中的容器（标签或监听器）。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SelectedContainer {
+    pub thread_idx: usize,
+    pub kind: ContainerKind,
+}
+
+impl Default for SelectedContainer {
+    fn default() -> Self {
+        Self {
+            thread_idx: 0,
+            kind: ContainerKind::Label(0),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ContainerKind {
+    Label(usize),
+    Listener(usize),
 }
 
 /// 可撤销/重做命令。
@@ -83,182 +109,68 @@ pub enum Command {
 
 impl Command {
     /// 应用命令。
-    fn apply(&self, graph: &mut Graph, _clipboard: &mut Clipboard) {
+    fn apply(&self, label: &mut LabelContainer) {
         match self {
             Self::MoveNode { node_id, to, .. } => {
-                if let Some(node) = graph.nodes.get_mut(node_id) {
+                if let Some(node) = label.nodes.get_mut(node_id) {
                     node.position = *to;
                 }
             }
             Self::AddNode { node } => {
-                graph.add_node(node.clone());
+                label.nodes.insert(node.id.clone(), node.clone());
             }
             Self::RemoveNode { node, .. } => {
-                let _ = graph.remove_node(&node.id);
+                label.nodes.remove(&node.id);
+                label.edges.retain(|_, e| {
+                    e.from.node_id != node.id && e.to.node_id != node.id
+                });
             }
             Self::AddEdge { edge } => {
-                let _ = graph.add_edge(edge.clone());
-                // Data 边连接 Label.name 时，从源节点解析标签名并注册
-                if edge.edge_type != PortType::Flow
-                    && edge.to.port_id == "name"
-                {
-                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
-                        if target_node.node_type == NodeType::Label {
-                            if let Some(source_node) = graph.nodes.get(&edge.from.node_id) {
-                                let lbl = match source_node.node_type {
-                                    NodeType::CreateThread
-                                    | NodeType::CreateListener
-                                    | NodeType::CreateListenerLocal => source_node
-                                        .params
-                                        .get("labelName")
-                                        .and_then(|v| match v {
-                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
-                                            _ => None,
-                                        }),
-                                    NodeType::Goto => source_node
-                                        .params
-                                        .get("label")
-                                        .and_then(|v| match v {
-                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
-                                            _ => None,
-                                        }),
-                                    _ => None,
-                                };
-                                if let Some(lbl) = lbl {
-                                    if !lbl.is_empty() {
-                                        let entry = graph.labels.entry(lbl).or_default();
-                                        if !entry.contains(&edge.to.node_id) {
-                                            entry.push(edge.to.node_id.clone());
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                label.edges.insert(edge.id.clone(), edge.clone());
             }
             Self::RemoveEdge { edge } => {
-                let _ = graph.remove_edge(&edge.id);
-                // 删除时清理 Label.name Data 边对应的标签注册
-                if edge.edge_type != PortType::Flow
-                    && edge.to.port_id == "name"
-                {
-                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
-                        if target_node.node_type == NodeType::Label {
-                            for ids in graph.labels.values_mut() {
-                                ids.retain(|id| id != &edge.to.node_id);
-                            }
-                            let empty: Vec<String> = graph.labels.iter()
-                                .filter(|(_, ids)| ids.is_empty())
-                                .map(|(n, _)| n.clone())
-                                .collect();
-                            for name in empty {
-                                graph.labels.remove(&name);
-                            }
-                        }
-                    }
-                }
+                label.edges.remove(&edge.id);
             }
             Self::SetParam {
                 node_id, key, to, ..
             } => {
-                if let Some(node) = graph.nodes.get_mut(node_id) {
+                if let Some(node) = label.nodes.get_mut(node_id) {
                     node.set_param(key, to.clone());
                 }
             }
-            Self::CopySelected => {
-                // 无 graph 变更，由 App::push_command 单独处理
-            }
-            Self::PasteAt { .. } => {
-                // 实际粘贴逻辑在 App::push_command 中处理，避免命令结构膨胀
+            Self::CopySelected | Self::PasteAt { .. } => {
+                // 剪贴板/粘贴操作在 update_canvas 或全局快捷键中直接处理，不进入 Undo 栈。
             }
         }
     }
 
     /// 撤销命令。
-    fn undo(&self, graph: &mut Graph) {
+    fn undo(&self, label: &mut LabelContainer) {
         match self {
             Self::MoveNode { node_id, from, .. } => {
-                if let Some(node) = graph.nodes.get_mut(node_id) {
+                if let Some(node) = label.nodes.get_mut(node_id) {
                     node.position = *from;
                 }
             }
             Self::AddNode { node } => {
-                let _ = graph.remove_node(&node.id);
+                label.nodes.remove(&node.id);
             }
             Self::RemoveNode { node, edges } => {
-                graph.add_node(node.clone());
+                label.nodes.insert(node.id.clone(), node.clone());
                 for edge in edges {
-                    let _ = graph.add_edge(edge.clone());
+                    label.edges.insert(edge.id.clone(), edge.clone());
                 }
             }
             Self::AddEdge { edge } => {
-                let _ = graph.remove_edge(&edge.id);
-                // 撤销时清理 Label.name Data 边对应的标签注册
-                if edge.edge_type != PortType::Flow
-                    && edge.to.port_id == "name"
-                {
-                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
-                        if target_node.node_type == NodeType::Label {
-                            for ids in graph.labels.values_mut() {
-                                ids.retain(|id| id != &edge.to.node_id);
-                            }
-                            let empty: Vec<String> = graph.labels.iter()
-                                .filter(|(_, ids)| ids.is_empty())
-                                .map(|(n, _)| n.clone())
-                                .collect();
-                            for name in empty {
-                                graph.labels.remove(&name);
-                            }
-                        }
-                    }
-                }
+                label.edges.remove(&edge.id);
             }
             Self::RemoveEdge { edge } => {
-                let _ = graph.add_edge(edge.clone());
-                // 撤销删除时重新注册 Label.name 的标签
-                if edge.edge_type != PortType::Flow
-                    && edge.to.port_id == "name"
-                {
-                    if let Some(target_node) = graph.nodes.get(&edge.to.node_id) {
-                        if target_node.node_type == NodeType::Label {
-                            if let Some(source_node) = graph.nodes.get(&edge.from.node_id) {
-                                let lbl = match source_node.node_type {
-                                    NodeType::CreateThread
-                                    | NodeType::CreateListener
-                                    | NodeType::CreateListenerLocal => source_node
-                                        .params
-                                        .get("labelName")
-                                        .and_then(|v| match v {
-                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
-                                            _ => None,
-                                        }),
-                                    NodeType::Goto => source_node
-                                        .params
-                                        .get("label")
-                                        .and_then(|v| match v {
-                                            ParamValue::Literal(val) => val.as_str().map(|s| s.to_string()),
-                                            _ => None,
-                                        }),
-                                    _ => None,
-                                };
-                                if let Some(lbl) = lbl {
-                                    if !lbl.is_empty() {
-                                        let entry = graph.labels.entry(lbl).or_default();
-                                        if !entry.contains(&edge.to.node_id) {
-                                            entry.push(edge.to.node_id.clone());
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                label.edges.insert(edge.id.clone(), edge.clone());
             }
             Self::SetParam {
                 node_id, key, from, ..
             } => {
-                if let Some(node) = graph.nodes.get_mut(node_id) {
+                if let Some(node) = label.nodes.get_mut(node_id) {
                     node.set_param(key, from.clone());
                 }
             }
@@ -280,8 +192,9 @@ pub struct Clipboard {
 
 /// 应用主状态。
 pub struct App {
-    pub graph: Graph,
+    pub graph_doc: GraphDocument,
     pub canvas: Canvas,
+    selected_container: SelectedContainer,
     pub selected_nodes: HashSet<String>,
     pub selected_edges: HashSet<String>,
     pub interaction: InteractionController,
@@ -351,10 +264,16 @@ impl App {
     /// 创建默认应用，并加载中文字体。
     pub fn new(cc: &eframe::CreationContext) -> Self {
         setup_fonts(&cc.egui_ctx);
-        let graph = Graph::default();
+        let graph_doc = GraphDocument::from_graph(
+            ContainerGraph::default_main(),
+            serde_json::Value::Object(serde_json::Map::new()),
+            Viewport::default(),
+            Vec::new(),
+        );
         Self {
-            graph,
+            graph_doc,
             canvas: Canvas::new(),
+            selected_container: SelectedContainer::default(),
             selected_nodes: HashSet::new(),
             selected_edges: HashSet::new(),
             error_nodes: HashSet::new(),
@@ -405,9 +324,50 @@ impl App {
 
     }
 
+    fn label_ref(graph_doc: &GraphDocument, sel: SelectedContainer) -> &LabelContainer {
+        let thread = &graph_doc.graph.threads[sel.thread_idx];
+        match sel.kind {
+            ContainerKind::Label(idx) => &thread.labels[idx],
+            ContainerKind::Listener(idx) => &thread.listeners[idx].inner,
+        }
+    }
+
+    fn label_mut(graph_doc: &mut GraphDocument, sel: SelectedContainer) -> &mut LabelContainer {
+        let thread = &mut graph_doc.graph.threads[sel.thread_idx];
+        match sel.kind {
+            ContainerKind::Label(idx) => &mut thread.labels[idx],
+            ContainerKind::Listener(idx) => &mut thread.listeners[idx].inner,
+        }
+    }
+
+    fn current_label(&self) -> &LabelContainer {
+        Self::label_ref(&self.graph_doc, self.selected_container)
+    }
+
+    fn current_label_mut(&mut self) -> &mut LabelContainer {
+        Self::label_mut(&mut self.graph_doc, self.selected_container)
+    }
+
+    fn node_param(&self, node_id: &str, key: &str) -> ParamValue {
+        let (thread_idx, label_idx) = (
+            self.selected_container.thread_idx,
+            match self.selected_container.kind {
+                ContainerKind::Label(idx) => idx,
+                _ => 0,
+            },
+        );
+        let label = &self.graph_doc.graph.threads[thread_idx].labels[label_idx];
+        label
+            .nodes
+            .get(node_id)
+            .and_then(|n| n.params.get(key).cloned())
+            .unwrap_or(ParamValue::Null)
+    }
+
     /// 执行命令并压入 Undo 栈。
     fn push_command(&mut self, cmd: Command) {
-        cmd.apply(&mut self.graph, &mut self.clipboard);
+        let label = self.current_label_mut();
+        cmd.apply(label);
         self.undo_stack.push(cmd);
         if self.undo_stack.len() > 50 {
             self.undo_stack.remove(0);
@@ -420,7 +380,8 @@ impl App {
     /// 撤销。
     fn undo(&mut self) {
         if let Some(cmd) = self.undo_stack.pop() {
-            cmd.undo(&mut self.graph);
+            let label = self.current_label_mut();
+            cmd.undo(label);
             self.redo_stack.push(cmd);
             self.graph_version += 1;
             self.validate();
@@ -431,7 +392,8 @@ impl App {
     /// 重做。
     fn redo(&mut self) {
         if let Some(cmd) = self.redo_stack.pop() {
-            cmd.apply(&mut self.graph, &mut self.clipboard);
+            let label = self.current_label_mut();
+            cmd.apply(label);
             self.undo_stack.push(cmd);
             self.graph_version += 1;
             self.validate();
@@ -441,7 +403,7 @@ impl App {
 
     /// 验证图并更新错误列表。
     fn validate(&mut self) {
-        self.validation_errors = GraphValidator::collect_errors(&self.graph);
+        self.validation_errors = GraphValidator::collect_errors(&self.graph_doc.graph);
         self.error_nodes = self
             .validation_errors
             .iter()
@@ -481,14 +443,43 @@ impl App {
     /// 当存在选中的连线时，优先仅删除连线；否则删除选中的节点及其连接。
     /// 这样可以单独删除 Data 虚线而不误删节点。
     fn delete_selected(&mut self) {
-        if !self.selected_edges.is_empty() {
-            // 优先只删除选中的连线
-            let mut edges_to_remove = Vec::new();
-            for edge in self.graph.edges.values() {
-                if self.selected_edges.contains(&edge.id) {
-                    edges_to_remove.push(edge.clone());
+        let (edges_to_remove, nodes_to_remove) = {
+            let (thread_idx, label_idx) = (
+                self.selected_container.thread_idx,
+                match self.selected_container.kind {
+                    ContainerKind::Label(idx) => idx,
+                    _ => 0,
+                },
+            );
+            let label = &self.graph_doc.graph.threads[thread_idx].labels[label_idx];
+            if !self.selected_edges.is_empty() {
+                let mut edges_to_remove = Vec::new();
+                for edge in label.edges.values() {
+                    if self.selected_edges.contains(&edge.id) {
+                        edges_to_remove.push(edge.clone());
+                    }
                 }
+                (edges_to_remove, Vec::new())
+            } else {
+                let mut edges_to_remove = Vec::new();
+                for edge in label.edges.values() {
+                    if self.selected_nodes.contains(&edge.from.node_id)
+                        || self.selected_nodes.contains(&edge.to.node_id)
+                    {
+                        edges_to_remove.push(edge.clone());
+                    }
+                }
+                let mut nodes_to_remove = Vec::new();
+                for node in label.nodes.values() {
+                    if self.selected_nodes.contains(&node.id) {
+                        nodes_to_remove.push(node.clone());
+                    }
+                }
+                (edges_to_remove, nodes_to_remove)
             }
+        };
+
+        if !edges_to_remove.is_empty() && nodes_to_remove.is_empty() {
             for edge in &edges_to_remove {
                 self.push_command(Command::RemoveEdge { edge: edge.clone() });
             }
@@ -497,23 +488,8 @@ impl App {
             return;
         }
 
-        let mut edges_to_remove = Vec::new();
-        for edge in self.graph.edges.values() {
-            if self.selected_nodes.contains(&edge.from.node_id)
-                || self.selected_nodes.contains(&edge.to.node_id)
-            {
-                edges_to_remove.push(edge.clone());
-            }
-        }
         for edge in &edges_to_remove {
             self.push_command(Command::RemoveEdge { edge: edge.clone() });
-        }
-
-        let mut nodes_to_remove = Vec::new();
-        for node in self.graph.nodes.values() {
-            if self.selected_nodes.contains(&node.id) {
-                nodes_to_remove.push(node.clone());
-            }
         }
         for node in nodes_to_remove {
             self.push_command(Command::RemoveNode {
@@ -524,18 +500,6 @@ impl App {
 
         self.selected_nodes.clear();
         self.selected_edges.clear();
-
-        // 清理孤立的 graph.labels 条目（所有节点已被删除）
-        let mut orphan_labels = Vec::new();
-        for (name, ids) in &self.graph.labels {
-            if ids.iter().all(|id| !self.graph.nodes.contains_key(id)) {
-                orphan_labels.push(name.clone());
-            }
-        }
-        for name in orphan_labels {
-            self.graph.labels.remove(&name);
-        }
-
         self.status_message = String::from("已删除选中项");
     }
 
@@ -544,31 +508,42 @@ impl App {
         if self.selected_nodes.is_empty() {
             return;
         }
-        let mut nodes: Vec<Node> = Vec::new();
-        let mut old_to_new = HashMap::new();
-        for id in &self.selected_nodes {
-            if let Some(node) = self.graph.nodes.get(id) {
-                let mut copy = node.clone();
-                let old_id = copy.id.clone();
-                copy.id = uuid::Uuid::new_v4().to_string();
-                old_to_new.insert(old_id, copy.id.clone());
-                nodes.push(copy);
+        let (nodes, edges) = {
+            let (thread_idx, label_idx) = (
+                self.selected_container.thread_idx,
+                match self.selected_container.kind {
+                    ContainerKind::Label(idx) => idx,
+                    _ => 0,
+                },
+            );
+            let label = &self.graph_doc.graph.threads[thread_idx].labels[label_idx];
+            let mut nodes: Vec<Node> = Vec::new();
+            let mut old_to_new = HashMap::new();
+            for id in &self.selected_nodes {
+                if let Some(node) = label.nodes.get(id) {
+                    let mut copy = node.clone();
+                    let old_id = copy.id.clone();
+                    copy.id = uuid::Uuid::new_v4().to_string();
+                    old_to_new.insert(old_id, copy.id.clone());
+                    nodes.push(copy);
+                }
             }
-        }
 
-        let mut edges: Vec<Edge> = Vec::new();
-        for edge in self.graph.edges.values() {
-            if let (Some(from_new), Some(to_new)) = (
-                old_to_new.get(&edge.from.node_id),
-                old_to_new.get(&edge.to.node_id),
-            ) {
-                let mut copy = edge.clone();
-                copy.id = uuid::Uuid::new_v4().to_string();
-                copy.from.node_id = from_new.clone();
-                copy.to.node_id = to_new.clone();
-                edges.push(copy);
+            let mut edges: Vec<Edge> = Vec::new();
+            for edge in label.edges.values() {
+                if let (Some(from_new), Some(to_new)) = (
+                    old_to_new.get(&edge.from.node_id),
+                    old_to_new.get(&edge.to.node_id),
+                ) {
+                    let mut copy = edge.clone();
+                    copy.id = uuid::Uuid::new_v4().to_string();
+                    copy.from.node_id = from_new.clone();
+                    copy.to.node_id = to_new.clone();
+                    edges.push(copy);
+                }
             }
-        }
+            (nodes, edges)
+        };
 
         self.clipboard = Clipboard { nodes, edges };
         self.status_message = format!("已复制 {} 个节点", self.selected_nodes.len());
@@ -652,8 +627,8 @@ impl App {
     /// 将当前 App 中的图同步到工程当前激活的 `.code` 文件。
     fn sync_active_to_project(&mut self) {
         if let Some(project) = &mut self.project {
-            let viewport = self.canvas.viewport.clone();
-            let _ = project.sync_active_code(self.graph.clone(), viewport);
+            self.graph_doc.viewport = self.canvas.viewport;
+            let _ = project.sync_active_code(self.graph_doc.graph.clone(), self.graph_doc.viewport);
         }
     }
 
@@ -661,35 +636,48 @@ impl App {
     fn load_active_code(&mut self) {
         if let Some(project) = &self.project {
             if let Some(code_file) = project.active_code_file() {
-                self.graph = code_file.graph_doc.graph.clone();
-                self.canvas = Canvas::with_viewport(code_file.graph_doc.viewport.clone());
+                self.graph_doc = code_file.graph_doc.clone();
+                self.canvas = Canvas::with_viewport(self.graph_doc.viewport.clone());
+                self.selected_container = SelectedContainer::default();
                 self.selected_nodes.clear();
                 self.selected_edges.clear();
                 self.undo_stack.clear();
                 self.redo_stack.clear();
-                self.show_welcome_hint = self.graph.nodes.is_empty();
+                self.show_welcome_hint = self.current_label().nodes.is_empty();
                 self.show_meta_editor = false;
                 // 为缺少必填参数的节点补默认值，兼容旧 JSON
-                for node in self.graph.nodes.values_mut() {
-                    if let Some(def) = get_definition(node.node_type) {
-                        for param in &def.params {
-                            if !node.params.contains_key(&param.name) {
-                                node.set_param(&param.name, param.default_value());
-                            }
-                            if !node.inputs.iter().any(|p| p.id == param.name) {
-                                let data_port = Port::new(
-                                    &param.name,
-                                    param.param_type.port_type(),
-                                    &param.display_name,
-                                )
-                                .required(param.required);
-                                node.inputs.push(data_port);
-                            }
-                        }
+                for thread in &mut self.graph_doc.graph.threads {
+                    for label in &mut thread.labels {
+                        Self::fill_missing_params(label);
+                    }
+                    for listener in &mut thread.listeners {
+                        Self::fill_missing_params(&mut listener.inner);
                     }
                 }
                 self.validate();
                 self.graph_version += 1;
+            }
+        }
+    }
+
+    /// 为容器中的节点补齐缺失的必填参数与数据端口。
+    fn fill_missing_params(label: &mut LabelContainer) {
+        for node in label.nodes.values_mut() {
+            if let Some(def) = get_definition(node.node_type) {
+                for param in &def.params {
+                    if !node.params.contains_key(&param.name) {
+                        node.set_param(&param.name, param.default_value());
+                    }
+                    if !node.inputs.iter().any(|p| p.id == param.name) {
+                        let data_port = Port::new(
+                            &param.name,
+                            param.param_type.port_type(),
+                            &param.display_name,
+                        )
+                        .required(param.required);
+                        node.inputs.push(data_port);
+                    }
+                }
             }
         }
     }
@@ -720,7 +708,7 @@ impl App {
 
     /// 新建空图（在工程模式下清空当前激活的代码图）。
     fn confirm_new_graph(&mut self) {
-        if !self.graph.nodes.is_empty() {
+        if !self.current_label().nodes.is_empty() {
             let confirmed = rfd::MessageDialog::new()
                 .set_title("确认新建")
                 .set_description("当前画布有未保存的节点，是否清空？")
@@ -735,8 +723,14 @@ impl App {
 
     /// 清空当前激活的代码图。
     fn new_graph(&mut self) {
-        self.graph = Graph::default();
+        self.graph_doc = GraphDocument::from_graph(
+            ContainerGraph::default_main(),
+            serde_json::Value::Object(serde_json::Map::new()),
+            Viewport::default(),
+            Vec::new(),
+        );
         self.canvas = Canvas::new();
+        self.selected_container = SelectedContainer::default();
         self.selected_nodes.clear();
         self.selected_edges.clear();
         self.undo_stack.clear();
@@ -759,8 +753,8 @@ impl App {
             self.status_message = "已取消导出".to_string();
             return Ok(());
         };
-        generate_code_to_file(&self.graph, &path)?;
-        if self.graph.nodes.is_empty() {
+        generate_code_to_file(&self.graph_doc.graph, &path)?;
+        if self.current_label().nodes.is_empty() {
             rfd::MessageDialog::new()
                 .set_title("导出为空")
                 .set_description("图为空，导出的 .code 文件内容为空。")
@@ -807,12 +801,11 @@ impl App {
         })
     }
 
-    fn serialize_graph(graph: &Graph, viewport: &crate::serializer::json::Viewport) -> String {
+    fn serialize_graph(graph: &ContainerGraph, viewport: &Viewport) -> String {
         let doc = GraphDocument::from_graph(
             graph.clone(),
             serde_json::Value::Object(serde_json::Map::new()),
-            viewport.clone(),
-            Vec::new(),
+            *viewport,
             Vec::new(),
         );
         doc.to_json_pretty()
@@ -854,6 +847,16 @@ impl App {
             }
             ProjectTreeAction::SelectCode(name) => {
                 self.switch_to_code(&name);
+            }
+            ProjectTreeAction::SelectContainer { thread_idx, container } => {
+                self.selected_container = SelectedContainer {
+                    thread_idx,
+                    kind: match container {
+                        crate::ui::panels::project_tree::ContainerKind::Label(idx) => ContainerKind::Label(idx),
+                        crate::ui::panels::project_tree::ContainerKind::Listener(idx) => ContainerKind::Listener(idx),
+                    },
+                };
+                self.show_meta_editor = false;
             }
             ProjectTreeAction::NewCodeDialog => {
                 self.new_code_dialog_open = true;
@@ -1016,8 +1019,9 @@ impl eframe::App for App {
             });
         });
 
-        // 左栏：工程 / 命名空间 / 坐标 标签页
+        // 左栏：工程 / 命名空间 / 坐标 / 概览 标签页
         let mut left_action = ProjectTreeAction::None;
+        let mut overview_action = OverviewAction::None;
         egui::SidePanel::left("side_panel")
             .width_range(180.0..=300.0)
             .show(ctx, |ui| {
@@ -1041,6 +1045,12 @@ impl eframe::App for App {
                     {
                         self.left_panel_tab = LeftPanelTab::Coordinate;
                     }
+                    if ui
+                        .selectable_label(active == LeftPanelTab::Overview, "概览")
+                        .clicked()
+                    {
+                        self.left_panel_tab = LeftPanelTab::Overview;
+                    }
                 });
                 ui.separator();
 
@@ -1061,79 +1071,20 @@ impl eframe::App for App {
                             NodeLibraryAction::None => {}
                         }
                         ui.separator();
-                        // 标签管理
-                        let label_title = format!("标签  ({} 个)", self.graph.labels.len());
-                        egui::CollapsingHeader::new(label_title)
-                            .id_salt("label_manager")
-                            .show(ui, |ui| {
-                                if self.graph.labels.is_empty() {
-                                    ui.label("暂无标签");
-                                } else {
-                                let mut to_delete = None;
-                                for (name, ids) in self.graph.labels.clone() {
-                                    let is_main = name.starts_with("main");
-                                    let is_renaming = self.label_renaming.as_deref() == Some(&name);
-                                    if is_renaming {
-                                        let buf_key = format!("label_rename.{name}");
-                                        self.edit_buffers.entry(buf_key.clone()).or_insert_with(|| name.clone());
-                                        let mut new_name = self.edit_buffers.get(&buf_key).cloned().unwrap_or_else(|| name.clone());
-                                        ui.horizontal(|ui| {
-                                            ui.text_edit_singleline(&mut new_name);
-                                            self.edit_buffers.insert(buf_key.clone(), new_name.clone());
-                                            if ui.button("✔").clicked() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                                                if !new_name.is_empty() && new_name != name {
-                                                    let ids_clone = ids.clone();
-                                                    self.graph.labels.remove(&name);
-                                                    self.graph.labels.insert(new_name.clone(), ids_clone);
-                                                    self.graph_version += 1;
-                                                    self.status_message = format!("已重命名 {name} → {new_name}");
-                                                }
-                                                self.label_renaming = None;
-                                                self.edit_buffers.remove(&buf_key);
-                                            }
-                                            if ui.button("✘").clicked() {
-                                                self.label_renaming = None;
-                                                self.edit_buffers.remove(&buf_key);
-                                            }
-                                        });
-                                    } else {
-                                    ui.horizontal(|ui| {
-                                        if ui.button(&name).clicked() {
-                                            self.selected_nodes.clear();
-                                            for id in &ids {
-                                                self.selected_nodes.insert(id.clone());
-                                            }
-                                            self.selected_edges.clear();
-                                            self.status_message =
-                                                format!("已选中标签 {name} ({} 个节点)", ids.len());
-                                        }
-                                        ui.label(format!("({} 节点)", ids.len()));
-                                        if !is_main {
-                                            if ui.small_button("Del").clicked() {
-                                                to_delete = Some(name.clone());
-                                            }
-                                            if ui.small_button("Ren").clicked() {
-                                                self.label_renaming = Some(name.clone());
-                                            }
-                                        }
-                                    });
-                                    }
-                                    if let Some(del) = to_delete.take() {
-                                        self.graph.labels.remove(&del);
-                                        self.graph_version += 1;
-                                        self.status_message = format!("已删除标签 {}", del);
-                                    }
-                                }
-                                }
-                                if ui.button("+ 新建标签").clicked() {
-                                    self.graph.labels.entry("new_label".to_string()).or_default();
-                                    self.graph_version += 1;
-                                    self.status_message = "已创建标签 new_label".into();
-                                }
-                            });
-                        ui.separator();
                         // 工程文件树
-                        left_action = ProjectTreePanel::show(ui, self.project.as_mut());
+                        let active_code = self.active_code_name();
+                        let selected_thread = self.selected_container.thread_idx;
+                        let selected_container = Some(match self.selected_container.kind {
+                            ContainerKind::Label(idx) => crate::ui::panels::project_tree::ContainerKind::Label(idx),
+                            ContainerKind::Listener(idx) => crate::ui::panels::project_tree::ContainerKind::Listener(idx),
+                        });
+                        left_action = ProjectTreePanel::show(
+                            ui,
+                            self.project.as_mut(),
+                            &active_code,
+                            selected_thread,
+                            selected_container,
+                        );
                     }
                     LeftPanelTab::Namespace => {
                         ui.heading("命名空间");
@@ -1438,9 +1389,28 @@ impl eframe::App for App {
                             });
                         }
                     }
+                    LeftPanelTab::Overview => {
+                        overview_action = OverviewPanel::show(ui, &self.graph_doc.graph);
+                    }
                 }
             });
         self.handle_project_action(left_action);
+
+        match overview_action {
+            OverviewAction::None => {}
+            OverviewAction::SelectContainer { thread_idx, kind, idx } => {
+                self.show_meta_editor = false;
+                let kind = match kind {
+                    OverviewContainerKind::Label => ContainerKind::Label(idx),
+                    OverviewContainerKind::Listener => ContainerKind::Listener(idx),
+                };
+                self.selected_container = SelectedContainer { thread_idx, kind };
+                self.selected_nodes.clear();
+                self.selected_edges.clear();
+                self.left_panel_tab = LeftPanelTab::Project;
+                self.status_message = format!("切换到线程 {} 容器 {:?}", thread_idx, kind);
+            }
+        }
 
         // 右栏：属性面板 / meta 编辑器
         let mut edited_node_id = None;
@@ -1453,98 +1423,36 @@ impl eframe::App for App {
                     }
                 } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
                     edited_node_id = Some(node_id.clone());
-                    if let Some(node) = self.graph.nodes.get(&node_id).cloned() {
-                            if let Some((key, value)) = PropertiesPanel::show(
+                    let (thread_idx, label_idx) = (
+                        self.selected_container.thread_idx,
+                        match self.selected_container.kind {
+                            ContainerKind::Label(idx) => idx,
+                            _ => 0,
+                        },
+                    );
+                    let label = self.graph_doc.graph.threads[thread_idx].labels[label_idx].clone();
+                    if let Some(node) = label.nodes.get(&node_id).cloned() {
+                        if let Some((key, value)) = PropertiesPanel::show(
                             ui,
                             &node,
-                            &self.graph,
+                            &label,
                             &self.namespace_registry,
                             &mut self.namespace_picker,
                             &self.coordinate_registry,
                             &mut self.coordinate_picker,
                             &mut self.edit_buffers,
                         ) {
-                            if let Some(n) = self.graph.nodes.get(&node_id) {
-                                let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
-                                let label_to_register = match &value {
-                                    ParamValue::Literal(v) => v.as_str().map(|s| s.to_string()),
-                                    _ => None,
-                                };
-                                if let Some(lbl) = label_to_register {
-                                    let needs_label = match n.node_type {
-                                        NodeType::Goto => key == "label",
-                                        NodeType::CreateThread
-                                        | NodeType::CreateListener
-                                        | NodeType::CreateListenerLocal => key == "labelName",
-                                        NodeType::Label => key == "name",
-                                        _ => false,
-                                    };
-                                    if needs_label {
-                                        // 清理旧的标签归属（Label 改名）
-                                        if n.node_type == NodeType::Label {
-                                            for (old_name, ids) in self.graph.labels.iter_mut() {
-                                                if *old_name != lbl {
-                                                    ids.retain(|id| id != &node_id);
-                                                }
-                                            }
-                                            // 清理因移除节点 ID 变成空的标签
-                                            let empty: Vec<String> = self.graph.labels.iter()
-                                                .filter(|(_, ids)| ids.is_empty())
-                                                .map(|(n, _)| n.clone())
-                                                .collect();
-                                            for name in empty {
-                                                self.graph.labels.remove(&name);
-                                            }
-                                        }
-                                        // Goto/Thread/Listener: 旧标签不再被任何节点引用则清理
-                                        if n.node_type != NodeType::Label {
-                                            let old_label = match &from {
-                                                ParamValue::Literal(v) => v.as_str().map(|s| s.to_string()),
-                                                _ => None,
-                                            };
-                                            if let Some(old) = old_label {
-                                                if old != lbl && !old.is_empty() {
-                                                    let still_referenced = self.graph.nodes.values().any(|other| {
-                                                        if other.id == node_id { return false; }
-                                                        match other.node_type {
-                                                            NodeType::Goto => other.params.get("label")
-                                                                .and_then(|v| match v {
-                                                                    ParamValue::Literal(val) => val.as_str(),
-                                                                    _ => None,
-                                                                }) == Some(&old),
-                                                            NodeType::CreateThread
-                                                            | NodeType::CreateListener
-                                                            | NodeType::CreateListenerLocal => other.params.get("labelName")
-                                                                .and_then(|v| match v {
-                                                                    ParamValue::Literal(val) => val.as_str(),
-                                                                    _ => None,
-                                                                }) == Some(&old),
-                                                            _ => false,
-                                                        }
-                                                    });
-                                                    if !still_referenced {
-                                                        self.graph.labels.remove(&old);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        let entry = self.graph.labels.entry(lbl).or_default();
-                                        // Label 节点本身是该标签的入口节点
-                                        if n.node_type == NodeType::Label {
-                                            if !entry.contains(&node_id) {
-                                                entry.push(node_id.clone());
-                                            }
-                                        }
-                                        self.graph_version += 1;
-                                    }
-                                }
-                                self.push_command(Command::SetParam {
-                                    node_id: node_id.clone(),
-                                    key,
-                                    from,
-                                    to: value,
-                                });
-                            }
+                            let from = self.graph_doc.graph.threads[thread_idx].labels[label_idx]
+                                .nodes
+                                .get(&node_id)
+                                .and_then(|n| n.params.get(&key).cloned())
+                                .unwrap_or(ParamValue::Null);
+                            self.push_command(Command::SetParam {
+                                node_id: node_id.clone(),
+                                key,
+                                from,
+                                to: value,
+                            });
                         }
                     }
                 } else if self.project.is_some() {
@@ -1569,15 +1477,13 @@ impl eframe::App for App {
                             ))
                         };
                         let key = picker.param_key.clone();
-                        if let Some(n) = self.graph.nodes.get(&node_id) {
-                            let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
-                            self.push_command(Command::SetParam {
-                                node_id,
-                                key,
-                                from,
-                                to: value,
-                            });
-                        }
+                        let from = self.node_param(&node_id, &key);
+                        self.push_command(Command::SetParam {
+                            node_id,
+                            key,
+                            from,
+                            to: value,
+                        });
                     }
                 }
             } else {
@@ -1601,28 +1507,24 @@ impl eframe::App for App {
                                     ("z".to_string(), ParamValue::Literal(serde_json::json!(entry.z))),
                                 ];
                                 for (key, to) in updates {
-                                    if let Some(n) = self.graph.nodes.get(node_id) {
-                                        let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
-                                        self.push_command(Command::SetParam {
-                                            node_id: node_id.clone(),
-                                            key,
-                                            from,
-                                            to,
-                                        });
-                                    }
-                                }
-                            } else {
-                                let value = ParamValue::Literal(serde_json::json!([entry.x, entry.y, entry.z]));
-                                let key = picker.param_key.clone();
-                                if let Some(n) = self.graph.nodes.get(node_id) {
-                                    let from = n.params.get(&key).cloned().unwrap_or(ParamValue::Null);
+                                    let from = self.node_param(node_id, &key);
                                     self.push_command(Command::SetParam {
                                         node_id: node_id.clone(),
                                         key,
                                         from,
-                                        to: value,
+                                        to,
                                     });
                                 }
+                            } else {
+                                let value = ParamValue::Literal(serde_json::json!([entry.x, entry.y, entry.z]));
+                                let key = picker.param_key.clone();
+                                let from = self.node_param(node_id, &key);
+                                self.push_command(Command::SetParam {
+                                    node_id: node_id.clone(),
+                                    key,
+                                    from,
+                                    to: value,
+                                });
                             }
                         }
                     }
@@ -1652,7 +1554,7 @@ impl eframe::App for App {
         // 底部面板（代码 ┃ JSON ┃ DataFlow）— 统一可拖拽
         // ──────────────────────────────────────────────
         if self.graph_version != self.cached_json_version {
-            self.cached_json = Self::serialize_graph(&self.graph, &self.canvas.viewport);
+            self.cached_json = Self::serialize_graph(&self.graph_doc.graph, &self.graph_doc.viewport);
             self.cached_json_version = self.graph_version;
         }
 
@@ -1685,7 +1587,7 @@ impl eframe::App for App {
                 );
                 ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc1), |ui| {
                     if let Some(project) = self.project.as_mut() {
-                        let _changed = CodeEditorPanel::show(ui, project, &self.graph);
+                        let _changed = CodeEditorPanel::show(ui, project, &self.graph_doc.graph);
                     } else {
                         ui.label("打开工程后查看 .code 代码");
                     }
@@ -1748,8 +1650,15 @@ impl eframe::App for App {
                     egui::vec2(panel_w - rs2.right_top().x, panel_h),
                 );
                 ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc3), |ui| {
+                    let (thread_idx, label_idx) = (
+                        self.selected_container.thread_idx,
+                        match self.selected_container.kind {
+                            ContainerKind::Label(idx) => idx,
+                            _ => 0,
+                        },
+                    );
                     if let Some(node_id) =
-                        DataMenuPanel::show(ui, &self.graph, &self.selected_nodes)
+                        DataMenuPanel::show(ui, &self.graph_doc.graph.threads[thread_idx].labels[label_idx], &self.selected_nodes)
                     {
                         self.selected_nodes.clear();
                         self.selected_nodes.insert(node_id);
@@ -1993,6 +1902,11 @@ impl App {
         let cull_rect = canvas_rect.expand(cull_margin);
         let node_renderer = NodeRenderer::default();
         let edge_renderer = EdgeRenderer::default();
+        let entry_pin_renderer = EntryPinRenderer::default();
+
+        let entry_pin_screen;
+        let entry_target;
+        let label_name;
 
         // 第一遍：计算所有节点屏幕区域和端口几何（不渲染，支持裁剪和 z 序）
         let mut node_data: Vec<(&Node, &NodeDefinition, Rect, Vec<PortGeometry>, bool, bool)> =
@@ -2000,28 +1914,38 @@ impl App {
         let mut port_positions: HashMap<(String, String), Pos2> = HashMap::new();
         let mut port_hits: Vec<(String, String, Pos2, PortType, bool)> = Vec::new();
 
-        for node in self.graph.nodes.values() {
-            let Some(definition) = get_definition(node.node_type) else {
-                continue;
-            };
-            let rect = node_renderer.screen_rect(&self.canvas, node, canvas_rect);
-            if !cull_rect.intersects(rect) {
-                continue;
+        {
+            let label = Self::label_ref(&self.graph_doc, self.selected_container);
+            for node in label.nodes.values() {
+                let Some(definition) = get_definition(node.node_type) else {
+                    continue;
+                };
+                let rect = node_renderer.screen_rect(&self.canvas, node, canvas_rect);
+                if !cull_rect.intersects(rect) {
+                    continue;
+                }
+                let ports = node_renderer.port_positions(node, rect);
+                let is_selected = self.selected_nodes.contains(&node.id);
+                let has_errors = self.error_nodes.contains(&node.id);
+                for port in &ports {
+                    port_positions.insert((node.id.clone(), port.id.clone()), port.center);
+                    port_hits.push((
+                        node.id.clone(),
+                        port.id.clone(),
+                        port.center,
+                        port.port_type.clone(),
+                        port.is_input,
+                    ));
+                }
+                node_data.push((node, definition, rect, ports, is_selected, has_errors));
             }
-            let ports = node_renderer.port_positions(node, rect);
-            let is_selected = self.selected_nodes.contains(&node.id);
-            let has_errors = self.error_nodes.contains(&node.id);
-            for port in &ports {
-                port_positions.insert((node.id.clone(), port.id.clone()), port.center);
-                port_hits.push((
-                    node.id.clone(),
-                    port.id.clone(),
-                    port.center,
-                    port.port_type.clone(),
-                    port.is_input,
-                ));
-            }
-            node_data.push((node, definition, rect, ports, is_selected, has_errors));
+            entry_pin_screen = entry_pin_renderer.screen_pos(&self.canvas, label.entry_pin, canvas_rect);
+            entry_target = EntryPinRenderer::find_entry_port(label).and_then(|(node_id, port_id)| {
+                port_positions
+                    .get(&(node_id.to_string(), port_id.to_string()))
+                    .copied()
+            });
+            label_name = label.name.clone();
         }
 
         let mut node_hits: Vec<(String, Rect)> = node_data
@@ -2040,57 +1964,72 @@ impl App {
         // DataFlow 边在单选相关节点时显示，或当该 Data 边本身被选中时显示，
         // 便于用户点选/框选虚线并单独删除。
         let selected_node = self.selected_nodes.iter().next().cloned();
-        for edge in self.graph.edges.values() {
-            if edge.edge_type != PortType::Flow {
-                let related = selected_node.as_ref().is_some_and(|selected| {
-                    edge.from.node_id == *selected || edge.to.node_id == *selected
-                });
-                let edge_selected = self.selected_edges.contains(&edge.id);
-                if !related && !edge_selected {
-                    continue;
+        {
+            let label = Self::label_ref(&self.graph_doc, self.selected_container);
+            // 入口钉到入口节点的 Flow 连线
+            if let Some(to_pos) = entry_target {
+                if cull_rect.intersects(Rect::from_two_pos(entry_pin_screen, to_pos)) {
+                    entry_pin_renderer.render_edge(ui, &edge_renderer, entry_pin_screen, to_pos);
                 }
             }
-            let Some(&from_pos) =
-                port_positions.get(&(edge.from.node_id.clone(), edge.from.port_id.clone()))
-            else {
-                continue;
-            };
-            let Some(&to_pos) =
-                port_positions.get(&(edge.to.node_id.clone(), edge.to.port_id.clone()))
-            else {
-                continue;
-            };
-            let waypoints: Vec<Pos2> = edge
-                .waypoints
-                .iter()
-                .map(|wp| {
-                    self.canvas
-                        .world_to_screen(Pos2::new(wp.x, wp.y), canvas_rect)
-                })
-                .collect();
-            let hit_rect = edge_renderer.hit_rect(from_pos, to_pos, &waypoints);
-            if cull_rect.intersects(hit_rect) {
-                let is_selected = self.selected_edges.contains(&edge.id);
-                edge_renderer.render_edge(
-                    ui,
-                    from_pos,
-                    to_pos,
-                    &edge.edge_type,
-                    &waypoints,
-                    is_selected,
-                );
+            for edge in label.edges.values() {
+                if edge.edge_type != PortType::Flow {
+                    let related = selected_node.as_ref().is_some_and(|selected| {
+                        edge.from.node_id == *selected || edge.to.node_id == *selected
+                    });
+                    let edge_selected = self.selected_edges.contains(&edge.id);
+                    if !related && !edge_selected {
+                        continue;
+                    }
+                }
+                let Some(&from_pos) =
+                    port_positions.get(&(edge.from.node_id.clone(), edge.from.port_id.clone()))
+                else {
+                    continue;
+                };
+                let Some(&to_pos) =
+                    port_positions.get(&(edge.to.node_id.clone(), edge.to.port_id.clone()))
+                else {
+                    continue;
+                };
+                let waypoints: Vec<Pos2> = edge
+                    .waypoints
+                    .iter()
+                    .map(|wp| {
+                        self.canvas
+                            .world_to_screen(Pos2::new(wp.x, wp.y), canvas_rect)
+                    })
+                    .collect();
+                let hit_rect = edge_renderer.hit_rect(from_pos, to_pos, &waypoints);
+                if cull_rect.intersects(hit_rect) {
+                    let is_selected = self.selected_edges.contains(&edge.id);
+                    edge_renderer.render_edge(
+                        ui,
+                        from_pos,
+                        to_pos,
+                        &edge.edge_type,
+                        &waypoints,
+                        is_selected,
+                    );
+                }
+                edge_hits.push((edge.id.clone(), hit_rect));
             }
-            edge_hits.push((edge.id.clone(), hit_rect));
         }
 
         // 第三遍：渲染非选中节点（下层）
-        for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| !d.4) {
-            node_renderer.render_with_data(ui, node, definition, *rect, ports, false, *has_errors, Some(&self.graph));
-        }
-
         // 第四遍：渲染选中节点（上层 / 置顶）
-        for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| d.4) {
-            node_renderer.render_with_data(ui, node, definition, *rect, ports, true, *has_errors, Some(&self.graph));
+        {
+            let label = Self::label_ref(&self.graph_doc, self.selected_container);
+            for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| !d.4) {
+                node_renderer.render_with_data(ui, node, definition, *rect, ports, false, *has_errors, Some(label));
+            }
+            for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| d.4) {
+                node_renderer.render_with_data(ui, node, definition, *rect, ports, true, *has_errors, Some(label));
+            }
+            // 绘制入口钉（不参与命中测试，置顶显示）
+            if cull_rect.contains(entry_pin_screen) {
+                entry_pin_renderer.render_pin(ui, entry_pin_screen, &label_name);
+            }
         }
 
         // 绘制临时拖线及目标端口状态填充
@@ -2103,7 +2042,7 @@ impl App {
                 edge_renderer.render_edge_with_color(ui, start_pos, end_pos, target_color, &[]);
                 if let Some(status) =
                     self.interaction
-                        .edge_target_status(&self.graph, end_pos, &port_hits)
+                        .edge_target_status(Self::label_ref(&self.graph_doc, self.selected_container), end_pos, &port_hits)
                 {
                     if let Some((_, _, center, _, _)) = port_hits
                         .iter()
@@ -2117,35 +2056,38 @@ impl App {
         }
 
         // 处理交互
-        let commands = self.interaction.handle_input(
-            ctx,
-            ui,
-            &canvas_response,
-            &node_hits,
-            &edge_hits,
-            &port_hits,
-            &mut self.graph,
-            &mut self.selected_nodes,
-            &mut self.selected_edges,
-            &mut self.clipboard,
-            &self.canvas,
-            &mut self.status_message,
-        );
-        for cmd in commands {
-            match cmd {
-                Command::CopySelected => self.copy_selected(),
-                Command::PasteAt { screen_pos } => {
-                    let world = self
-                        .canvas
-                        .screen_to_world(screen_pos, canvas_response.canvas_rect);
-                    self.paste_at(Vec2::new(world.x, world.y));
+        {
+            let label = Self::label_mut(&mut self.graph_doc, self.selected_container);
+            let commands = self.interaction.handle_input(
+                ctx,
+                ui,
+                &canvas_response,
+                &node_hits,
+                &edge_hits,
+                &port_hits,
+                label,
+                &mut self.selected_nodes,
+                &mut self.selected_edges,
+                &mut self.clipboard,
+                &self.canvas,
+                &mut self.status_message,
+            );
+            for cmd in commands {
+                match cmd {
+                    Command::CopySelected => self.copy_selected(),
+                    Command::PasteAt { screen_pos } => {
+                        let world = self
+                            .canvas
+                            .screen_to_world(screen_pos, canvas_response.canvas_rect);
+                        self.paste_at(Vec2::new(world.x, world.y));
+                    }
+                    _ => self.push_command(cmd),
                 }
-                _ => self.push_command(cmd),
             }
         }
 
         // 空画布欢迎提示
-        if self.show_welcome_hint && self.graph.nodes.is_empty() && self.project.is_none() {
+        if self.show_welcome_hint && self.current_label().nodes.is_empty() && self.project.is_none() {
             let center = canvas_rect.center();
             let card_w = 320.0;
             let card_h = 220.0;

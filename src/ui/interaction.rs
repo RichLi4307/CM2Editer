@@ -4,7 +4,7 @@ use egui::{Color32, Pos2, Rect, Response, Stroke};
 
 use crate::app::{Clipboard, Command};
 use crate::graph::edge::{Edge, EdgeEndpoint};
-use crate::graph::graph::Graph;
+use crate::graph::container::LabelContainer;
 use crate::graph::node::Vec2;
 use crate::graph::types::PortType;
 use crate::ui::canvas::Canvas;
@@ -135,14 +135,14 @@ impl InteractionController {
     /// 返回鼠标位置下目标端口的状态（仅当处于 DrawingEdge 状态时）。
     pub fn edge_target_status(
         &self,
-        graph: &Graph,
+        label: &LabelContainer,
         mouse_pos: Pos2,
         port_hits: &[(String, String, Pos2, PortType, bool)],
     ) -> Option<PortTargetStatus> {
         let (source_node, source_port, source_type) = self.edge_source_info()?;
         let (target_node, target_port, target_type, is_input) = find_port_at(mouse_pos, port_hits)?;
         Some(evaluate_target(
-            graph,
+            label,
             &source_node,
             &source_port,
             &source_type,
@@ -173,7 +173,7 @@ impl InteractionController {
         node_hits: &[(String, Rect)],
         edge_hits: &[(String, Rect)],
         port_hits: &[(String, String, Pos2, PortType, bool)],
-        graph: &mut Graph,
+        label: &mut LabelContainer,
         selected_nodes: &mut HashSet<String>,
         selected_edges: &mut HashSet<String>,
         clipboard: &mut Clipboard,
@@ -199,7 +199,7 @@ impl InteractionController {
                 response,
                 canvas_rect,
                 mouse_pos,
-                graph,
+                label,
                 node_hits,
                 edge_hits,
                 port_hits,
@@ -214,7 +214,7 @@ impl InteractionController {
                 start_positions,
             } => self.handle_dragging_node(
                 response,
-                graph,
+                label,
                 canvas,
                 &node_id,
                 start_mouse,
@@ -237,7 +237,7 @@ impl InteractionController {
                 &source_node,
                 &source_port,
                 &source_type,
-                graph,
+                label,
                 selected_edges,
                 &mut commands,
                 status_message,
@@ -262,7 +262,7 @@ impl InteractionController {
                     ctx,
                     pos,
                     &node_id,
-                    graph,
+                    label,
                     selected_nodes,
                     clipboard,
                     &mut commands,
@@ -284,7 +284,7 @@ impl InteractionController {
         response: &Response,
         canvas_rect: Rect,
         mouse_pos: Option<Pos2>,
-        graph: &Graph,
+        label: &LabelContainer,
         node_hits: &[(String, Rect)],
         edge_hits: &[(String, Rect)],
         port_hits: &[(String, String, Pos2, PortType, bool)],
@@ -331,11 +331,11 @@ impl InteractionController {
                     selected_nodes.insert(node_id.clone());
                 }
                 selected_edges.clear();
-                if let Some(_node) = graph.nodes.get(&node_id) {
+                if let Some(_node) = label.nodes.get(&node_id) {
                     // 记录所有当前选中节点的起始位置，以支持多选拖拽
                     let mut start_positions = HashMap::new();
                     for id in selected_nodes.iter() {
-                        if let Some(n) = graph.nodes.get(id) {
+                        if let Some(n) = label.nodes.get(id) {
                             start_positions.insert(id.clone(), n.position);
                         }
                     }
@@ -397,7 +397,7 @@ impl InteractionController {
     fn handle_dragging_node(
         &mut self,
         response: &Response,
-        graph: &mut Graph,
+        label: &mut LabelContainer,
         canvas: &Canvas,
         _node_id: &str,
         start_mouse: Pos2,
@@ -410,7 +410,7 @@ impl InteractionController {
                 let dx = (current.x - start_mouse.x) / canvas.viewport.zoom;
                 let dy = (current.y - start_mouse.y) / canvas.viewport.zoom;
                 for (id, start_pos) in &start_positions {
-                    if let Some(node) = graph.nodes.get_mut(id) {
+                    if let Some(node) = label.nodes.get_mut(id) {
                         node.position.x = start_pos.x + dx;
                         node.position.y = start_pos.y + dy;
                     }
@@ -418,7 +418,7 @@ impl InteractionController {
             }
         } else if response.drag_stopped() {
             for (id, start_pos) in &start_positions {
-                if let Some(node) = graph.nodes.get(id) {
+                if let Some(node) = label.nodes.get(id) {
                     if node.position != *start_pos {
                         commands.push(Command::MoveNode {
                             node_id: id.clone(),
@@ -445,7 +445,7 @@ impl InteractionController {
         source_node: &str,
         source_port: &str,
         source_type: &PortType,
-        graph: &Graph,
+        label: &LabelContainer,
         selected_edges: &mut HashSet<String>,
         commands: &mut Vec<Command>,
         status_message: &mut String,
@@ -458,7 +458,7 @@ impl InteractionController {
             find_port_at(end_pos, port_hits)
         {
             target_status = Some(evaluate_target(
-                graph,
+                label,
                 source_node,
                 source_port,
                 source_type,
@@ -489,8 +489,8 @@ impl InteractionController {
                     && target_node != source_node
                     && target_type.is_compatible_with(source_type)
                     && !self_loop(source_node, &target_node)
-                    && !would_form_cycle(graph, source_node, &target_node)
-                    && !data_port_occupied(graph, &target_node, &target_port)
+                    && !would_form_cycle(label, source_node, &target_node)
+                    && !data_port_occupied(label, &target_node, &target_port)
                 {
                     let edge = Edge::new(
                         EdgeEndpoint::new(source_node, source_port),
@@ -623,7 +623,7 @@ impl InteractionController {
         ctx: &egui::Context,
         pos: Pos2,
         node_id: &str,
-        graph: &mut Graph,
+        label: &mut LabelContainer,
         selected_nodes: &mut HashSet<String>,
         clipboard: &mut Clipboard,
         commands: &mut Vec<Command>,
@@ -635,7 +635,7 @@ impl InteractionController {
             .title_bar(false)
             .show(ctx, |ui| {
                 if ui.button("折叠/展开").clicked() {
-                    if let Some(node) = graph.nodes.get_mut(node_id) {
+                    if let Some(node) = label.nodes.get_mut(node_id) {
                         node.collapsed = !node.collapsed;
                     }
                     self.context_menu = None;
@@ -656,9 +656,9 @@ impl InteractionController {
                     self.context_menu = None;
                 }
                 if ui.button("删除").clicked() {
-                    if let Some(node) = graph.nodes.get(node_id).cloned() {
+                    if let Some(node) = label.nodes.get(node_id).cloned() {
                         // 收集该节点关联的边，支持撤销时恢复
-                        let edges: Vec<Edge> = graph
+                        let edges: Vec<Edge> = label
                             .edges
                             .values()
                             .filter(|e| e.from.node_id == node_id || e.to.node_id == node_id)
@@ -758,14 +758,14 @@ fn self_loop(source_node: &str, target_node: &str) -> bool {
 }
 
 /// 检查目标 Data 输入端口是否已经被占用。
-fn data_port_occupied(graph: &Graph, target_node: &str, target_port: &str) -> bool {
-    graph.edges.values().any(|e| {
+fn data_port_occupied(label: &LabelContainer, target_node: &str, target_port: &str) -> bool {
+    label.edges.values().any(|e| {
         e.to.node_id == target_node && e.to.port_id == target_port && e.edge_type != PortType::Flow
     })
 }
 
 /// 检查连接是否会形成 Flow 环。
-fn would_form_cycle(graph: &Graph, source_node: &str, target_node: &str) -> bool {
+fn would_form_cycle(label: &LabelContainer, source_node: &str, target_node: &str) -> bool {
     // 仅在 Flow 连接上判断。若 target 可以通过已有 Flow 边到达 source，则连接 source->target 成环。
     let mut visited = HashSet::new();
     let mut stack = vec![target_node];
@@ -776,7 +776,7 @@ fn would_form_cycle(graph: &Graph, source_node: &str, target_node: &str) -> bool
         if !visited.insert(current.to_string()) {
             continue;
         }
-        for edge in graph.edges.values() {
+        for edge in label.edges.values() {
             if edge.edge_type == PortType::Flow && edge.from.node_id == current {
                 stack.push(&edge.to.node_id);
             }
@@ -787,7 +787,7 @@ fn would_form_cycle(graph: &Graph, source_node: &str, target_node: &str) -> bool
 
 /// 评估目标端口状态。
 fn evaluate_target(
-    graph: &Graph,
+    label: &LabelContainer,
     source_node: &str,
     _source_port: &str,
     source_type: &PortType,
@@ -805,10 +805,10 @@ fn evaluate_target(
     if !target_type.is_compatible_with(source_type) {
         return PortTargetStatus::Incompatible;
     }
-    if *source_type == PortType::Flow && would_form_cycle(graph, source_node, target_node) {
+    if *source_type == PortType::Flow && would_form_cycle(label, source_node, target_node) {
         return PortTargetStatus::Cycle;
     }
-    if *source_type != PortType::Flow && data_port_occupied(graph, target_node, target_port) {
+    if *source_type != PortType::Flow && data_port_occupied(label, target_node, target_port) {
         return PortTargetStatus::Occupied;
     }
     PortTargetStatus::Compatible

@@ -43,12 +43,19 @@
   - 重写 `src/graph/validation.rs`：按容器检查，移除 Flow DAG/菱形警告，新增标签名唯一性、容器内边检查。
   - 从 `NodeType` 枚举中移除 `Start` / `Label`（变体数 168 → 166）。
   - 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器。
-  - 暂时屏蔽 `src/app.rs` 和 `src/ui` 模块，待核心稳定后逐步恢复。
+  - 重新启用 `src/app.rs` 和 `src/ui` 模块，并迁移到容器化模型。
+### 新增（P2 — UI 与编辑器重构）
+
+- 将 `App` 内部图模型从旧 `Graph` 迁移到 `ContainerGraph` / `GraphDocument`，新增 `SelectedContainer` 与 `ContainerKind` 跟踪当前编辑容器。
+- 左侧工程树按 `.code` 文件 → 线程 → 标签/监听器层级展示，点击切换画布容器。
+- 画布仅渲染当前 `LabelContainer` / `ListenerContainer` 内部节点与边；移除旧 `Start` / `Label` 节点显示。
+- 新增入口钉渲染（`src/ui/entry_pin.rs`）：为当前容器绘制 Flow 起点，并连接到入口节点 `in_flow` 端口。
+- 新增线程概览图面板（`src/ui/panels/overview.rs`）：以网格布局展示标签/监听器及 `Goto` / `CreateThread` / `CreateListener` / `ForeachNode` 关系，双击节点跳转对应容器。
+
 ### 测试
 
-- 新增 `code_gen::generator::tests::test_generate_goto_discovers_label_from_param` 回归测试，验证即使 `graph.labels` 未预先注册目标标签，`collect_labels` 仍能从 `Goto.label` 参数自动发现。
-- 新增 P1 节点代码生成测试：`test_generate_destroy_listener`、`test_generate_wait_for_thread`、`test_generate_get_current_thread`、`test_generate_for_with_range`、`test_generate_global_data_nodes`。
-- `cargo test`：99 个 lib tests + 4 个 code_gen 集成测试 + 9 个 examples 测试 + 4 个 json_roundtrip 测试全部通过。
+- 新增 `ui::panels::overview` 单元测试：验证概览图能从 `Goto` 节点提取目标标签关系并生成唯一布局。
+- `cargo test --lib`：93 个 lib tests 全部通过。
 
 ---
 

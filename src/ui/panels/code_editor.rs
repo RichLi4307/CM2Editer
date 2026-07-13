@@ -1,11 +1,11 @@
-use crate::graph::graph::Graph;
+use crate::graph::container::ContainerGraph;
 use crate::project::Project;
 
 /// 底部 `.code` 文本编辑器面板。内容放入 ScrollArea 防止撑高父容器。
 pub struct CodeEditorPanel;
 
 impl CodeEditorPanel {
-    pub fn show(ui: &mut egui::Ui, project: &mut Project, graph: &Graph) -> bool {
+    pub fn show(ui: &mut egui::Ui, project: &mut Project, graph: &ContainerGraph) -> bool {
         ui.horizontal(|ui| {
             ui.heading("代码预览");
             if project
