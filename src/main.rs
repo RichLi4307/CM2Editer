@@ -1,3 +1,12 @@
+use CM2Editer::app::App;
+
 fn main() {
-    eprintln!("UI 正在重构中，暂时不可用。请先运行 cargo test 验证核心模块。");
+    let options = eframe::NativeOptions::default();
+    if let Err(e) = eframe::run_native(
+        "CM2Editer",
+        options,
+        Box::new(|cc| Ok(Box::new(App::new(cc)))),
+    ) {
+        eprintln!("运行失败: {}", e);
+    }
 }
