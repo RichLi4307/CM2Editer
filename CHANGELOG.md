@@ -14,6 +14,15 @@
 - **全局变量数据节点**：GetSave、GetTime、GetTimeDiff、GetSettings、GetMod、GetMods，分别输出 `_save`、`_time`、`_timediff`、`_settings`、`_mod`、`_mods`。
 - **For + Range 直连**：当 `For.iterable` 通过 Data 边连接 `Range.out_list` 时，生成 `for i in Range(0, 10)`。
 
+### 新增（P1 节点分类与语义修正）
+
+- **节点分类重构**：按 `.code` 语言概念将全部 168 个节点重新分为 11 个类别（Threading & Concurrency、Control Flow、Variables & Globals、Literals、Math & Logic、Conditions & Queries、Game API、Game API: Stats、Objects、String / File / List、Editor-only），同步更新 `src/api/definitions.rs` 与 `src/ui/theme.rs`。
+- **通用变量节点**：
+  - `Variable`（C 类纯数据节点）：读取当前作用域变量，生成变量名引用。
+  - `SetVariable`（B 类 Flow 节点）：将值赋给当前作用域变量，生成 `name = value`。
+- **代码生成语义修正**：移除标签末尾无条件追加的 `_result = null`，`_result` 仅在显式 `Return` 节点时生成。
+- **全量节点生成测试**：在 `src/code_gen/generator.rs` 测试模块新增 13 个分类测试，覆盖全部 168 个节点，确保生成不 panic 且输出预期语义片段。
+
 ### 修复
 
 - **CallFunction 函数名引号**：动态函数名现在不再被额外包裹引号，生成 `Foo(args)` 而非 `"Foo"(args)`。

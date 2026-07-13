@@ -35,7 +35,7 @@
 
 ### P1 — 节点分类与语义修正
 
-- [ ] 按 `.code` 语言概念重新分类全部 168 个节点：
+- [x] 按 `.code` 语言概念重新分类全部 168 个节点：
   - Threading & Concurrency
   - Control Flow
   - Variables & Globals
@@ -46,12 +46,12 @@
   - Objects
   - String / File / List
   - Editor-only
-- [ ] 修正代码生成：
+- [x] 修正代码生成：
   - `Goto` 必须显式指定目标线程或默认 `_this`。
   - `CreateThread` 不再为每个标签自动生成顶层线程；只生成用户明确创建的线程。
   - 移除 `Return` 自动追加 `_result = null` 的噪音，仅在显式 Return 时生成 `_result`。
-- [ ] 引入通用变量节点（`Set Variable` / `Variable`）以支持自定义作用域变量。
-- [ ] 验证所有现有节点在新模型下生成正确 `.code`。
+- [x] 引入通用变量节点（`Set Variable` / `Variable`）以支持自定义作用域变量。
+- [x] 验证所有现有节点在新模型下生成正确 `.code`。
 
 ### P2 — UI 与编辑器重构
 
@@ -95,5 +95,5 @@
 |------|----------|------|------|
 | 2026-07-13 | 文档-归档 | 将旧版 `TODO.md` / `node_types.md` 归档到 `docs/archive/` | 已完成 |
 | 2026-07-13 | 文档-新架构 | 完成新架构核心文档：TODO.md、node_types.md、json_schema.md、agent_prompt.md、tutorial_make_code.md、migration_guide.md | 已完成 ✅ |
-| 2026-07-13 | 重构-P0 | 完成核心图模型重构：容器化图、序列化 v2.0、代码生成器、验证器、移除 Start/Label，UI 暂时屏蔽 | 已完成 ✅ |
+| 2026-07-13 | 实现-P1 | 完成节点分类、移除自动 `_result=null`、新增 Variable/SetVariable、全量代码生成测试 | 已完成 ✅ |
 | 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |
