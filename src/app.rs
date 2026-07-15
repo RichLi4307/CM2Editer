@@ -17,6 +17,7 @@ use crate::graph::types::{NodeType, PortType};
 use crate::graph::validation::GraphValidator;
 use crate::project::Project;
 use crate::serializer::json::GraphDocument;
+use crate::settings::AppSettings;
 
 use crate::api::coordinate::CoordinateRegistry;
 use crate::ui::canvas::Canvas;
@@ -292,7 +293,14 @@ impl App {
             namespace_picker: None,
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
-            i18n: crate::ui::i18n::I18n::load_bundled(),
+            i18n: {
+                let mut i18n = crate::ui::i18n::I18n::load_bundled();
+                let settings = AppSettings::load();
+                if !settings.language.is_empty() {
+                    i18n.set_language(&settings.language);
+                }
+                i18n
+            },
             dragged_node: None,
             edit_buffers: EditBuffers::new(),
             show_error_detail: false,
@@ -1014,6 +1022,9 @@ impl eframe::App for App {
                                 .clicked()
                             {
                                 self.i18n.set_language(lang);
+                                let mut settings = AppSettings::load();
+                                settings.language = lang.to_string();
+                                let _ = settings.save();
                             }
                         }
                     });

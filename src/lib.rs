@@ -7,4 +7,5 @@ pub mod error;
 pub mod graph;
 pub mod project;
 pub mod serializer;
+pub mod settings;
 pub mod ui;

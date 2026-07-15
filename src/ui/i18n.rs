@@ -58,10 +58,25 @@ impl I18n {
     }
 
     /// Load bundled translations from the default asset location.
+    ///
+    /// Tries the current working directory first, then the executable directory
+    /// and its parent, so that running from `cargo run` or a packaged binary both
+    /// work.
     pub fn load_bundled() -> Self {
         let mut i18n = Self::new();
-        for dir in [std::path::PathBuf::from("assets/i18n")] {
-            let _ = i18n.load_from_dir(&dir);
+        let mut dirs = vec![std::path::PathBuf::from("assets/i18n")];
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                dirs.push(exe_dir.join("assets/i18n"));
+                if let Some(parent) = exe_dir.parent() {
+                    dirs.push(parent.join("assets/i18n"));
+                }
+            }
+        }
+        for dir in dirs {
+            if i18n.translations.is_empty() || dir.exists() {
+                let _ = i18n.load_from_dir(&dir);
+            }
         }
         i18n
     }
