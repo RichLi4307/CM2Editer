@@ -128,8 +128,8 @@ mod tests {
             size: Vec2::new(180.0, 120.0),
             collapsed: false,
             params: HashMap::new(),
-            inputs: vec![Port::new("in_flow", PortType::Flow, "执行")],
-            outputs: vec![Port::new("out_flow", PortType::Flow, "下一步")],
+            inputs: vec![Port::new("in_flow", PortType::Flow, "Execute")],
+            outputs: vec![Port::new("out_flow", PortType::Flow, "Next")],
             category: String::new(),
         }
     }

@@ -522,10 +522,10 @@ mod tests {
     fn make_node_with_data_output(id: &str, node_type: NodeType) -> Node {
         let mut node = Node::new(node_type, Vec2::ZERO);
         node.id = id.to_string();
-        node.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        node.inputs = vec![Port::new("in_flow", PortType::Flow, "Execute")];
         node.outputs = vec![
-            Port::new("out_flow", PortType::Flow, "下一步"),
-            Port::new("out_value", PortType::Number, "值"),
+            Port::new("out_flow", PortType::Flow, "Next"),
+            Port::new("out_value", PortType::Number, "Value"),
         ];
         node
     }
@@ -537,8 +537,8 @@ mod tests {
         let mut n2 = Node::new(NodeType::Log, Vec2::ZERO);
         n2.id = "n2".to_string();
         n2.inputs = vec![
-            Port::new("in_flow", PortType::Flow, "执行"),
-            Port::new("output", PortType::String, "输出"),
+            Port::new("in_flow", PortType::Flow, "Execute"),
+            Port::new("output", PortType::String, "Output"),
         ];
         n2.set_param("output", ParamValue::Literal(serde_json::json!("")));
         label.nodes.insert(n1.id.clone(), n1);
@@ -565,8 +565,8 @@ mod tests {
         let mut n2 = Node::new(NodeType::SetEcstasy, Vec2::ZERO);
         n2.id = "n2".to_string();
         n2.inputs = vec![
-            Port::new("in_flow", PortType::Flow, "执行"),
-            Port::new("value", PortType::Number, "数值"),
+            Port::new("in_flow", PortType::Flow, "Execute"),
+            Port::new("value", PortType::Number, "Value"),
         ];
         n2.set_param("value", ParamValue::Literal(serde_json::json!(0.0)));
         label.nodes.insert(n1.id.clone(), n1);

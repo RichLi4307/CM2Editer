@@ -757,8 +757,8 @@ mod tests {
             size: Vec2::new(180.0, 120.0),
             collapsed: false,
             params: HashMap::new(),
-            inputs: vec![Port::new("in_flow", PortType::Flow, "执行")],
-            outputs: vec![Port::new("out_flow", PortType::Flow, "下一步")],
+            inputs: vec![Port::new("in_flow", PortType::Flow, "Execute")],
+            outputs: vec![Port::new("out_flow", PortType::Flow, "Next")],
             category: "Control".to_string(),
         }
     }
@@ -811,7 +811,7 @@ mod tests {
         // `evaluate_data_output` rather than `generate_node_call`.
         node.inputs.retain(|p| p.port_type != PortType::Flow);
         node.outputs.retain(|p| p.port_type != PortType::Flow);
-        node.outputs.push(Port::new(output_port, PortType::Any, "值"));
+        node.outputs.push(Port::new(output_port, PortType::Any, "Value"));
         node
     }
 
@@ -847,7 +847,7 @@ mod tests {
             .insert(id.to_string(), data_node);
 
         let mut setvar = make_node("setvar", NodeType::SetVariable);
-        setvar.inputs.push(Port::new("value", PortType::Any, "值").required(true));
+        setvar.inputs.push(Port::new("value", PortType::Any, "Value").required(true));
         setvar.set_param("name", ParamValue::Literal(serde_json::json!("testVar")));
         graph.threads[0].labels[0]
             .nodes

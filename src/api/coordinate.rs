@@ -129,7 +129,7 @@ mod tests {
         let mut reg = CoordinateRegistry::new();
         reg.register(CoordinateEntry {
             id: "spawn".into(),
-            name: "出生点".into(),
+            name: "Spawn".into(),
             stage: "Apart".into(),
             x: 0.0,
             y: 0.0,
@@ -137,13 +137,13 @@ mod tests {
         });
         reg.register(CoordinateEntry {
             id: "bed".into(),
-            name: "床边".into(),
+            name: "Bedside".into(),
             stage: "Apart".into(),
             x: 1.5,
             y: 0.0,
             z: -1.5,
         });
-        assert_eq!(reg.search("出生").len(), 1);
+        assert_eq!(reg.search("Spawn").len(), 1);
         assert_eq!(reg.search("Apart").len(), 2);
         assert_eq!(reg.by_stage().get("Apart").unwrap().len(), 2);
         assert_eq!(reg.stage_names(), vec!["Apart"]);

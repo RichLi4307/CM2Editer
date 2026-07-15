@@ -140,7 +140,7 @@ mod tests {
     fn test_tile_button_allocates_size() {
         let tile = DataTile {
             key: "out_value".to_string(),
-            label: "值".to_string(),
+            label: "Value".to_string(),
             port_type: PortType::Number,
         };
         let _widget = tile_button(&tile, false);
@@ -150,7 +150,7 @@ mod tests {
     fn test_data_panel_compiles() {
         let mut node = Node::new(NodeType::Random, Vec2::ZERO);
         node.id = "n1".to_string();
-        node.outputs.push(Port::new("out_value", PortType::Number, "值"));
+        node.outputs.push(Port::new("out_value", PortType::Number, "Value"));
         let mut label = LabelContainer::default();
         label.nodes.insert(node.id.clone(), node);
         let selected: HashSet<String> = HashSet::new();

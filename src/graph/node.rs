@@ -208,10 +208,10 @@ mod tests {
 
     #[test]
     fn test_node_with_ports() {
-        let inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
+        let inputs = vec![Port::new("in_flow", PortType::Flow, "Execute")];
         let outputs = vec![
-            Port::new("out_flow", PortType::Flow, "下一步"),
-            Port::new("out_result", PortType::String, "返回值"),
+            Port::new("out_flow", PortType::Flow, "Next"),
+            Port::new("out_result", PortType::String, "Return"),
         ];
         let node =
             Node::new(super::super::types::NodeType::Log, Vec2::ZERO).with_ports(inputs, outputs);

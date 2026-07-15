@@ -92,13 +92,13 @@ mod tests {
 
         let mut a = Node::new(NodeType::Log, Vec2::new(100.0, 0.0));
         a.id = "a".to_string();
-        a.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
-        a.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+        a.inputs = vec![Port::new("in_flow", PortType::Flow, "Execute")];
+        a.outputs = vec![Port::new("out_flow", PortType::Flow, "Next")];
 
         let mut b = Node::new(NodeType::Log, Vec2::new(0.0, 0.0));
         b.id = "b".to_string();
-        b.inputs = vec![Port::new("in_flow", PortType::Flow, "执行")];
-        b.outputs = vec![Port::new("out_flow", PortType::Flow, "下一步")];
+        b.inputs = vec![Port::new("in_flow", PortType::Flow, "Execute")];
+        b.outputs = vec![Port::new("out_flow", PortType::Flow, "Next")];
 
         label.nodes.insert(a.id.clone(), a);
         label.nodes.insert(b.id.clone(), b);
