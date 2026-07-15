@@ -53,10 +53,16 @@
 - 完成阶段二 UI 面板文本迁移：工具栏、状态栏、对话框、欢迎界面、画布提示、工程树、属性面板、命名空间/坐标选择器、代码编辑器、数据菜单、meta 编辑器、状态栏、右键菜单、入口钉、参数文本编辑等全部改用 i18n 键。
 - 新增翻译键命名空间：`app.*`、`panel.*`、`button.*`、`status.*`、`dialog.*`、`label.*`、`search.*`、`context_menu.*`、`code_editor.*`、`data_menu.*`、`status_bar.*`、`welcome.*` 等。
 
+### 新增（i18n — 阶段三完成）
+
+- 将 `If` / `While` 节点的条件模板列表从硬编码中文改为 i18n 键，新增 `template.*` 命名空间（如 `template.true`、`template.futanari`、`template.category.character_state`），支持中/英双语。
+- 精翻 `assets/i18n/en.json` 全部 169 条节点描述（`node.*.description`），英文界面不再使用占位文本。
+- 新增 `src/settings.rs`：语言偏好持久化到用户配置目录（Windows 为 `%APPDATA%/CM2Editer/settings.json`），切换语言时自动保存，启动时自动恢复。
+
 ### 修复（i18n）
 
-- 修复语言选择器切换无反应的问题：根因是 `assets/i18n/ja.json` 存在双逗号语法错误，导致 `I18n::load_from_dir` 在加载 `ja.json` 时失败并中止，排在后面的 `zh.json` 没有被加载。已修复 `ja.json` 语法错误，并让 `load_from_dir` 跳过单个损坏文件、打印错误并继续加载其余文件。
-- 修复 `zh.json` 中 `status_bar.world` / `status_bar.zoom` 仍为英文的问题，改为中文。
+- 修复语言切换无反应的问题：根因为 `assets/i18n/ja.json` 双逗号语法错误导致 `I18n::load_from_dir` 在加载 `ja.json` 时失败并中止，排在后面的 `zh.json` 没有被加载。已修复 `ja.json` 语法错误，并让 `load_from_dir` 跳过单个损坏文件、打印错误并继续加载其余文件。
+- 修复 `zh.json` 中 `status_bar.world` / `status_bar.zoom` / `status_bar.world_empty` 仍为英文的问题。
 - `I18n::load_bundled` 现在尝试多个翻译目录（当前工作目录、可执行文件目录、可执行文件父目录），避免从 `target/debug/` 直接运行或打包后找不到 `assets/i18n/`。
 - 新增 `src/settings.rs`：语言偏好现在持久化到用户配置目录（Windows 为 `%APPDATA%/CM2Editer/settings.json`），切换语言时自动保存，下次启动自动恢复。
 - 修复语言选择器显示语言代码问题，改为显示翻译后的语言名。
@@ -86,7 +92,7 @@
 - 新增 `ui::panels::overview` 单元测试：验证概览图能从 `Goto` 节点提取目标标签关系并生成唯一布局。
 - 新增 `graph::container::tests::test_entry_node_id_prefers_top_left_no_incoming_flow`，验证入口节点按位置和无入边规则稳定选择。
 - 新增 P3.2 UI 回归测试：`app::tests` 容器切换定位、`ui::entry_pin::tests` 入口钉端口选择、`ui::panels::overview::tests` CreateListener 关系、`project::tests` 工程保存/导出。
-- `cargo test --lib`：100 个 lib tests 全部通过；总测试数 109 项。
+- `cargo test --lib`：108 个 lib tests 全部通过；总测试数 117 项。
 
 ### 修复
 
