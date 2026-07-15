@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 新增（节点库场景分类）
+
+- 新增 `src/ui/panels/node_library/catalog.rs`：按开发者实际使用场景（任务/流程、条件判定、数据获取、数据修改、数据处理、视觉/UI、编辑器专用）组织全部 168 个节点，支持二级折叠、按场景分类搜索。
+- 节点注册层（`src/api/definitions.rs`）保持 API 分类不变；节点面板层独立场景分类，一个节点可出现在多个场景分类中。
+- 更新 `NodeLibraryPanel`：左侧节点库按场景一级分类 → 二级分类 → 节点列表渲染；搜索窗口同时支持按节点名和场景分类关键字搜索。
+- 新增 `src/ui/theme.rs::scene_category_color`：为场景分类提供稳定的节点库颜色。
+- 在 `assets/i18n/zh.json`、`en.json`、`ja.json` 中补充全部场景分类翻译键。
+
 ### 新增（P1 低难度节点）
 
 - **DestroyListener**：销毁当前监听器，生成 `listener = null`。

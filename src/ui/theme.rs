@@ -93,7 +93,25 @@ pub fn category_color(category: &str) -> Color32 {
     }
 }
 
-/// 将 `PortType` 映射为 UI 端口圆点颜色。
+/// 根据场景分类返回节点库标题栏颜色。
+///
+/// 颜色与 `docs/TODO.md` 中 Backlog 的场景分类设计对应，
+/// 用于在场景分类节点库中区分一级分类。
+#[must_use]
+pub fn scene_category_color(category: &str) -> Color32 {
+    match category {
+        "scene.mission_flow" => Color32::from_rgb(156, 39, 176),   // purple
+        "scene.conditions" => Color32::from_rgb(171, 71, 188),      // purple-pink
+        "scene.data_get" => Color32::from_rgb(33, 150, 243),       // blue
+        "scene.data_set" => Color32::from_rgb(255, 152, 0),        // orange
+        "scene.data_process" => Color32::from_rgb(96, 125, 139),   // grey
+        "scene.visual_ui" => Color32::from_rgb(0, 188, 212),       // cyan
+        "scene.editor" => Color32::from_rgb(117, 117, 117),        // grey
+        // Unknown scene defaults to grey.
+        _ => Color32::from_rgb(117, 117, 117),
+    }
+}
+
 ///
 /// 内部调用 `PortType::color()` 后再转换为 `egui::Color32`，
 /// 确保数据层与 UI 层颜色定义单一来源。
@@ -163,14 +181,42 @@ mod tests {
     }
 
     #[test]
-    fn port_color_matches_data_layer() {
+    fn scene_category_color_matches_expected() {
         assert_eq!(
-            port_color(&PortType::Flow),
-            Color32::from_rgb(255, 255, 255)
+            scene_category_color("scene.mission_flow"),
+            Color32::from_rgb(156, 39, 176)
         );
         assert_eq!(
-            port_color(&PortType::Number),
-            Color32::from_rgb(66, 165, 245)
+            scene_category_color("scene.conditions"),
+            Color32::from_rgb(171, 71, 188)
+        );
+        assert_eq!(
+            scene_category_color("scene.data_get"),
+            Color32::from_rgb(33, 150, 243)
+        );
+        assert_eq!(
+            scene_category_color("scene.data_set"),
+            Color32::from_rgb(255, 152, 0)
+        );
+        assert_eq!(
+            scene_category_color("scene.data_process"),
+            Color32::from_rgb(96, 125, 139)
+        );
+        assert_eq!(
+            scene_category_color("scene.visual_ui"),
+            Color32::from_rgb(0, 188, 212)
+        );
+        assert_eq!(
+            scene_category_color("scene.editor"),
+            Color32::from_rgb(117, 117, 117)
+        );
+    }
+
+    #[test]
+    fn unknown_scene_category_defaults_to_gray() {
+        assert_eq!(
+            scene_category_color("scene.unknown"),
+            Color32::from_rgb(117, 117, 117)
         );
     }
 }
