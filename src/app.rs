@@ -1719,7 +1719,7 @@ impl eframe::App for App {
                         .hover_world_pos(ctx, self.canvas_rect(ctx))
                         .map(|p| Vec2::new(p.x, p.y));
                     if let Some(node_type) =
-                        NodeLibraryPanel::show_search(ui, &mut self.search_query)
+                        NodeLibraryPanel::show_search(ui, &self.i18n, &mut self.search_query)
                     {
                         let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
                         self.add_node_at(node_type, pos);
@@ -1919,7 +1919,7 @@ impl App {
         let canvas_rect = canvas_response.canvas_rect;
         let cull_margin = 50.0;
         let cull_rect = canvas_rect.expand(cull_margin);
-        let node_renderer = NodeRenderer::default();
+        let node_renderer = NodeRenderer::with_i18n(&self.i18n);
         let edge_renderer = EdgeRenderer::default();
         let entry_pin_renderer = EntryPinRenderer::default();
 

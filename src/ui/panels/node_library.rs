@@ -42,13 +42,14 @@ impl NodeLibraryPanel {
                     let filtered: Vec<_> = items
                         .iter()
                         .filter(|d| {
+                            let name = i18n.node_display_name(d.node_type);
+                            let name_lower = name.to_lowercase();
+                            let query_lower = search_query.to_lowercase();
                             search_query.is_empty()
-                                || d.display_name
-                                    .to_lowercase()
-                                    .contains(&search_query.to_lowercase())
+                                || name_lower.contains(&query_lower)
                                 || format!("{:?}", d.node_type)
                                     .to_lowercase()
-                                    .contains(&search_query.to_lowercase())
+                                    .contains(&query_lower)
                         })
                         .copied()
                         .collect();
@@ -61,6 +62,7 @@ impl NodeLibraryPanel {
                         .show(ui, |ui| {
                             for def in filtered {
                                 let color = category_color(&def.category);
+                                let display_name = i18n.node_display_name(def.node_type);
                                 let resp = ui.horizontal(|ui| {
                                     ui.painter().circle_filled(
                                         ui.cursor().min + egui::vec2(8.0, 8.0),
@@ -69,7 +71,7 @@ impl NodeLibraryPanel {
                                     );
                                     ui.add_space(16.0);
                                     ui.add(
-                                        egui::Button::new(&def.display_name)
+                                        egui::Button::new(display_name)
                                             .sense(egui::Sense::drag()),
                                     )
                                 });
@@ -92,7 +94,11 @@ impl NodeLibraryPanel {
     }
 
     /// 在弹出窗口中显示搜索界面，返回选中的节点类型（如果有）。
-    pub fn show_search(ui: &mut egui::Ui, search_query: &mut String) -> Option<NodeType> {
+    pub fn show_search(
+        ui: &mut egui::Ui,
+        i18n: &I18n,
+        search_query: &mut String,
+    ) -> Option<NodeType> {
         ui.text_edit_singleline(search_query);
         ui.separator();
 
@@ -101,8 +107,9 @@ impl NodeLibraryPanel {
         let matched: Vec<_> = defs
             .iter()
             .filter(|d| {
+                let name = i18n.node_display_name(d.node_type);
                 query.is_empty()
-                    || d.display_name.to_lowercase().contains(&query)
+                    || name.to_lowercase().contains(&query)
                     || format!("{:?}", d.node_type).to_lowercase().contains(&query)
                     || d.category.to_lowercase().contains(&query)
             })
@@ -114,8 +121,9 @@ impl NodeLibraryPanel {
             .max_height(300.0)
             .show(ui, |ui| {
                 for def in matched {
+                    let display_name = i18n.node_display_name(def.node_type);
                     if ui
-                        .button(format!("{} [{}]", def.display_name, def.category))
+                        .button(format!("{} [{}]", display_name, def.category))
                         .clicked()
                     {
                         created = Some(def.node_type);

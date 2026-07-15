@@ -27,12 +27,14 @@ impl PropertiesPanel {
         edit_bufs: &mut EditBuffers,
     ) -> Option<(String, ParamValue)> {
         // 节点标题 + 简介
-        if let Some(def) = get_definition(node.node_type) {
-            ui.heading(&def.display_name);
+        if let Some(_def) = get_definition(node.node_type) {
+            let display_name = i18n.node_display_name(node.node_type);
+            let description = i18n.node_description(node.node_type);
+            ui.heading(display_name);
             ui.label(egui::RichText::new(format!("{:?}", node.node_type))
                 .color(egui::Color32::from_gray(150))
                 .size(11.0));
-            ui.label(egui::RichText::new(&def.description)
+            ui.label(egui::RichText::new(description)
                 .color(egui::Color32::from_gray(130))
                 .size(11.0));
         } else {
@@ -44,9 +46,10 @@ impl PropertiesPanel {
         let mut changed = None;
         for (key, value) in &node.params {
             let type_hint = param_type_label(node, key);
+            let param_label = i18n.param_display_name(node.node_type, key);
             // 纵向布局：标签在上，编辑器在下
             ui.vertical(|ui| {
-                ui.label(format!("{} {}", key, type_hint));
+                ui.label(format!("{} {}", param_label, type_hint));
                 if let Some((new_key, new_value)) =
                     Self::param_editor(ui, i18n, node, label, registry, picker, coord, coord_picker, edit_bufs, key, value)
                 {
@@ -195,7 +198,7 @@ impl PropertiesPanel {
         i18n: &I18n,
     ) -> Option<(String, ParamValue)> {
         // 收集可选数据源：所有兼容类型的非 Flow 输出端口。
-        let options = available_data_sources(label, node, key);
+        let options = available_data_sources(i18n, label, node, key);
 
         let selected_label = match value {
             ParamValue::Ref { node, port } => format!("{}.{} (ref)", node, port),
@@ -347,6 +350,7 @@ fn connected_data_source(
 
 /// 收集当前图中可供参数引用的所有兼容数据输出。
 fn available_data_sources(
+    i18n: &I18n,
     label: &LabelContainer,
     node: &Node,
     param_name: &str,
@@ -369,8 +373,9 @@ fn available_data_sources(
                     continue;
                 }
             }
+            let port_label = i18n.port_display_name(other.node_type, &output.id);
             sources.push((
-                format!("{}.{} ({})", other_id, output.id, output.label),
+                format!("{}.{} ({})", other_id, output.id, port_label),
                 ParamValue::from_ref(other_id, &output.id),
             ));
         }
@@ -569,9 +574,10 @@ mod tests {
             Port::new("value", PortType::Number, "Value"),
         ];
         n2.set_param("value", ParamValue::Literal(serde_json::json!(0.0)));
+        let i18n = crate::ui::i18n::I18n::new();
         label.nodes.insert(n1.id.clone(), n1);
 
-        let sources = super::available_data_sources(&label, &n2, "value");
+        let sources = super::available_data_sources(&i18n, &label, &n2, "value");
         label.nodes.insert(n2.id.clone(), n2);
 
         assert_eq!(sources.len(), 1);

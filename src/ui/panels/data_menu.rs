@@ -33,7 +33,7 @@ impl DataMenuPanel {
                 .iter()
                 .map(|o| DataTile {
                     key: o.id.clone(),
-                    label: o.label.clone(),
+                    label: i18n.port_display_name(node.node_type, &o.id),
                     port_type: o.port_type.clone(),
                 })
                 .collect();

@@ -59,6 +59,16 @@
 - 修复左栏命名空间卡片 `ns_card` 硬编码 `"zh"` 问题，改为使用当前语言。
 - 修复 `label.position` 翻译占位符拼写错误 `{:..1}` → `{}`。
 
+### 新增（i18n — 节点元数据 P2）
+
+- 将节点元数据全面接入 i18n：`I18n` 新增 `node_display_name`、`node_description`、`port_display_name`、`param_display_name` 辅助函数，缺失时 fallback 到 `NodeDefinition` 原中文元数据。
+- `NodeLibraryPanel` 搜索与显示使用 i18n 节点显示名；搜索弹窗标题与分类显示已同步。
+- `PropertiesPanel` 节点标题、描述、参数标签、数据源下拉框使用 i18n 读取端口/参数显示名。
+- `NodeRenderer` 新增 `with_i18n` 构造方法，节点标题、端口标签渲染时实时翻译。
+- `DataMenuPanel` 数据流小方块标签使用 i18n 端口显示名。
+- `assets/i18n/zh.json` 补充全部 168 个节点的中文显示名、描述、端口名、参数名键。
+- `assets/i18n/en.json` 补充全部 168 个节点的英文显示名（基于 `NodeType` PascalCase 分词 + 手动修正），端口名与参数名保持英文标识符；节点描述为简化版占位，后续可逐步精翻。
+
 ### 新增（P2 — UI 与编辑器重构）
 
 - 将 `App` 内部图模型从旧 `Graph` 迁移到 `ContainerGraph` / `GraphDocument`，新增 `SelectedContainer` 与 `ContainerKind` 跟踪当前编辑容器。

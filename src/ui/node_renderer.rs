@@ -4,6 +4,7 @@ use crate::api::definitions::NodeDefinition;
 use crate::graph::node::{Node, ParamValue, Port};
 use crate::graph::types::PortType;
 use crate::ui::canvas::Canvas;
+use crate::ui::i18n::I18n;
 use crate::ui::theme::{Theme, category_color, port_color};
 
 /// 节点渲染器配置。
@@ -24,6 +25,8 @@ pub struct NodeRenderer {
     pub min_width: f32,
     /// 节点最小高度
     pub min_height: f32,
+    /// 翻译注册表
+    pub i18n: I18n,
 }
 
 impl Default for NodeRenderer {
@@ -37,6 +40,17 @@ impl Default for NodeRenderer {
             port_spacing: 20.0,
             min_width: 180.0,
             min_height: 80.0,
+            i18n: I18n::new(),
+        }
+    }
+}
+
+impl NodeRenderer {
+    /// Create a renderer with the given translation registry.
+    pub fn with_i18n(i18n: &I18n) -> Self {
+        Self {
+            i18n: i18n.clone(),
+            ..Self::default()
         }
     }
 }
@@ -120,7 +134,7 @@ impl NodeRenderer {
             );
             ports.push(PortGeometry {
                 id: port.id.clone(),
-                label: port.label.clone(),
+                label: self.i18n.port_display_name(node.node_type, &port.id),
                 port_type: port.port_type.clone(),
                 center,
                 is_input: true,
@@ -139,7 +153,7 @@ impl NodeRenderer {
             );
             ports.push(PortGeometry {
                 id: port.id.clone(),
-                label: port.label.clone(),
+                label: self.i18n.port_display_name(node.node_type, &port.id),
                 port_type: port.port_type.clone(),
                 center,
                 is_input: false,
@@ -235,10 +249,11 @@ impl NodeRenderer {
         ));
 
         // 标题文字
+        let title = self.i18n.node_display_name(node.node_type);
         ui.painter().text(
             header_rect.center(),
             Align2::CENTER_CENTER,
-            &definition.display_name,
+            title,
             FontId::proportional(self.font_size),
             Theme::TEXT,
         );
