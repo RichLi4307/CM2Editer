@@ -437,7 +437,8 @@ impl PropertiesPanel {
             .width(160.0)
             .selected_text(if current.is_empty() { i18n.text("label.select_template") } else { current.clone() })
             .show_ui(ui, |ui| {
-                for &(label, expr) in IF_CONDITION_TEMPLATES {
+                for &(label_key, expr) in IF_CONDITION_TEMPLATES {
+                    let label = i18n.text(label_key);
                     if expr.is_empty() {
                         ui.separator();
                         ui.label(label);
@@ -462,38 +463,39 @@ impl PropertiesPanel {
     }
 }
 
-/// 条件模板列表
+/// 条件模板列表。每个条目的第一个字段是 i18n key，第二个字段是表达式。
+/// 空表达式表示仅作为分类标题。
 static IF_CONDITION_TEMPLATES: &[(&str, &str)] = &[
-    ("✅ true", "true"),
-    ("❌ false", "false"),
-    ("── 角色状态 ──", ""),
-    ("Futanari · 扶她", "_state.Futanari"),
-    ("Sitting · 坐姿", "_state.Sitting"),
-    ("Orgasm · 高潮", "_state.Orgasm"),
-    ("Moving · 移动中", "_state.Moving"),
-    ("Crouching · 蹲伏", "_state.Crouching"),
-    ("Peeing · 排泄", "_state.Peeing"),
-    ("Dashing · 奔跑", "_state.Dashing"),
-    ("── 环境 ──", ""),
-    ("InLight · 光照区", "_state.InLight"),
-    ("NearNPC · 靠近NPC", "_state.NearNPC"),
-    ("Watched · 被注视", "_state.Watched"),
-    ("IsDayTime · 白天", "_state.IsDayTime"),
-    ("FPCamera · 第一人称", "_state.FPCamera"),
-    ("── 装备/拘束 ──", ""),
-    ("蒙眼", "_state.Blindfolded"),
-    ("隐身", "_state.Invisible"),
-    ("有手铐", "_state.AdultToys.Handcuff != null"),
-    ("无手铐", "_state.AdultToys.Handcuff == null"),
-    ("有跳蛋", "_state.AdultToys.Vibrator != null"),
-    ("── 数值比较 ──", ""),
-    ("身体涂鸦 > 0", "_state.Bodypaint > 0"),
-    ("快感 ≥", "_state.Ecstasy >= "),
-    ("侦测 ≥", "_state.Detection >= "),
-    ("体力 ≥", "_state.Stamina >= "),
-    ("等级 ≥", "_state.Rank >= "),
-    ("湿润度 ≥", "_state.Moisture >= "),
-    ("心率 ≥", "_state.HeartRate >= "),
+    ("template.true", "true"),
+    ("template.false", "false"),
+    ("template.category.character_state", ""),
+    ("template.futanari", "_state.Futanari"),
+    ("template.sitting", "_state.Sitting"),
+    ("template.orgasm", "_state.Orgasm"),
+    ("template.moving", "_state.Moving"),
+    ("template.crouching", "_state.Crouching"),
+    ("template.peeing", "_state.Peeing"),
+    ("template.dashing", "_state.Dashing"),
+    ("template.category.environment", ""),
+    ("template.inlight", "_state.InLight"),
+    ("template.near_npc", "_state.NearNPC"),
+    ("template.watched", "_state.Watched"),
+    ("template.is_daytime", "_state.IsDayTime"),
+    ("template.fp_camera", "_state.FPCamera"),
+    ("template.category.equipment", ""),
+    ("template.blindfolded", "_state.Blindfolded"),
+    ("template.invisible", "_state.Invisible"),
+    ("template.has_handcuffs", "_state.AdultToys.Handcuff != null"),
+    ("template.no_handcuffs", "_state.AdultToys.Handcuff == null"),
+    ("template.has_vibrator", "_state.AdultToys.Vibrator != null"),
+    ("template.category.value_compare", ""),
+    ("template.bodypaint", "_state.Bodypaint > 0"),
+    ("template.ecstasy", "_state.Ecstasy >= "),
+    ("template.detection", "_state.Detection >= "),
+    ("template.stamina", "_state.Stamina >= "),
+    ("template.rank", "_state.Rank >= "),
+    ("template.moisture", "_state.Moisture >= "),
+    ("template.heartrate", "_state.HeartRate >= "),
 ];
 
 /// 返回参数类型简短标签，显示在参数名旁边帮助用户理解预期格式。
