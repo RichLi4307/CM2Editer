@@ -4,6 +4,7 @@
 pub mod canvas;
 pub mod edge_renderer;
 pub mod entry_pin;
+pub mod i18n;
 pub mod interaction;
 pub mod node_renderer;
 pub mod panels;

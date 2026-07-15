@@ -1,5 +1,6 @@
 use crate::api::registry::all_node_definitions;
 use crate::graph::types::NodeType;
+use crate::ui::i18n::I18n;
 use crate::ui::theme::category_color;
 
 /// 节点库操作结果。
@@ -16,10 +17,11 @@ pub struct NodeLibraryPanel;
 impl NodeLibraryPanel {
     pub fn show(
         ui: &mut egui::Ui,
+        i18n: &I18n,
         search_query: &mut String,
         search_window_open: &mut bool,
     ) -> NodeLibraryAction {
-        ui.heading("节点库");
+        ui.heading(i18n.text("node_library.title"));
         ui.text_edit_singleline(search_query);
         ui.separator();
 
@@ -82,7 +84,7 @@ impl NodeLibraryPanel {
                 }
             });
 
-        if ui.button("Space 搜索添加节点").clicked() {
+        if ui.button(i18n.text("button.search_add")).clicked() {
             *search_window_open = !*search_window_open;
         }
 

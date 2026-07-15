@@ -4,6 +4,7 @@ use crate::api::registry::get_definition;
 use crate::graph::container::LabelContainer;
 use crate::graph::node::{Node, ParamValue};
 use crate::graph::types::{NodeType, PortType};
+use crate::ui::i18n::I18n;
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::api::definitions::ParamType;
@@ -16,6 +17,7 @@ impl PropertiesPanel {
     /// 显示选中节点的可编辑参数，返回发生变更的参数键值（如果有）。
     pub fn show(
         ui: &mut egui::Ui,
+        i18n: &I18n,
         node: &Node,
         label: &LabelContainer,
         registry: &NamespaceRegistry,
@@ -34,7 +36,7 @@ impl PropertiesPanel {
                 .color(egui::Color32::from_gray(130))
                 .size(11.0));
         } else {
-            ui.heading("属性");
+            ui.heading(i18n.text("panel.properties"));
             ui.label(format!("类型: {:?}", node.node_type));
         }
         ui.separator();
@@ -46,7 +48,7 @@ impl PropertiesPanel {
             ui.vertical(|ui| {
                 ui.label(format!("{} {}", key, type_hint));
                 if let Some((new_key, new_value)) =
-                    Self::param_editor(ui, node, label, registry, picker, coord, coord_picker, edit_bufs, key, value)
+                    Self::param_editor(ui, i18n, node, label, registry, picker, coord, coord_picker, edit_bufs, key, value)
                 {
                     changed = Some((new_key, new_value));
                 }
@@ -56,7 +58,7 @@ impl PropertiesPanel {
         }
 
         if node.params.is_empty() {
-            ui.label("(无参数)");
+            ui.label(i18n.text("label.none"));
         }
 
         ui.separator();
@@ -76,6 +78,7 @@ impl PropertiesPanel {
     /// - 数据端口：通过节点边框的 Data 端口连接或下拉框选择其他节点的输出。
     fn param_editor(
         ui: &mut egui::Ui,
+        i18n: &I18n,
         node: &Node,
         label: &LabelContainer,
         registry: &NamespaceRegistry,
@@ -96,13 +99,13 @@ impl PropertiesPanel {
         if let Some((namespace, multi)) = namespace_for_param(node.node_type, key) {
             if registry.get(namespace).is_some() {
                 let current = selected_keys_from_value(value);
-                if ui.button("选择...").clicked() {
+                if ui.button(i18n.text("button.select")).clicked() {
                     *picker = Some(
                         NamespacePickerState::new(namespace, key, multi)
                             .with_selected(&current),
                     );
                 }
-                ui.label(format!("已选 {} 项", current.len()));
+                ui.label(i18n.format("label.selected_count", &[&current.len().to_string()]));
                 return None;
             }
         }
@@ -119,7 +122,7 @@ impl PropertiesPanel {
             .and_then(|def| def.params.iter().find(|p| p.name == key))
         {
             if param_def.param_type == ParamType::Vector || param_def.param_type == ParamType::Quaternion {
-                if ui.button("...").on_hover_text("从预设坐标选取").clicked() {
+                if ui.button("...").on_hover_text(i18n.text("tooltip.coord_picker")).clicked() {
                     *coord_picker = Some(CoordinatePickerState::new(key));
                 }
             }
@@ -127,7 +130,7 @@ impl PropertiesPanel {
 
         // GetPosition 节点：coord_id 字段也提供坐标选择器。
         if node.node_type == NodeType::GetPosition && key == "coord_id" {
-            if ui.button("... 选坐标").on_hover_text("从坐标预设库选取").clicked() {
+            if ui.button(i18n.text("button.coord_select")).on_hover_text(i18n.text("tooltip.coord_picker")).clicked() {
                 *coord_picker = Some(CoordinatePickerState::new("__getposition__"));
             }
         }

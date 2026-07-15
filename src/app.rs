@@ -228,6 +228,8 @@ pub struct App {
     pub coordinate_registry: CoordinateRegistry,
     /// 坐标选择器窗口状态。
     pub coordinate_picker: Option<CoordinatePickerState>,
+    /// 国际化文本注册表。
+    pub i18n: crate::ui::i18n::I18n,
     pub dragged_node: Option<NodeType>,
     pub edit_buffers: EditBuffers,
     pub show_error_detail: bool,
@@ -290,6 +292,7 @@ impl App {
             namespace_picker: None,
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
+            i18n: crate::ui::i18n::I18n::load_bundled(),
             dragged_node: None,
             edit_buffers: EditBuffers::new(),
             show_error_detail: false,
@@ -1001,6 +1004,24 @@ impl eframe::App for App {
                 if ui.button("添加节点 (Space)").clicked() {
                     self.search_window_open = !self.search_window_open;
                 }
+                ui.separator();
+                ui.label(self.i18n.text("i18n.language"));
+                let current_lang = self.i18n.current_language().to_string();
+                let current_lang_name = self.i18n.text(&format!("i18n.{}", current_lang));
+                egui::ComboBox::from_id_salt("language_selector")
+                    .width(100.0)
+                    .selected_text(&current_lang_name)
+                    .show_ui(ui, |ui| {
+                        for lang in ["zh", "en", "ja"] {
+                            let lang_name = self.i18n.text(&format!("i18n.{}", lang));
+                            if ui
+                                .selectable_label(current_lang == lang, lang_name)
+                                .clicked()
+                            {
+                                self.i18n.set_language(lang);
+                            }
+                        }
+                    });
             });
         });
 
@@ -1013,25 +1034,25 @@ impl eframe::App for App {
                 let active = self.left_panel_tab;
                 ui.horizontal(|ui| {
                     if ui
-                        .selectable_label(active == LeftPanelTab::Project, "工程")
+                        .selectable_label(active == LeftPanelTab::Project, self.i18n.text("panel.project"))
                         .clicked()
                     {
                         self.left_panel_tab = LeftPanelTab::Project;
                     }
                     if ui
-                        .selectable_label(active == LeftPanelTab::Namespace, "命名空间")
+                        .selectable_label(active == LeftPanelTab::Namespace, self.i18n.text("panel.namespace"))
                         .clicked()
                     {
                         self.left_panel_tab = LeftPanelTab::Namespace;
                     }
                     if ui
-                        .selectable_label(active == LeftPanelTab::Coordinate, "坐标")
+                        .selectable_label(active == LeftPanelTab::Coordinate, self.i18n.text("panel.coordinate"))
                         .clicked()
                     {
                         self.left_panel_tab = LeftPanelTab::Coordinate;
                     }
                     if ui
-                        .selectable_label(active == LeftPanelTab::Overview, "概览")
+                        .selectable_label(active == LeftPanelTab::Overview, self.i18n.text("panel.overview"))
                         .clicked()
                     {
                         self.left_panel_tab = LeftPanelTab::Overview;
@@ -1045,7 +1066,7 @@ impl eframe::App for App {
                             .hover_world_pos(ctx, self.canvas_rect(ctx))
                             .map(|p| Vec2::new(p.x, p.y));
                         // 节点库（置顶，可搜索）
-                        match NodeLibraryPanel::show(ui, &mut self.search_query, &mut self.search_window_open) {
+                        match NodeLibraryPanel::show(ui, &self.i18n, &mut self.search_query, &mut self.search_window_open) {
                             NodeLibraryAction::Create(node_type) => {
                                 let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
                                 self.add_node_at(node_type, pos);
@@ -1232,7 +1253,7 @@ impl eframe::App for App {
                                                             ui.horizontal_wrapped(|ui| {
                                                                 for e in entries {
                                                                     let is_selected = self.left_ns_selected.contains(&e.key);
-                                                                    if ui.add(ns_card(e, name, is_selected)).clicked() {
+                                                                    if ui.add(ns_card(e, name, is_selected, self.i18n.current_language())).clicked() {
                                                                         if self.left_ns_multi {
                                                                             if is_selected {
                                                                                 self.left_ns_selected.remove(&e.key);
@@ -1264,7 +1285,7 @@ impl eframe::App for App {
                                                 ui.horizontal_wrapped(|ui| {
                                                     for e in &ns.entries {
                                                         let is_selected = self.left_ns_selected.contains(&e.key);
-                                                        if ui.add(ns_card(e, name, is_selected)).clicked() {
+                                                         if ui.add(ns_card(e, name, is_selected, self.i18n.current_language())).clicked() {
                                                             if self.left_ns_multi {
                                                                 if is_selected {
                                                                     self.left_ns_selected.remove(&e.key);
@@ -1451,6 +1472,7 @@ impl eframe::App for App {
                     if let Some(node) = label.nodes.get(&node_id).cloned() {
                         if let Some((key, value)) = PropertiesPanel::show(
                             ui,
+                            &self.i18n,
                             &node,
                             &label,
                             &self.namespace_registry,
@@ -1480,7 +1502,7 @@ impl eframe::App for App {
         // 命名空间选择器悬浮窗口
         if let Some(picker) = self.namespace_picker.as_mut() {
             if picker.open {
-                if let Some(keys) = NamespacePicker::show(ctx, &self.namespace_registry, picker) {
+                if let Some(keys) = NamespacePicker::show(ctx, &self.namespace_registry, picker, self.i18n.current_language()) {
                     if let Some(node_id) = edited_node_id.clone() {
                         let value = if picker.multi {
                             ParamValue::Literal(serde_json::json!(keys))
@@ -2191,6 +2213,7 @@ fn ns_card<'a>(
     entry: &'a crate::api::namespace::NamespaceEntry,
     cat: &'a str,
     is_selected: bool,
+    lang: &'a str,
 ) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         let (rect, response) =
@@ -2224,11 +2247,11 @@ fn ns_card<'a>(
         ui.painter().rect_filled(rect, 6.0, fill);
         ui.painter().rect_stroke(rect, 6.0, egui::Stroke::new(1.5, border), egui::StrokeKind::Middle);
 
-        let zh = entry.display_name("zh");
+        let display_name = entry.display_name(lang);
         ui.painter().text(
             rect.center() - egui::vec2(0.0, 5.0),
             egui::Align2::CENTER_CENTER,
-            zh,
+            display_name,
             egui::FontId::new(13.0, egui::FontFamily::Proportional),
             egui::Color32::WHITE,
         );

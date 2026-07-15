@@ -50,6 +50,7 @@ impl NamespacePicker {
         ctx: &egui::Context,
         registry: &NamespaceRegistry,
         state: &mut NamespacePickerState,
+        lang: &str,
     ) -> Option<Vec<String>> {
         if !state.open {
             return None;
@@ -79,7 +80,7 @@ impl NamespacePicker {
                     }
                 };
                 let query = state.search.clone();
-                let entries = namespace.search(&query, "zh");
+                let entries = namespace.search(&query, lang);
 
                 ui.label(format!("{} 项 (已选 {})", entries.len(), state.selected.len()));
 
@@ -109,7 +110,7 @@ impl NamespacePicker {
                                         if state.multi {
                                             // 多选模式：使用 checkbox 列表，交互明确。
                                             for entry in cat_entries {
-                                                let display = entry.display_name("zh");
+                                                let display = entry.display_name(lang);
                                                 let label = if display == entry.key {
                                                     entry.key.clone()
                                                 } else {
@@ -128,7 +129,7 @@ impl NamespacePicker {
                                             // 单选模式：使用卡片，点击即选中。
                                             ui.horizontal_wrapped(|ui| {
                                                 for entry in cat_entries {
-                                                    if ui.add(ns_picker_card(entry, state)).clicked() {
+                                                    if ui.add(ns_picker_card(entry, state, lang)).clicked() {
                                                         state.selected.clear();
                                                         state.selected.insert(entry.key.clone());
                                                     }
@@ -146,7 +147,7 @@ impl NamespacePicker {
                         .max_height(300.0)
                         .show_rows(ui, row_height, entries.len(), |ui, range| {
                             for entry in &entries[range] {
-                                let display = entry.display_name("zh");
+                                let display = entry.display_name(lang);
                                 let label = if display == entry.key {
                                     entry.key.clone()
                                 } else {
@@ -203,6 +204,7 @@ impl NamespacePicker {
 fn ns_picker_card<'a>(
     entry: &'a crate::api::namespace::NamespaceEntry,
     state: &'a NamespacePickerState,
+    lang: &'a str,
 ) -> impl egui::Widget + 'a {
     let is_selected = state.selected.contains(&entry.key);
     move |ui: &mut egui::Ui| {
@@ -221,7 +223,7 @@ fn ns_picker_card<'a>(
         ui.painter().rect_filled(rect, 4.0, fill);
         ui.painter().rect_stroke(rect, 4.0, egui::Stroke::new(1.2, accent), egui::StrokeKind::Middle);
 
-        let zh = entry.display_name("zh");
+        let zh = entry.display_name(lang);
         ui.painter().text(
             rect.center(),
             egui::Align2::CENTER_CENTER,
