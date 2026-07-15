@@ -1,5 +1,6 @@
 use crate::graph::container::LabelContainer;
 use crate::graph::types::PortType;
+use crate::ui::i18n::I18n;
 use crate::ui::theme::port_color;
 use std::collections::HashSet;
 
@@ -11,10 +12,11 @@ impl DataMenuPanel {
         ui: &mut egui::Ui,
         label: &LabelContainer,
         selected_nodes: &HashSet<String>,
+        i18n: &I18n,
     ) -> Option<String> {
         ui.horizontal(|ui| {
-            ui.heading("数据");
-            ui.label("(DataFlow)");
+            ui.heading(i18n.text("data_menu.title"));
+            ui.label(i18n.text("data_menu.subtitle"));
         });
 
         let mut requested_select = None;
@@ -39,7 +41,7 @@ impl DataMenuPanel {
         }
 
         if !any {
-            ui.label("暂无数据输出端口");
+            ui.label(i18n.text("data_menu.no_outputs"));
             return None;
         }
 

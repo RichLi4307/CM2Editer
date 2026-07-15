@@ -3,6 +3,7 @@
 //! 按场景（箱庭）分组展示坐标卡片，支持搜索和点选。
 
 use crate::api::coordinate::{CoordinateEntry, CoordinateRegistry};
+use crate::ui::i18n::I18n;
 
 /// 坐标选择器持久状态。
 #[derive(Debug, Clone)]
@@ -31,6 +32,7 @@ impl CoordinatePicker {
         ctx: &egui::Context,
         registry: &CoordinateRegistry,
         state: &mut CoordinatePickerState,
+        i18n: &I18n,
     ) -> Option<String> {
         if !state.open {
             return None;
@@ -39,14 +41,14 @@ impl CoordinatePicker {
         let mut picked = None;
         let mut closed = false;
 
-        egui::Window::new("坐标预设")
+        egui::Window::new(i18n.text("coordinate_picker.title"))
             .id(egui::Id::new("coordinate_picker"))
             .collapsible(false)
             .resizable(true)
             .default_size([480.0, 420.0])
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label("搜索:");
+                    ui.label(i18n.text("coordinate_picker.search"));
                     ui.text_edit_singleline(&mut state.search);
                 });
                 ui.separator();
@@ -58,7 +60,7 @@ impl CoordinatePicker {
                 };
 
                 if entries.is_empty() {
-                    ui.label("无匹配坐标");
+                    ui.label(i18n.text("coordinate_picker.no_match"));
                     return;
                 }
 
@@ -75,7 +77,7 @@ impl CoordinatePicker {
                     .id_salt("coord_picker_scroll")
                     .show(ui, |ui| {
                         for (stage, stage_entries) in &by_stage {
-                            let header = format!("{}  ({} 项)", stage, stage_entries.len());
+                            let header = i18n.format("coordinate_picker.items_count", &[stage, &stage_entries.len().to_string()]);
                             egui::CollapsingHeader::new(header)
                                 .id_salt(format!("coord_stage_{}", stage))
                                 .show(ui, |ui| {
@@ -91,7 +93,7 @@ impl CoordinatePicker {
                     });
 
                 ui.separator();
-                if ui.button("关闭").clicked() {
+                if ui.button(i18n.text("button.close")).clicked() {
                     closed = true;
                 }
             });

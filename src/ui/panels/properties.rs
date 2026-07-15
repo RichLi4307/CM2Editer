@@ -37,7 +37,7 @@ impl PropertiesPanel {
                 .size(11.0));
         } else {
             ui.heading(i18n.text("panel.properties"));
-            ui.label(format!("类型: {:?}", node.node_type));
+            ui.label(i18n.format("label.type", &[&format!("{:?}", node.node_type)]));
         }
         ui.separator();
 
@@ -62,11 +62,14 @@ impl PropertiesPanel {
         }
 
         ui.separator();
-        ui.label(format!(
-            "位置: ({:.1}, {:.1})",
-            node.position.x, node.position.y
+        ui.label(i18n.format(
+            "label.position",
+            &[&format!("{:.1}", node.position.x), &format!("{:.1}", node.position.y)],
         ));
-        ui.label(format!("尺寸: {:.0} x {:.0}", node.size.x, node.size.y));
+        ui.label(i18n.format(
+            "label.size",
+            &[&format!("{:.0}", node.size.x), &format!("{:.0}", node.size.y)],
+        ));
 
         changed
     }
@@ -114,7 +117,7 @@ impl PropertiesPanel {
         if (node.node_type == NodeType::If || node.node_type == NodeType::While)
             && key == "condition"
         {
-            return Self::condition_template_editor(ui, key, value);
+            return Self::condition_template_editor(ui, key, value, i18n);
         }
 
         // Vector 参数：坐标预设选择器按钮
@@ -147,11 +150,11 @@ impl PropertiesPanel {
         // Object/List 类型无合适 Data 源，跳过 ComboBox 直通文本编辑器
         let skip_combo = matches!(value, ParamValue::Literal(v) if v.is_object() || v.is_array());
         if skip_combo {
-            return Self::literal_editor(ui, key, value, &node.id, edit_bufs);
+            return Self::literal_editor(ui, key, value, &node.id, edit_bufs, i18n);
         }
 
         // 否则使用数据源选择器 + 字面量编辑器。
-        Self::source_editor(ui, node, label, key, value, edit_bufs)
+        Self::source_editor(ui, node, label, key, value, edit_bufs, i18n)
     }
 
     /// 枚举参数下拉框编辑器。
@@ -189,13 +192,14 @@ impl PropertiesPanel {
         key: &str,
         value: &ParamValue,
         edit_bufs: &mut EditBuffers,
+        i18n: &I18n,
     ) -> Option<(String, ParamValue)> {
         // 收集可选数据源：所有兼容类型的非 Flow 输出端口。
         let options = available_data_sources(label, node, key);
 
         let selected_label = match value {
             ParamValue::Ref { node, port } => format!("{}.{} (ref)", node, port),
-            _ => String::from("字面量"),
+            _ => i18n.text("label.literal"),
         };
 
         let mut picked_source = None;
@@ -204,7 +208,7 @@ impl PropertiesPanel {
             .selected_text(&selected_label)
             .show_ui(ui, |ui| {
                 if ui
-                    .selectable_label(selected_label == "字面量", "字面量")
+                    .selectable_label(selected_label == i18n.text("label.literal"), i18n.text("label.literal"))
                     .clicked()
                 {
                     picked_source = Some(ParamValue::Null);
@@ -236,7 +240,7 @@ impl PropertiesPanel {
         // 当选择“字面量”时，显示对应的原生编辑器。
         match value {
             ParamValue::Ref { .. } => None,
-            _ => Self::literal_editor(ui, key, value, &node.id, edit_bufs),
+            _ => Self::literal_editor(ui, key, value, &node.id, edit_bufs, i18n),
         }
     }
 
@@ -247,6 +251,7 @@ impl PropertiesPanel {
         value: &ParamValue,
         node_id: &str,
         edit_bufs: &mut EditBuffers,
+        i18n: &I18n,
     ) -> Option<(String, ParamValue)> {
         match value {
             ParamValue::Literal(v) if v.is_boolean() => {
@@ -277,13 +282,13 @@ impl PropertiesPanel {
             // 字符串 / Null / 空数组：文本编辑（统一组件）
             _ => {
                 let hint = if matches!(value, ParamValue::Literal(v) if v.is_array()) {
-                    "JSON 数组 [1,2,3]"
+                    i18n.text("hint.json_array")
                 } else if matches!(value, ParamValue::Literal(v) if v.is_object()) {
-                    "JSON 对象"
+                    i18n.text("hint.json_object")
                 } else {
-                    ""
+                    String::new()
                 };
-                ParamTextEdit::show(ui, &format!("{node_id}.{key}"), value, edit_bufs, hint)
+                ParamTextEdit::show(ui, &format!("{node_id}.{key}"), value, edit_bufs, &hint, i18n)
             }
         }
     }
@@ -415,6 +420,7 @@ impl PropertiesPanel {
         ui: &mut egui::Ui,
         key: &str,
         value: &ParamValue,
+        i18n: &I18n,
     ) -> Option<(String, ParamValue)> {
         let current = match value {
             ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
@@ -424,7 +430,7 @@ impl PropertiesPanel {
         let mut picked = None;
         egui::ComboBox::from_id_salt("if_condition_template")
             .width(160.0)
-            .selected_text(if current.is_empty() { "选择模板..." } else { &current })
+            .selected_text(if current.is_empty() { i18n.text("label.select_template") } else { current.clone() })
             .show_ui(ui, |ui| {
                 for &(label, expr) in IF_CONDITION_TEMPLATES {
                     if expr.is_empty() {

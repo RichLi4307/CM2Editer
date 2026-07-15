@@ -1,4 +1,5 @@
 use crate::error::FlowError;
+use crate::ui::i18n::I18n;
 use egui::Pos2;
 
 /// 状态栏面板。
@@ -20,6 +21,7 @@ impl StatusBarPanel {
         errors: &[FlowError],
         world_pos: Option<Pos2>,
         zoom: f32,
+        i18n: &I18n,
     ) -> StatusBarEvent {
         let mut event = StatusBarEvent::None;
 
@@ -27,14 +29,14 @@ impl StatusBarPanel {
             ui.label(status_message);
             ui.separator();
             if errors.is_empty() {
-                ui.label("无错误");
+                ui.label(i18n.text("status_bar.no_errors"));
             } else {
                 let block_count = errors.iter().filter(|e| e.is_blocking()).count();
                 let warn_count = errors.iter().filter(|e| e.is_warning()).count();
                 let label = if warn_count > 0 {
-                    format!("错误: {} ⚠ {}", block_count, warn_count)
+                    i18n.format("status_bar.error", &[&block_count.to_string(), &warn_count.to_string()])
                 } else {
-                    format!("错误: {}", block_count)
+                    i18n.format("status_bar.error_only", &[&block_count.to_string()])
                 };
                 if ui
                     .link(
@@ -48,12 +50,12 @@ impl StatusBarPanel {
             }
             ui.separator();
             if let Some(pos) = world_pos {
-                ui.label(format!("World: ({:.1}, {:.1})", pos.x, pos.y));
+                ui.label(i18n.format("status_bar.world", &[&format!("{:.1}", pos.x), &format!("{:.1}", pos.y)]));
             } else {
-                ui.label("World: -");
+                ui.label(i18n.text("status_bar.world_empty"));
             }
             ui.separator();
-            ui.label(format!("Zoom: {:.2}x", zoom));
+            ui.label(i18n.format("status_bar.zoom", &[&format!("{:.2}", zoom)]));
         });
 
         event
@@ -65,8 +67,8 @@ pub struct ErrorDetailWindow;
 
 impl ErrorDetailWindow {
     /// 显示错误详情窗口。返回 `true` 表示窗口仍应保持打开。
-    pub fn show(open: &mut bool, errors: &[FlowError], ctx: &egui::Context) {
-        egui::Window::new("错误详情")
+    pub fn show(open: &mut bool, errors: &[FlowError], ctx: &egui::Context, i18n: &I18n) {
+        egui::Window::new(i18n.text("status_bar.error_detail"))
             .id(egui::Id::new("error_detail_window"))
             .collapsible(false)
             .open(open)
@@ -86,7 +88,7 @@ impl ErrorDetailWindow {
                         ui.colored_label(color, format!("{} {}", severity, err));
                     }
                     if errors.is_empty() {
-                        ui.label("当前无错误或警告");
+                        ui.label(i18n.text("status_bar.no_errors_detail"));
                     }
                 });
             });

@@ -7,6 +7,6 @@ fn main() {
         options,
         Box::new(|cc| Ok(Box::new(App::new(cc)))),
     ) {
-        eprintln!("运行失败: {}", e);
+        eprintln!("Run failed: {}", e);
     }
 }

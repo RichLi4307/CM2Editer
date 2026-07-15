@@ -7,6 +7,7 @@
 use std::collections::HashSet;
 
 use crate::api::namespace::NamespaceRegistry;
+use crate::ui::i18n::I18n;
 
 /// Persistent state for the namespace picker window.
 #[derive(Debug, Clone)]
@@ -51,6 +52,7 @@ impl NamespacePicker {
         registry: &NamespaceRegistry,
         state: &mut NamespacePickerState,
         lang: &str,
+        i18n: &I18n,
     ) -> Option<Vec<String>> {
         if !state.open {
             return None;
@@ -58,8 +60,13 @@ impl NamespacePicker {
 
         let mut confirmed = false;
         let mut cancelled = false;
+        let title = if state.multi {
+            i18n.text("namespace_picker.title_multi")
+        } else {
+            i18n.text("namespace_picker.title")
+        };
 
-        egui::Window::new(if state.multi { "命名空间选择器 (可多选)" } else { "命名空间选择器" })
+        egui::Window::new(title)
             .id(egui::Id::new("namespace_picker"))
             .collapsible(false)
             .resizable(true)
@@ -67,7 +74,7 @@ impl NamespacePicker {
             .show(ctx, |ui| {
                 // Search bar
                 ui.horizontal(|ui| {
-                    ui.label("搜索:");
+                    ui.label(i18n.text("namespace_picker.search"));
                     ui.text_edit_singleline(&mut state.search);
                 });
                 ui.separator();
@@ -75,27 +82,25 @@ impl NamespacePicker {
                 let namespace = match registry.get(&state.namespace) {
                     Some(ns) => ns,
                     None => {
-                        ui.label(format!("未找到命名空间: {}", state.namespace));
+                        ui.label(i18n.format("namespace_picker.not_found", &[&state.namespace]));
                         return;
                     }
                 };
                 let query = state.search.clone();
                 let entries = namespace.search(&query, lang);
 
-                ui.label(format!("{} 项 (已选 {})", entries.len(), state.selected.len()));
+                ui.label(i18n.format("namespace_picker.items_selected", &[&entries.len().to_string(), &state.selected.len().to_string()]));
 
                 let has_cats = entries.iter().any(|e| e.category.is_some());
 
                 if has_cats {
                     let mut by_cat: std::collections::BTreeMap<
-                        &str,
+                        String,
                         Vec<&crate::api::namespace::NamespaceEntry>,
                     > = std::collections::BTreeMap::new();
                     for e in &entries {
-                        by_cat
-                            .entry(e.category.as_deref().unwrap_or("其他"))
-                            .or_default()
-                            .push(e);
+                        let cat = e.category.clone().unwrap_or_else(|| i18n.text("label.category_other"));
+                        by_cat.entry(cat).or_default().push(e);
                     }
                     egui::ScrollArea::vertical()
                         .id_salt("namespace_picker_scroll")
@@ -103,7 +108,7 @@ impl NamespacePicker {
                         .max_height(280.0)
                         .show(ui, |ui| {
                             for (cat, cat_entries) in &by_cat {
-                                let cat_header = format!("{cat}  ({} 项)", cat_entries.len());
+                                let cat_header = i18n.format("label.items_count", &[cat, &cat_entries.len().to_string()]);
                                 egui::CollapsingHeader::new(cat_header)
                                     .id_salt(format!("nspick_{}_{}", state.namespace, cat))
                                     .show(ui, |ui| {
@@ -175,13 +180,13 @@ impl NamespacePicker {
 
                 ui.separator();
                 ui.horizontal(|ui| {
-                    if ui.button("确定").clicked() {
+                    if ui.button(i18n.text("button.confirm")).clicked() {
                         confirmed = true;
                     }
-                    if ui.button("取消").clicked() {
+                    if ui.button(i18n.text("button.cancel")).clicked() {
                         cancelled = true;
                     }
-                    if ui.button("清空").clicked() {
+                    if ui.button(i18n.text("button.clear")).clicked() {
                         state.selected.clear();
                     }
                 });

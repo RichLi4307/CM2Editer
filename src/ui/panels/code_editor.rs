@@ -1,3 +1,4 @@
+use crate::ui::i18n::I18n;
 use crate::graph::container::ContainerGraph;
 use crate::project::Project;
 
@@ -5,15 +6,15 @@ use crate::project::Project;
 pub struct CodeEditorPanel;
 
 impl CodeEditorPanel {
-    pub fn show(ui: &mut egui::Ui, project: &mut Project, graph: &ContainerGraph) -> bool {
+    pub fn show(ui: &mut egui::Ui, i18n: &I18n, project: &mut Project, graph: &ContainerGraph) -> bool {
         ui.horizontal(|ui| {
-            ui.heading("代码预览");
+            ui.heading(i18n.text("code_editor.title"));
             if project
                 .active_code_file()
                 .map(|c| c.code_text_dirty)
                 .unwrap_or(false)
             {
-                ui.colored_label(ui.visuals().warn_fg_color, "● 已手动编辑");
+                ui.colored_label(ui.visuals().warn_fg_color, i18n.text("code_editor.edited"));
             }
         });
         ui.separator();
@@ -39,14 +40,14 @@ impl CodeEditorPanel {
                     }
 
                     ui.horizontal(|ui| {
-                        if ui.button("[Regen] 从节点图生成").clicked() {
+                        if ui.button(i18n.text("code_editor.regenerate")).clicked() {
                             code_file.graph_doc.graph = graph.clone();
                             let _ = code_file.regenerate_code();
                             changed = true;
                         }
                         if ui
-                            .small_button("重置")
-                            .on_hover_text("丢弃手动修改并从节点图重新生成")
+                            .small_button(i18n.text("code_editor.reset"))
+                            .on_hover_text(i18n.text("code_editor.reset_tooltip"))
                             .clicked()
                         {
                             code_file.graph_doc.graph = graph.clone();
@@ -55,7 +56,7 @@ impl CodeEditorPanel {
                         }
                     });
                 } else {
-                    ui.label("未选择 .code 文件");
+                    ui.label(i18n.text("code_editor.no_selection"));
                 }
             });
         changed

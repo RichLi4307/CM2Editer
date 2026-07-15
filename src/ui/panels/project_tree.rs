@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::graph::container::{LabelContainer, ListenerContainer, ThreadContainer};
 use crate::project::Project;
+use crate::ui::i18n::I18n;
 
 /// 左栏工程文件树面板。
 pub struct ProjectTreePanel;
@@ -14,26 +15,27 @@ impl ProjectTreePanel {
         selected_code: &str,
         selected_thread: usize,
         selected_container: Option<ContainerKind>,
+        i18n: &I18n,
     ) -> ProjectTreeAction {
         let mut action = ProjectTreeAction::None;
 
         ui.horizontal(|ui| {
-            ui.heading("工程");
-            if ui.small_button("新建工程").clicked() {
+            ui.heading(i18n.text("project_tree.title"));
+            if ui.small_button(i18n.text("project_tree.new_project")).clicked() {
                 action = ProjectTreeAction::NewProjectDialog;
             }
-            if ui.small_button("打开工程").clicked() {
+            if ui.small_button(i18n.text("project_tree.open_project")).clicked() {
                 action = ProjectTreeAction::OpenProjectDialog;
             }
         });
         ui.separator();
 
         let Some(project) = project else {
-            ui.label("未打开工程");
+            ui.label(i18n.text("project_tree.no_project"));
             return action;
         };
 
-        ui.label(format!("路径: {}", project.root.display()));
+        ui.label(i18n.format("label.path", &[&project.root.display().to_string()]));
         ui.separator();
 
         // meta.json
@@ -44,7 +46,7 @@ impl ProjectTreePanel {
         }
 
         ui.separator();
-        ui.label(".code 文件");
+        ui.label(i18n.text("project_tree.code_files"));
 
         egui::ScrollArea::vertical()
             .id_salt("project_tree_scroll")
@@ -65,11 +67,11 @@ impl ProjectTreePanel {
                             if response.clicked() {
                                 action = ProjectTreeAction::SelectCode(code_file.name.clone());
                             }
-                            if !is_active && ui.small_button("Del").on_hover_text("删除").clicked()
+                            if !is_active && ui.small_button("Del").on_hover_text(i18n.text("project_tree.delete")).clicked()
                             {
                                 action = ProjectTreeAction::DeleteCode(code_file.name.clone());
                             }
-                            if ui.small_button("Ren").on_hover_text("重命名").clicked() {
+                            if ui.small_button("Ren").on_hover_text(i18n.text("project_tree.rename")).clicked() {
                                 action = ProjectTreeAction::RenameCode(code_file.name.clone());
                             }
                         });
@@ -82,19 +84,20 @@ impl ProjectTreePanel {
                             selected_thread,
                             selected_container,
                             &mut action,
+                            i18n,
                         );
                     });
                 }
             });
 
         ui.separator();
-        if ui.button("+ 新建 .code").clicked() {
+        if ui.button(i18n.text("project_tree.new_code")).clicked() {
             action = ProjectTreeAction::NewCodeDialog;
         }
-        if ui.button("💾 保存工程").clicked() {
+        if ui.button(i18n.text("project_tree.save_project")).clicked() {
             action = ProjectTreeAction::SaveProject;
         }
-        if ui.button("📤 导出工程").clicked() {
+        if ui.button(i18n.text("project_tree.export_project")).clicked() {
             action = ProjectTreeAction::ExportProjectDialog;
         }
 
@@ -108,6 +111,7 @@ impl ProjectTreePanel {
         selected_thread: usize,
         selected_container: Option<ContainerKind>,
         action: &mut ProjectTreeAction,
+        i18n: &I18n,
     ) {
         for (t_idx, thread) in threads.iter().enumerate() {
             let thread_active = code_active && selected_thread == t_idx;
@@ -141,6 +145,7 @@ impl ProjectTreePanel {
                     selected_container,
                     t_idx,
                     action,
+                    i18n,
                 );
                 if !thread.listeners.is_empty() {
                     ui.separator();
@@ -151,6 +156,7 @@ impl ProjectTreePanel {
                         selected_container,
                         t_idx,
                         action,
+                        i18n,
                     );
                 }
             });
@@ -164,8 +170,9 @@ impl ProjectTreePanel {
         selected_container: Option<ContainerKind>,
         thread_idx: usize,
         action: &mut ProjectTreeAction,
+        i18n: &I18n,
     ) {
-        ui.label("标签");
+        ui.label(i18n.text("project_tree.labels"));
         for (l_idx, label) in labels.iter().enumerate() {
             let is_active =
                 thread_active && selected_container == Some(ContainerKind::Label(l_idx));
@@ -189,8 +196,9 @@ impl ProjectTreePanel {
         selected_container: Option<ContainerKind>,
         thread_idx: usize,
         action: &mut ProjectTreeAction,
+        i18n: &I18n,
     ) {
-        ui.label("监听器");
+        ui.label(i18n.text("project_tree.listeners"));
         for (l_idx, listener) in listeners.iter().enumerate() {
             let is_active =
                 thread_active && selected_container == Some(ContainerKind::Listener(l_idx));
@@ -212,22 +220,23 @@ impl ProjectTreePanel {
         ctx: &egui::Context,
         open: &mut bool,
         name: &mut String,
+        i18n: &I18n,
     ) -> Option<String> {
         let mut show = *open;
         let mut result = None;
         let mut close = false;
-        egui::Window::new("新建 .code 文件")
+        egui::Window::new(i18n.text("dialog.new_code_title"))
             .collapsible(false)
             .open(&mut show)
             .show(ctx, |ui| {
-                ui.label("文件名（不含扩展名）:");
+                ui.label(i18n.text("dialog.new_code_name"));
                 ui.text_edit_singleline(name);
                 ui.horizontal(|ui| {
-                    if ui.button("创建").clicked() && !name.trim().is_empty() {
+                    if ui.button(i18n.text("button.create")).clicked() && !name.trim().is_empty() {
                         result = Some(name.trim().to_string());
                         close = true;
                     }
-                    if ui.button("取消").clicked() {
+                    if ui.button(i18n.text("button.cancel")).clicked() {
                         close = true;
                     }
                 });
@@ -242,23 +251,24 @@ impl ProjectTreePanel {
         open: &mut bool,
         old_name: &str,
         new_name: &mut String,
+        i18n: &I18n,
     ) -> Option<(String, String)> {
         let mut show = *open;
         let mut result = None;
         let mut close = false;
-        egui::Window::new("重命名 .code 文件")
+        egui::Window::new(i18n.text("dialog.rename_code_title"))
             .collapsible(false)
             .open(&mut show)
             .show(ctx, |ui| {
-                ui.label(format!("原名称: {}.code", old_name));
-                ui.label("新名称（不含扩展名）:");
+                ui.label(i18n.format("dialog.original_name", &[&old_name]));
+                ui.label(i18n.text("dialog.new_name"));
                 ui.text_edit_singleline(new_name);
                 ui.horizontal(|ui| {
-                    if ui.button("重命名").clicked() && !new_name.trim().is_empty() {
+                    if ui.button(i18n.text("button.rename")).clicked() && !new_name.trim().is_empty() {
                         result = Some((old_name.to_string(), new_name.trim().to_string()));
                         close = true;
                     }
-                    if ui.button("取消").clicked() {
+                    if ui.button(i18n.text("button.cancel")).clicked() {
                         close = true;
                     }
                 });
@@ -273,30 +283,31 @@ impl ProjectTreePanel {
         open: &mut bool,
         parent: &mut Option<PathBuf>,
         name: &mut String,
+        i18n: &I18n,
     ) -> Option<PathBuf> {
         let mut show = *open;
         let mut result = None;
         let mut close = false;
-        egui::Window::new("新建工程")
+        egui::Window::new(i18n.text("dialog.new_project_title"))
             .collapsible(false)
             .open(&mut show)
             .show(ctx, |ui| {
-                ui.label("工程名称:");
+                ui.label(i18n.text("dialog.project_name"));
                 ui.text_edit_singleline(name);
                 ui.horizontal(|ui| {
-                    if ui.button("选择父文件夹").clicked() {
+                    if ui.button(i18n.text("dialog.select_parent_folder")).clicked() {
                         if let Some(path) = rfd::FileDialog::new().pick_folder() {
                             *parent = Some(path);
                         }
                     }
                     if let Some(p) = parent {
-                        ui.label(format!("父目录: {}", p.display()));
+                        ui.label(i18n.format("dialog.parent_dir", &[&p.display().to_string()]));
                     }
                 });
                 ui.horizontal(|ui| {
                     let can_create = !name.trim().is_empty() && parent.is_some();
                     if ui
-                        .add_enabled(can_create, egui::Button::new("创建"))
+                        .add_enabled(can_create, egui::Button::new(i18n.text("button.create")))
                         .clicked()
                     {
                         if let Some(p) = parent {
@@ -304,7 +315,7 @@ impl ProjectTreePanel {
                         }
                         close = true;
                     }
-                    if ui.button("取消").clicked() {
+                    if ui.button(i18n.text("button.cancel")).clicked() {
                         close = true;
                     }
                 });

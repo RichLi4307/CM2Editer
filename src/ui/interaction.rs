@@ -9,6 +9,7 @@ use crate::graph::node::Vec2;
 use crate::graph::types::PortType;
 use crate::ui::canvas::Canvas;
 use crate::ui::canvas::CanvasResponse;
+use crate::ui::i18n::I18n;
 use crate::ui::theme::Theme;
 
 /// 端口悬停/命中判定半径（像素）。
@@ -182,6 +183,7 @@ impl InteractionController {
         clipboard: &mut Clipboard,
         canvas: &Canvas,
         status_message: &mut String,
+        i18n: &I18n,
     ) -> Vec<Command> {
         let response = &canvas_response.response;
         let canvas_rect = canvas_response.canvas_rect;
@@ -224,6 +226,7 @@ impl InteractionController {
                 start_positions,
                 &mut commands,
                 status_message,
+                i18n,
             ),
             CanvasState::DrawingEdge {
                 source_node,
@@ -244,6 +247,7 @@ impl InteractionController {
                 selected_edges,
                 &mut commands,
                 status_message,
+                i18n,
             ),
             CanvasState::BoxSelecting { start, .. } => self.handle_box_selecting(
                 ctx,
@@ -255,6 +259,7 @@ impl InteractionController {
                 selected_nodes,
                 selected_edges,
                 status_message,
+                i18n,
             ),
         }
 
@@ -270,9 +275,10 @@ impl InteractionController {
                     clipboard,
                     &mut commands,
                     status_message,
+                    i18n,
                 );
             } else {
-                self.show_canvas_context_menu(ctx, pos, clipboard, &mut commands, status_message);
+                self.show_canvas_context_menu(ctx, pos, clipboard, &mut commands, status_message, i18n);
             }
         }
 
@@ -412,6 +418,7 @@ impl InteractionController {
         start_positions: HashMap<String, Vec2>,
         commands: &mut Vec<Command>,
         status_message: &mut String,
+        i18n: &I18n,
     ) {
         if response.dragged_by(egui::PointerButton::Primary) {
             if let Some(current) = response.hover_pos() {
@@ -437,7 +444,7 @@ impl InteractionController {
                 }
             }
             self.state = CanvasState::Idle;
-            *status_message = String::from("节点移动完成");
+            *status_message = i18n.text("status.node_moved");
         }
     }
 
@@ -457,6 +464,7 @@ impl InteractionController {
         selected_edges: &mut HashSet<String>,
         commands: &mut Vec<Command>,
         status_message: &mut String,
+        i18n: &I18n,
     ) {
         let end_pos = mouse_pos.unwrap_or(canvas_rect.center());
         let mut target_status = None;
@@ -507,9 +515,9 @@ impl InteractionController {
                     );
                     commands.push(Command::AddEdge { edge });
                     selected_edges.clear();
-                    *status_message = String::from("已创建连线");
+                    *status_message = i18n.text("status.edge_created");
                 } else {
-                    *status_message = String::from("目标端口不兼容或无效");
+                    *status_message = i18n.text("status.port_incompatible");
                 }
             }
             self.state = CanvasState::Idle;
@@ -565,6 +573,7 @@ impl InteractionController {
         selected_nodes: &mut HashSet<String>,
         selected_edges: &mut HashSet<String>,
         status_message: &mut String,
+        i18n: &I18n,
     ) {
         if response.dragged_by(egui::PointerButton::Primary) {
             let current = response.hover_pos().unwrap_or(start);
@@ -635,11 +644,7 @@ impl InteractionController {
             }
 
             self.state = CanvasState::Idle;
-            *status_message = format!(
-                "已选中 {} 个节点、{} 条连线",
-                selected_nodes.len(),
-                selected_edges.len()
-            );
+            *status_message = i18n.format("status.selected_count", &[&selected_nodes.len().to_string(), &selected_edges.len().to_string()]);
         }
     }
 
@@ -654,19 +659,20 @@ impl InteractionController {
         clipboard: &mut Clipboard,
         commands: &mut Vec<Command>,
         status_message: &mut String,
+        i18n: &I18n,
     ) {
-        egui::Window::new("菜单")
+        egui::Window::new(i18n.text("context_menu.title"))
             .fixed_pos(pos)
             .collapsible(false)
             .title_bar(false)
             .show(ctx, |ui| {
-                if ui.button("折叠/展开").clicked() {
+                if ui.button(i18n.text("context_menu.collapse")).clicked() {
                     if let Some(node) = label.nodes.get_mut(node_id) {
                         node.collapsed = !node.collapsed;
                     }
                     self.context_menu = None;
                 }
-                if ui.button("复制").clicked() {
+                if ui.button(i18n.text("context_menu.copy")).clicked() {
                     // 若右键节点不在当前选区，则只复制该节点；否则复制整个选区
                     if !selected_nodes.contains(node_id) {
                         selected_nodes.clear();
@@ -677,11 +683,11 @@ impl InteractionController {
                     commands.push(Command::CopySelected);
                     self.context_menu = None;
                 }
-                if !clipboard.nodes.is_empty() && ui.button("粘贴").clicked() {
+                if !clipboard.nodes.is_empty() && ui.button(i18n.text("context_menu.paste")).clicked() {
                     commands.push(Command::PasteAt { screen_pos: pos });
                     self.context_menu = None;
                 }
-                if ui.button("删除").clicked() {
+                if ui.button(i18n.text("context_menu.delete")).clicked() {
                     if let Some(node) = label.nodes.get(node_id).cloned() {
                         // 收集该节点关联的边，支持撤销时恢复
                         let edges: Vec<Edge> = label
@@ -694,7 +700,7 @@ impl InteractionController {
                     }
                     selected_nodes.remove(node_id);
                     self.context_menu = None;
-                    *status_message = String::from("已删除节点");
+                    *status_message = i18n.text("status.deleted_node");
                 }
             });
     }
@@ -707,14 +713,15 @@ impl InteractionController {
         clipboard: &mut Clipboard,
         commands: &mut Vec<Command>,
         _status_message: &mut String,
+        i18n: &I18n,
     ) {
-        egui::Window::new("画布菜单")
+        egui::Window::new(i18n.text("context_menu.canvas"))
             .fixed_pos(pos)
             .collapsible(false)
             .title_bar(false)
             .show(ctx, |ui| {
                 ui.add_enabled_ui(!clipboard.nodes.is_empty(), |ui| {
-                    if ui.button("粘贴").clicked() {
+                    if ui.button(i18n.text("context_menu.paste")).clicked() {
                         commands.push(Command::PasteAt { screen_pos: pos });
                         self.context_menu = None;
                     }

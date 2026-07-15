@@ -1,18 +1,19 @@
 use crate::project::Project;
+use crate::ui::i18n::I18n;
 
 /// 右栏 `meta.json` 编辑器面板。
 pub struct MetaEditorPanel;
 
 impl MetaEditorPanel {
     /// 显示 `meta.json` 文本编辑器，返回文本是否发生变化。
-    pub fn show(ui: &mut egui::Ui, project: &mut Project) -> bool {
-        ui.heading("工程设置 (meta.json)");
+    pub fn show(ui: &mut egui::Ui, i18n: &I18n, project: &mut Project) -> bool {
+        ui.heading(i18n.text("meta_editor.title"));
         ui.separator();
 
         if project.meta_text_invalid {
             ui.colored_label(
                 ui.visuals().error_fg_color,
-                "⚠ JSON 格式错误，无法保存到 meta 对象",
+                i18n.text("meta_editor.json_error"),
             );
         }
 

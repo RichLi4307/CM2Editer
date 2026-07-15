@@ -387,7 +387,7 @@ impl App {
             self.redo_stack.push(cmd);
             self.graph_version += 1;
             self.validate();
-            self.status_message = String::from("已撤销");
+            self.status_message = self.i18n.text("status.undo");
         }
     }
 
@@ -399,7 +399,7 @@ impl App {
             self.undo_stack.push(cmd);
             self.graph_version += 1;
             self.validate();
-            self.status_message = String::from("已重做");
+            self.status_message = self.i18n.text("status.redo");
         }
     }
 
@@ -437,7 +437,7 @@ impl App {
         self.show_welcome_hint = false;
         self.show_meta_editor = false;
         self.push_command(Command::AddNode { node });
-        self.status_message = format!("已添加 {}", def.display_name);
+        self.status_message = self.i18n.format("status.added_node", &[&def.display_name]);
     }
 
     /// 删除选中的项。
@@ -479,7 +479,7 @@ impl App {
                 self.push_command(Command::RemoveEdge { edge: edge.clone() });
             }
             self.selected_edges.clear();
-            self.status_message = format!("已删除 {} 条连线", edges_to_remove.len());
+            self.status_message = self.i18n.format("status.deleted_edges", &[&edges_to_remove.len().to_string()]);
             return;
         }
 
@@ -495,7 +495,7 @@ impl App {
 
         self.selected_nodes.clear();
         self.selected_edges.clear();
-        self.status_message = String::from("已删除选中项");
+        self.status_message = self.i18n.text("status.deleted_selection");
     }
 
     /// 将当前选中的节点复制到剪贴板。
@@ -534,7 +534,7 @@ impl App {
         };
 
         self.clipboard = Clipboard { nodes, edges };
-        self.status_message = format!("已复制 {} 个节点", self.selected_nodes.len());
+        self.status_message = self.i18n.format("status.copied_nodes", &[&self.selected_nodes.len().to_string()]);
     }
 
     /// 在指定世界坐标处粘贴剪贴板内容。
@@ -584,20 +584,20 @@ impl App {
         self.selected_edges.clear();
         self.graph_version += 1;
         self.show_welcome_hint = false;
-        self.status_message = format!("已粘贴 {} 个节点", nodes.len());
+        self.status_message = self.i18n.format("status.pasted_nodes", &[&nodes.len().to_string()]);
     }
 
     /// 保存工程。若当前没有工程，则打开新建工程对话框。
     fn save_project(&mut self) -> Result<()> {
         if self.project.is_none() {
             self.new_project_dialog_open = true;
-            self.status_message = String::from("请先创建或打开工程");
+            self.status_message = self.i18n.text("status.no_project_open");
             return Ok(());
         }
         self.sync_active_to_project();
         if let Some(project) = &mut self.project {
             project.save()?;
-            self.status_message = format!("已保存工程 {}", project.root.display());
+            self.status_message = self.i18n.format("status.saved_project", &[&project.root.display().to_string()]);
         }
         Ok(())
     }
@@ -608,7 +608,7 @@ impl App {
         let project = Project::open(root)?;
         self.project = Some(project);
         self.load_active_code();
-        self.status_message = format!("已打开工程 {}", root_display);
+        self.status_message = self.i18n.format("status.opened_project", &[&root_display]);
         Ok(())
     }
 
@@ -675,12 +675,12 @@ impl App {
         self.sync_active_to_project();
         if let Some(project) = &mut self.project {
             if let Err(e) = project.set_active_code(name) {
-                self.status_message = format!("切换失败: {}", e);
+                self.status_message = self.i18n.format("status.switch_failed", &[&e.to_string()]);
                 return;
             }
         }
         self.load_active_code();
-        self.status_message = format!("切换到 {}.code", name);
+        self.status_message = self.i18n.format("status.switched_to", &[&name]);
     }
 
     /// 切换到 meta.json 编辑。
@@ -691,15 +691,15 @@ impl App {
             project.active_code = String::new();
             let _ = project.refresh_meta_text();
         }
-        self.status_message = String::from("编辑 meta.json");
+        self.status_message = self.i18n.text("status.editing_meta");
     }
 
     /// 新建空图（在工程模式下清空当前激活的代码图）。
     fn confirm_new_graph(&mut self) {
         if !self.current_label().nodes.is_empty() {
             let confirmed = rfd::MessageDialog::new()
-                .set_title("确认新建")
-                .set_description("当前画布有未保存的节点，是否清空？")
+                .set_title(self.i18n.text("dialog.clear_graph_title"))
+                .set_description(self.i18n.text("dialog.clear_graph_body"))
                 .set_buttons(rfd::MessageButtons::YesNo)
                 .show();
             if !matches!(confirmed, rfd::MessageDialogResult::Yes) {
@@ -727,7 +727,7 @@ impl App {
         self.show_meta_editor = false;
         self.validate();
         self.graph_version += 1;
-        self.status_message = String::from("已清空当前代码图");
+        self.status_message = self.i18n.text("status.cleared_graph");
     }
 
     /// 导出 `.code` 文件（弹出保存对话框），保留单文件导出能力。
@@ -738,19 +738,19 @@ impl App {
         {
             p
         } else {
-            self.status_message = "已取消导出".to_string();
+            self.status_message = self.i18n.text("status.export_cancelled");
             return Ok(());
         };
         generate_code_to_file(&self.graph_doc.graph, &path)?;
         if self.current_label().nodes.is_empty() {
             rfd::MessageDialog::new()
-                .set_title("导出为空")
-                .set_description("图为空，导出的 .code 文件内容为空。")
+                .set_title(self.i18n.text("dialog.export_empty_title"))
+                .set_description(self.i18n.text("dialog.export_empty_body"))
                 .set_buttons(rfd::MessageButtons::Ok)
                 .show();
-            self.status_message = "已导出 .code（图为空）".to_string();
+            self.status_message = self.i18n.text("status.exported_empty");
         } else {
-            self.status_message = format!("已导出 .code 到 {}", path.display());
+            self.status_message = self.i18n.format("status.exported", &[&path.display().to_string()]);
         }
         Ok(())
     }
@@ -758,18 +758,13 @@ impl App {
     /// 导出工程到指定文件夹。
     fn export_project(&mut self, destination: &std::path::Path) -> Result<()> {
         if self.project.is_none() {
-            self.status_message = String::from("没有打开的工程");
+            self.status_message = self.i18n.text("status.no_project");
             return Ok(());
         }
         self.sync_active_to_project();
         if let Some(project) = &self.project {
             project.export(destination)?;
-            self.status_message = format!(
-                "已导出工程到 {}",
-                destination
-                    .join(project.root.file_name().unwrap_or_default())
-                    .display()
-            );
+            self.status_message = self.i18n.format("status.exported_project", &[&destination.join(project.root.file_name().unwrap_or_default()).display().to_string()]);
         }
         Ok(())
     }
@@ -777,7 +772,7 @@ impl App {
     /// 运行预览（当前仅提示，需要在游戏中加载 .code 文件）。
     fn run_preview(&mut self) {
         self.status_message =
-            String::from("运行预览：请将工程导出到 CustomMissions2 文件夹后启动游戏");
+            self.i18n.text("status.run_preview");
     }
 
     /// 获取当前鼠标悬停的世界坐标（如果可用）。
@@ -789,7 +784,7 @@ impl App {
         })
     }
 
-    fn serialize_graph(graph: &ContainerGraph, viewport: &Viewport) -> String {
+    fn serialize_graph(&self, graph: &ContainerGraph, viewport: &Viewport) -> String {
         let doc = GraphDocument::from_graph(
             graph.clone(),
             serde_json::Value::Object(serde_json::Map::new()),
@@ -797,7 +792,7 @@ impl App {
             Vec::new(),
         );
         doc.to_json_pretty()
-            .unwrap_or_else(|e| format!("序列化失败: {}", e))
+            .unwrap_or_else(|e| self.i18n.format("status.serialize_failed", &[&e.to_string()]))
     }
 
     /// 处理工程文件树触发的动作。
@@ -812,10 +807,10 @@ impl App {
             ProjectTreeAction::OpenProjectDialog => {
                 if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     if let Err(e) = self.load_project(path) {
-                        self.status_message = format!("打开工程失败: {}", e);
+                        self.status_message = self.i18n.format("status.open_failed", &[&e.to_string()]);
                         rfd::MessageDialog::new()
-                            .set_title("打开失败")
-                            .set_description(format!("无法打开工程: {}", e))
+                            .set_title(self.i18n.text("dialog.open_failed_title"))
+                            .set_description(self.i18n.format("dialog.open_failed_body", &[&e.to_string()]))
                             .set_buttons(rfd::MessageButtons::Ok)
                             .show();
                     }
@@ -823,7 +818,7 @@ impl App {
             }
             ProjectTreeAction::SaveProject => {
                 if let Err(e) = self.save_project() {
-                    self.status_message = format!("保存失败: {}", e);
+                    self.status_message = self.i18n.format("status.save_failed", &[&e.to_string()]);
                 }
             }
             ProjectTreeAction::ExportProjectDialog => {
@@ -853,20 +848,20 @@ impl App {
             ProjectTreeAction::DeleteCode(name) => {
                 if let Some(project) = &mut self.project {
                     if project.code_files.len() <= 1 {
-                        self.status_message = String::from("至少保留一个 .code 文件");
+                        self.status_message = self.i18n.text("status.keep_one_code");
                         return;
                     }
                     let confirmed = rfd::MessageDialog::new()
-                        .set_title("确认删除")
-                        .set_description(format!("是否删除 {}.code？", name))
+                        .set_title(self.i18n.text("dialog.confirm_delete_title"))
+                        .set_description(self.i18n.format("dialog.confirm_delete_body", &[&name]))
                         .set_buttons(rfd::MessageButtons::YesNo)
                         .show();
                     if matches!(confirmed, rfd::MessageDialogResult::Yes) {
                         if let Err(e) = project.remove_code_file(&name) {
-                            self.status_message = format!("删除失败: {}", e);
+                            self.status_message = self.i18n.format("status.delete_failed", &[&e.to_string()]);
                         } else {
                             self.load_active_code();
-                            self.status_message = format!("已删除 {}.code", name);
+                            self.status_message = self.i18n.format("status.deleted_code", &[&name]);
                         }
                     }
                 }
@@ -938,70 +933,70 @@ impl eframe::App for App {
 
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::CTRL, egui::Key::S)) {
             if let Err(e) = self.save_project() {
-                self.status_message = format!("保存失败: {}", e);
+                self.status_message = self.i18n.format("status.save_failed", &[&e.to_string()]);
             }
         }
 
         // 顶部工具栏
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui.button("新建工程").clicked() {
+                if ui.button(self.i18n.text("button.new_project")).clicked() {
                     self.new_project_dialog_open = true;
                     self.new_project_parent = None;
                     self.new_project_name.clear();
                 }
-                if ui.button("打开工程").clicked() {
+                if ui.button(self.i18n.text("button.open_project")).clicked() {
                     if let Some(path) = rfd::FileDialog::new().pick_folder() {
                         if let Err(e) = self.load_project(path) {
-                            self.status_message = format!("加载失败: {}", e);
+                            self.status_message = self.i18n.format("status.open_failed", &[&e.to_string()]);
                             rfd::MessageDialog::new()
-                                .set_title("加载失败")
-                                .set_description(format!("无法加载工程: {}", e))
+                                .set_title(self.i18n.text("dialog.open_failed_title"))
+                                .set_description(self.i18n.format("dialog.open_failed_body", &[&e.to_string()]))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }
                     }
                 }
-                if ui.button("保存工程 (Ctrl+S)").clicked() {
+                if ui.button(self.i18n.text("button.save_project")).clicked() {
                     if let Err(e) = self.save_project() {
-                        self.status_message = format!("保存失败: {}", e);
+                        self.status_message = self.i18n.format("status.save_failed", &[&e.to_string()]);
                     }
                 }
-                if ui.button("导出工程").clicked() {
+                if ui.button(self.i18n.text("button.export_project")).clicked() {
                     self.export_project_dialog_open = true;
                     self.export_destination = None;
                 }
-                if ui.button("导出 .code").clicked() {
+                if ui.button(self.i18n.text("button.export_code")).clicked() {
                     if let Err(e) = self.export_code() {
-                        self.status_message = format!("导出 .code 失败: {}", e);
+                        self.status_message = self.i18n.format("status.export_code_failed", &[&e.to_string()]);
                     }
                 }
-                if ui.button("清空当前图").clicked() {
+                if ui.button(self.i18n.text("button.clear_graph")).clicked() {
                     self.confirm_new_graph();
                 }
-                if ui.button("运行预览").clicked() {
+                if ui.button(self.i18n.text("button.run_preview")).clicked() {
                     self.run_preview();
                 }
                 ui.separator();
-                if ui.button("撤销 (Ctrl+Z)").clicked() {
+                if ui.button(self.i18n.text("button.undo")).clicked() {
                     self.undo();
                 }
-                if ui.button("重做 (Ctrl+Y)").clicked() {
+                if ui.button(self.i18n.text("button.redo")).clicked() {
                     self.redo();
                 }
                 ui.separator();
-                if ui.button("复制 (Ctrl+C)").clicked() {
+                if ui.button(self.i18n.text("button.copy")).clicked() {
                     self.copy_selected();
                 }
-                if ui.button("粘贴 (Ctrl+V)").clicked() {
+                if ui.button(self.i18n.text("button.paste")).clicked() {
                     if let Some(pos) = self.hover_world_pos(ctx, self.canvas_rect(ctx)) {
                         self.paste_at(Vec2::new(pos.x, pos.y));
                     }
                 }
-                if ui.button("删除 (Del)").clicked() {
+                if ui.button(self.i18n.text("button.delete")).clicked() {
                     self.delete_selected();
                 }
-                if ui.button("添加节点 (Space)").clicked() {
+                if ui.button(self.i18n.text("button.search_node")).clicked() {
                     self.search_window_open = !self.search_window_open;
                 }
                 ui.separator();
@@ -1090,13 +1085,14 @@ impl eframe::App for App {
                             &active_code,
                             selected_thread,
                             selected_container,
+                            &self.i18n,
                         );
                     }
                     LeftPanelTab::Namespace => {
-                        ui.heading("命名空间");
+                        ui.heading(self.i18n.text("panel.namespace"));
                         ui.separator();
                             ui.horizontal(|ui| {
-                                if ui.button("Import 导入").clicked() {
+                                if ui.button(self.i18n.text("button.import")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .pick_file()
@@ -1105,14 +1101,14 @@ impl eframe::App for App {
                                         let _ = std::fs::create_dir_all(&dir);
                                         let dest = dir.join(path.file_name().unwrap_or_default());
                                         if let Err(e) = std::fs::copy(&path, &dest) {
-                                            self.status_message = format!("导入失败: {}", e);
+                                            self.status_message = self.i18n.format("status.import_failed", &[&e.to_string()]);
                                         } else {
                                             self.namespace_registry = NamespaceRegistry::load_bundled();
-                                            self.status_message = format!("已导入 {}", path.display());
+                                            self.status_message = self.i18n.format("status.imported", &[&path.display().to_string()]);
                                         }
                                     }
                                 }
-                                if ui.button("Export 导出").clicked() {
+                                if ui.button(self.i18n.text("button.export")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .save_file()
@@ -1132,22 +1128,22 @@ impl eframe::App for App {
                                         }
                                     }
                                 }
-                                if ui.button("Add 新增").clicked() {
+                                if ui.button(self.i18n.text("button.add")).clicked() {
                                     let _ = ui.ctx();
                                 }
-                                ui.checkbox(&mut self.left_ns_multi, "多选");
+                                ui.checkbox(&mut self.left_ns_multi, self.i18n.text("label.multi_select"));
                             });
                         // 内联添加表单
                         ui.horizontal(|ui| {
-                            ui.label("空间:");
+                            ui.label(self.i18n.text("label.space"));
                             ui.add_sized([70.0, 20.0], egui::TextEdit::singleline(&mut self.ns_add_target));
                             ui.label("Key:");
                             ui.add_sized([80.0, 20.0], egui::TextEdit::singleline(&mut self.ns_add_key));
                         });
                         ui.horizontal(|ui| {
-                            ui.label("名称:");
+                            ui.label(self.i18n.text("label.name"));
                             ui.add_sized([90.0, 20.0], egui::TextEdit::singleline(&mut self.ns_add_name));
-                            if ui.button("确定添加").clicked()
+                            if ui.button(self.i18n.text("button.confirm_add")).clicked()
                                 && !self.ns_add_target.is_empty()
                                 && !self.ns_add_key.is_empty()
                             {
@@ -1180,10 +1176,7 @@ impl eframe::App for App {
                                 };
                                 let _ = std::fs::write(&file_path, content);
                                 self.namespace_registry = NamespaceRegistry::load_bundled();
-                                self.status_message = format!(
-                                    "已添加 {} → {}",
-                                    self.ns_add_target, self.ns_add_key
-                                );
+                                self.status_message = self.i18n.format("status.namespace_entry_added", &[&self.ns_add_target, &self.ns_add_key]);
                                 self.ns_add_key.clear();
                                 self.ns_add_name.clear();
                                 self.ns_add_target.clear();
@@ -1192,7 +1185,7 @@ impl eframe::App for App {
                         ui.separator();
                         if self.left_ns_multi {
                             ui.horizontal(|ui| {
-                                if ui.button(format!("复制已选 ({})", self.left_ns_selected.len())).clicked() {
+                                if ui.button(self.i18n.format("button.copy_selected_count", &[&self.left_ns_selected.len().to_string()])).clicked() {
                                     let keys: Vec<_> = self.left_ns_selected.iter().cloned().collect();
                                     let text = if keys.len() == 1 {
                                         keys[0].clone()
@@ -1202,24 +1195,24 @@ impl eframe::App for App {
                                     ui.ctx().output_mut(|o| {
                                         o.commands.push(egui::OutputCommand::CopyText(text.clone()));
                                     });
-                                    self.status_message = format!("已复制 {} 项: {}", keys.len(), text);
+                                    self.status_message = self.i18n.format("status.copied_items", &[&keys.len().to_string(), &text]);
                                 }
-                                if ui.button("清空").clicked() {
+                                if ui.button(self.i18n.text("button.clear")).clicked() {
                                     self.left_ns_selected.clear();
                                 }
                             });
                             ui.separator();
                         }
                         if self.namespace_registry.namespace_names().is_empty() {
-                            ui.label("未加载到命名空间");
-                            ui.label("请检查 assets/namespaces/");
+                            ui.label(self.i18n.text("label.no_namespace_loaded"));
+                            ui.label(self.i18n.text("label.check_assets_namespaces"));
                         } else {
                             for name in self.namespace_registry.namespace_names() {
                                 let ns = match self.namespace_registry.get(name) {
                                     Some(n) => n,
                                     None => continue,
                                 };
-                                let header = format!("{name}  ({} 项)", ns.entries.len());
+                                let header = self.i18n.format("label.items_count", &[&name, &ns.entries.len().to_string()]);
                                 egui::CollapsingHeader::new(header)
                                 .id_salt(format!("left_ns_{name}"))
                                 .default_open(false)
@@ -1227,24 +1220,19 @@ impl eframe::App for App {
                                     let has_cats = ns.entries.iter().any(|e| e.category.is_some());
                                     if has_cats {
                                         let mut by_cat: std::collections::BTreeMap<
-                                            &str,
+                                            String,
                                             Vec<&crate::api::namespace::NamespaceEntry>,
                                         > = std::collections::BTreeMap::new();
                                         for e in &ns.entries {
-                                            by_cat
-                                                .entry(e.category.as_deref().unwrap_or("其他"))
-                                                .or_default()
-                                                .push(e);
+                                            let cat = e.category.clone().unwrap_or_else(|| self.i18n.text("label.category_other"));
+                                            by_cat.entry(cat).or_default().push(e);
                                         }
                                         egui::ScrollArea::vertical()
                                             .id_salt(format!("ns_scroll_{name}"))
                                             .max_height(ui.available_height().max(160.0))
                                             .show(ui, |ui| {
                                                 for (cat, entries) in &by_cat {
-                                                    let cat_header = format!(
-                                                        "{cat}  ({} 项)",
-                                                        entries.len()
-                                                    );
+                                                    let cat_header = self.i18n.format("label.items_count", &[cat, &entries.len().to_string()]);
                                                     egui::CollapsingHeader::new(cat_header)
                                                         .id_salt(format!(
                                                             "left_ns_{name}_{cat}"
@@ -1269,7 +1257,7 @@ impl eframe::App for App {
                                                                                 )
                                                                             });
                                                                             self.status_message =
-                                                                                format!("已复制: {}", e.key);
+                                                                                self.i18n.format("label.copied", &[&e.key]);
                                                                         }
                                                                     }
                                                                 }
@@ -1301,7 +1289,7 @@ impl eframe::App for App {
                                                                     )
                                                                 });
                                                                 self.status_message =
-                                                                    format!("已复制: {}", e.key);
+                                                                    self.i18n.format("label.copied", &[&e.key]);
                                                             }
                                                         }
                                                     }
@@ -1313,11 +1301,11 @@ impl eframe::App for App {
                         }
                     }
                     LeftPanelTab::Coordinate => {
-                        ui.heading("坐标预设");
+                        ui.heading(self.i18n.text("panel.coordinate"));
                         ui.separator();
                         if self.coordinate_registry.entries.is_empty() {
-                            ui.label("未加载到坐标预设");
-                            ui.label("请编辑 assets/coordinates/default.json");
+                            ui.label(self.i18n.text("label.no_coordinate_loaded"));
+                            ui.label(self.i18n.text("label.edit_coordinates"));
                         } else {
                             for stage in self.coordinate_registry.stage_names() {
                                 let entries: Vec<_> = self
@@ -1326,7 +1314,7 @@ impl eframe::App for App {
                                     .iter()
                                     .filter(|e| e.stage == stage)
                                     .collect();
-                                egui::CollapsingHeader::new(format!("{stage}  ({})", entries.len()))
+                                egui::CollapsingHeader::new(self.i18n.format("label.items_count", &[&stage, &entries.len().to_string()]))
                                     .id_salt(format!("left_coord_{stage}"))
                                     .show(ui, |ui| {
                                         for e in entries {
@@ -1339,7 +1327,7 @@ impl eframe::App for App {
                             }
                             ui.separator();
                             ui.horizontal(|ui| {
-                                if ui.button("Import 导入").clicked() {
+                                if ui.button(self.i18n.text("button.import")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .pick_file()
@@ -1348,16 +1336,16 @@ impl eframe::App for App {
                                         let _ = std::fs::create_dir_all(&dir);
                                         let dest = dir.join(path.file_name().unwrap_or_default());
                                         if let Err(e) = std::fs::copy(&path, &dest) {
-                                            self.status_message = format!("导入失败: {}", e);
+                                            self.status_message = self.i18n.format("status.import_failed", &[&e.to_string()]);
                                         } else {
                                             self.coordinate_registry =
                                                 CoordinateRegistry::load_bundled();
                                             self.status_message =
-                                                format!("已导入 {}", path.display());
+                                                self.i18n.format("status.imported", &[&path.display().to_string()]);
                                         }
                                     }
                                 }
-                                if ui.button("Export 导出").clicked() {
+                                if ui.button(self.i18n.text("button.export")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .save_file()
@@ -1368,25 +1356,25 @@ impl eframe::App for App {
                                         if let Ok(j) = json {
                                             if let Err(e) = std::fs::write(&path, j) {
                                                 self.status_message =
-                                                    format!("导出失败: {}", e);
+                                                    self.i18n.format("status.export_failed", &[&e.to_string()]);
                                             } else {
                                                 self.status_message =
-                                                    format!("已导出到 {}", path.display());
+                                                    self.i18n.format("status.exported_to", &[&path.display().to_string()]);
                                             }
                                         }
                                     }
                                 }
-                                if ui.button("Add 新增").clicked() {
+                                if ui.button(self.i18n.text("button.add")).clicked() {
                                     let _ = ui.ctx();
                                 }
                             });
                             // 内联坐标添加表单
                             ui.horizontal(|ui| {
-                                ui.label("ID:");
+                                ui.label(self.i18n.text("label.id"));
                                 ui.add_sized([60.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_id));
-                                ui.label("名:");
+                                ui.label(self.i18n.text("label.coord_name"));
                                 ui.add_sized([60.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_name));
-                                ui.label("场景:");
+                                ui.label(self.i18n.text("label.stage"));
                                 ui.add_sized([60.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_stage));
                             });
                             ui.horizontal(|ui| {
@@ -1396,7 +1384,7 @@ impl eframe::App for App {
                                 ui.add_sized([40.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_y));
                                 ui.label("z:");
                                 ui.add_sized([40.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_z));
-                                if ui.button("确定添加").clicked()
+                                if ui.button(self.i18n.text("button.confirm_add")).clicked()
                                     && !self.coord_add_id.is_empty()
                                     && !self.coord_add_stage.is_empty()
                                 {
@@ -1420,10 +1408,7 @@ impl eframe::App for App {
                                         serde_json::to_string_pretty(&data).unwrap_or_default(),
                                     );
                                     self.coordinate_registry = CoordinateRegistry::load_bundled();
-                                    self.status_message = format!(
-                                        "已添加坐标 {} @ {}",
-                                        self.coord_add_id, self.coord_add_stage
-                                    );
+                                    self.status_message = self.i18n.format("status.coordinate_added", &[&self.coord_add_id, &self.coord_add_stage]);
                                     self.coord_add_id.clear();
                                     self.coord_add_name.clear();
                                     self.coord_add_stage.clear();
@@ -1453,7 +1438,7 @@ impl eframe::App for App {
                 self.selected_nodes.clear();
                 self.selected_edges.clear();
                 self.left_panel_tab = LeftPanelTab::Project;
-                self.status_message = format!("切换到线程 {} 容器 {:?}", thread_idx, kind);
+                self.status_message = self.i18n.format("status.switched_container", &[&thread_idx.to_string(), &format!("{:?}", kind)]);
             }
         }
 
@@ -1464,7 +1449,7 @@ impl eframe::App for App {
             .show(ctx, |ui| {
                 if self.show_meta_editor {
                     if let Some(project) = self.project.as_mut() {
-                        let _changed = MetaEditorPanel::show(ui, project);
+                        let _changed = MetaEditorPanel::show(ui, &self.i18n, project);
                     }
                 } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
                     edited_node_id = Some(node_id.clone());
@@ -1491,18 +1476,18 @@ impl eframe::App for App {
                         }
                     }
                 } else if self.project.is_some() {
-                    ui.heading("工程设置");
-                    ui.label("点击左侧 meta.json 或选择节点进行编辑");
+                    ui.heading(self.i18n.text("panel.project_settings"));
+                    ui.label(self.i18n.text("properties.hint_select"));
                 } else {
-                    ui.heading("属性");
-                    ui.label("打开工程后编辑节点属性");
+                    ui.heading(self.i18n.text("panel.properties"));
+                    ui.label(self.i18n.text("welcome.placeholder_properties"));
                 }
             });
 
         // 命名空间选择器悬浮窗口
         if let Some(picker) = self.namespace_picker.as_mut() {
             if picker.open {
-                if let Some(keys) = NamespacePicker::show(ctx, &self.namespace_registry, picker, self.i18n.current_language()) {
+                if let Some(keys) = NamespacePicker::show(ctx, &self.namespace_registry, picker, self.i18n.current_language(), &self.i18n) {
                     if let Some(node_id) = edited_node_id.clone() {
                         let value = if picker.multi {
                             ParamValue::Literal(serde_json::json!(keys))
@@ -1529,7 +1514,7 @@ impl eframe::App for App {
         // 坐标选择器悬浮窗口
         if let Some(picker) = self.coordinate_picker.as_mut() {
             if picker.open {
-                if let Some(coord_id) = CoordinatePicker::show(ctx, &self.coordinate_registry, picker) {
+                if let Some(coord_id) = CoordinatePicker::show(ctx, &self.coordinate_registry, picker, &self.i18n) {
                     if let Some(entry) = self.coordinate_registry.get(coord_id.as_str()) {
                         if let Some(node_id) = edited_node_id.as_ref() {
                             if picker.param_key == "__getposition__" {
@@ -1579,6 +1564,7 @@ impl eframe::App for App {
                     &self.validation_errors,
                     self.hover_world_pos(ctx, self.canvas_rect(ctx)),
                     self.canvas.viewport.zoom,
+                    &self.i18n,
                 );
                 if event == StatusBarEvent::OpenErrorDetails {
                     self.show_error_detail = true;
@@ -1589,7 +1575,7 @@ impl eframe::App for App {
         // 底部面板（代码 ┃ JSON ┃ DataFlow）— 统一可拖拽
         // ──────────────────────────────────────────────
         if self.graph_version != self.cached_json_version {
-            self.cached_json = Self::serialize_graph(&self.graph_doc.graph, &self.graph_doc.viewport);
+            self.cached_json = self.serialize_graph(&self.graph_doc.graph, &self.graph_doc.viewport);
             self.cached_json_version = self.graph_version;
         }
 
@@ -1622,9 +1608,9 @@ impl eframe::App for App {
                 );
                 ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc1), |ui| {
                     if let Some(project) = self.project.as_mut() {
-                        let _changed = CodeEditorPanel::show(ui, project, &self.graph_doc.graph);
+                        let _changed = CodeEditorPanel::show(ui, &self.i18n, project, &self.graph_doc.graph);
                     } else {
-                        ui.label("打开工程后查看 .code 代码");
+                        ui.label(self.i18n.text("welcome.placeholder_code_editor"));
                     }
                 });
 
@@ -1687,7 +1673,7 @@ impl eframe::App for App {
                 ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc3), |ui| {
                     let label = self.current_label().clone();
                     if let Some(node_id) =
-                        DataMenuPanel::show(ui, &label, &self.selected_nodes)
+                        DataMenuPanel::show(ui, &label, &self.selected_nodes, &self.i18n)
                     {
                         self.selected_nodes.clear();
                         self.selected_nodes.insert(node_id);
@@ -1702,6 +1688,7 @@ impl eframe::App for App {
                 &mut self.show_error_detail,
                 &self.validation_errors,
                 ctx,
+                &self.i18n,
             );
         }
 
@@ -1721,10 +1708,10 @@ impl eframe::App for App {
             if ctx.input(|i| i.key_pressed(egui::Key::Escape)) {
                 self.search_window_open = false;
             }
-            egui::Window::new("添加节点")
+            egui::Window::new(self.i18n.text("search.title"))
                 .collapsible(false)
                 .show(ctx, |ui| {
-                    if ui.button("X 关闭").clicked() {
+                    if ui.button(self.i18n.text("search.close")).clicked() {
                         self.search_window_open = false;
                         return;
                     }
@@ -1783,7 +1770,7 @@ impl App {
     fn show_meta_editor_view(&mut self, ui: &mut egui::Ui) {
         ui.centered_and_justified(|ui| {
             ui.label(
-                egui::RichText::new("正在编辑 meta.json\n请在右侧面板修改")
+                egui::RichText::new(self.i18n.text("meta_editor.editing_hint"))
                     .size(18.0)
                     .color(Theme::TEXT_DIM),
             );
@@ -1798,6 +1785,7 @@ impl App {
                 &mut self.new_project_dialog_open,
                 &mut self.new_project_parent,
                 &mut self.new_project_name,
+                &self.i18n,
             ) {
                 match Project::create(
                     root.parent().unwrap_or(&root),
@@ -1810,10 +1798,10 @@ impl App {
                         let root_display = project.root.display().to_string();
                         self.project = Some(project);
                         self.load_active_code();
-                        self.status_message = format!("已创建工程 {}", root_display);
+                        self.status_message = self.i18n.format("status.project_created", &[&root_display]);
                     }
                     Err(e) => {
-                        self.status_message = format!("创建工程失败: {}", e);
+                        self.status_message = self.i18n.format("status.project_create_failed", &[&e.to_string()]);
                     }
                 }
                 self.new_project_dialog_open = false;
@@ -1825,13 +1813,14 @@ impl App {
                 ctx,
                 &mut self.new_code_dialog_open,
                 &mut self.new_code_name,
+                &self.i18n,
             ) {
                 if let Some(project) = &mut self.project {
                     if let Err(e) = project.add_code_file(&name) {
-                        self.status_message = format!("创建失败: {}", e);
+                        self.status_message = self.i18n.format("status.create_failed", &[&e.to_string()]);
                     } else {
                         self.load_active_code();
-                        self.status_message = format!("已创建 {}.code", name);
+                        self.status_message = self.i18n.format("status.code_created", &[&name]);
                     }
                 }
                 self.new_code_dialog_open = false;
@@ -1844,15 +1833,16 @@ impl App {
                 &mut self.rename_code_dialog_open,
                 &self.rename_old_name,
                 &mut self.rename_new_name,
+                &self.i18n,
             ) {
                 if let Some(project) = &mut self.project {
                     if let Err(e) = project.rename_code_file(&old_name, &new_name) {
-                        self.status_message = format!("重命名失败: {}", e);
+                        self.status_message = self.i18n.format("status.rename_failed", &[&e.to_string()]);
                     } else {
                         if self.active_code_name() == old_name {
                             self.load_active_code();
                         }
-                        self.status_message = format!("已重命名为 {}.code", new_name);
+                        self.status_message = self.i18n.format("status.code_renamed", &[&new_name]);
                     }
                 }
                 self.rename_code_dialog_open = false;
@@ -1861,36 +1851,36 @@ impl App {
 
         if self.export_project_dialog_open {
             let mut open = self.export_project_dialog_open;
-            egui::Window::new("导出工程")
+            egui::Window::new(self.i18n.text("dialog.export_project_title"))
                 .collapsible(false)
                 .open(&mut open)
                 .show(ctx, |ui| {
-                    ui.label("选择目标文件夹（通常为 CustomMissions2）:");
+                    ui.label(self.i18n.text("dialog.export_instructions"));
                     ui.horizontal(|ui| {
-                        if ui.button("选择文件夹").clicked() {
+                        if ui.button(self.i18n.text("dialog.select_folder")).clicked() {
                             if let Some(path) = rfd::FileDialog::new().pick_folder() {
                                 self.export_destination = Some(path);
                             }
                         }
                         if let Some(p) = &self.export_destination {
-                            ui.label(format!("目标: {}", p.display()));
+                            ui.label(self.i18n.format("label.destination", &[&p.display().to_string()]));
                         }
                     });
                     ui.horizontal(|ui| {
                         let can_export =
                             self.export_destination.is_some() && self.project.is_some();
                         if ui
-                            .add_enabled(can_export, egui::Button::new("导出"))
+                            .add_enabled(can_export, egui::Button::new(self.i18n.text("button.export")))
                             .clicked()
                         {
                             if let Some(dest) = self.export_destination.take() {
                                 if let Err(e) = self.export_project(dest.as_path()) {
-                                    self.status_message = format!("导出失败: {}", e);
+                                    self.status_message = self.i18n.format("status.export_failed", &[&e.to_string()]);
                                 }
                             }
                             self.export_project_dialog_open = false;
                         }
-                        if ui.button("取消").clicked() {
+                        if ui.button(self.i18n.text("button.cancel")).clicked() {
                             self.export_project_dialog_open = false;
                         }
                     });
@@ -2057,7 +2047,7 @@ impl App {
             }
             // 绘制入口钉（不参与命中测试，置顶显示）
             if cull_rect.contains(entry_pin_screen) {
-                entry_pin_renderer.render_pin(ui, entry_pin_screen, &label_name);
+                entry_pin_renderer.render_pin(ui, entry_pin_screen, &label_name, &self.i18n);
             }
         }
 
@@ -2100,6 +2090,7 @@ impl App {
                 &mut self.clipboard,
                 &self.canvas,
                 &mut self.status_message,
+                &self.i18n,
             );
             for cmd in commands {
                 match cmd {
@@ -2135,14 +2126,14 @@ impl App {
             ui.painter().text(
                 title_pos,
                 Align2::CENTER_TOP,
-                "CM2Editer v0.1.0",
+                self.i18n.text("welcome.title"),
                 FontId::proportional(22.0),
                 Theme::TEXT,
             );
             ui.painter().text(
                 title_pos + egui::vec2(0.0, 28.0),
                 Align2::CENTER_TOP,
-                "Custom Missions 2 可视化任务编辑器",
+                self.i18n.text("welcome.subtitle"),
                 FontId::proportional(13.0),
                 Theme::TEXT_DIM,
             );
@@ -2157,16 +2148,16 @@ impl App {
             );
 
             let open_clicked = ui
-                .put(btn_open, egui::Button::new("Open 打开工程..."))
+                .put(btn_open, egui::Button::new(self.i18n.text("welcome.open_project")))
                 .clicked();
             let new_clicked = ui
-                .put(btn_new, egui::Button::new("New 新建工程..."))
+                .put(btn_new, egui::Button::new(self.i18n.text("welcome.new_project")))
                 .clicked();
 
             if open_clicked {
                 if let Some(path) = rfd::FileDialog::new().pick_folder() {
                     if let Err(e) = self.load_project(path) {
-                        self.status_message = format!("打开工程失败: {}", e);
+                        self.status_message = self.i18n.format("status.open_failed", &[&e.to_string()]);
                     }
                 }
                 self.show_welcome_hint = false;
@@ -2179,7 +2170,7 @@ impl App {
             ui.painter().text(
                 egui::pos2(center.x, center.y + 60.0),
                 Align2::CENTER_TOP,
-                "或按 Space 快速添加节点",
+                self.i18n.text("welcome.space_hint"),
                 FontId::proportional(12.0),
                 Theme::TEXT_DIM,
             );
@@ -2187,15 +2178,14 @@ impl App {
 
         // 画布信息覆盖层
         let text = if let Some(world_pos) = canvas_response.hover_world_pos {
-            format!(
-                "World: ({:.1}, {:.1}) | Zoom: {:.2}x | 左键拖拽节点 | 中键平移 | 滚轮缩放 | Space 搜索",
-                world_pos.x, world_pos.y, self.canvas.viewport.zoom
-            )
+            let world = self.i18n.format("status_bar.world", &[&format!("{:.1}", world_pos.x), &format!("{:.1}", world_pos.y)]);
+            let zoom = self.i18n.format("status_bar.zoom", &[&format!("{:.2}", self.canvas.viewport.zoom)]);
+            let help = self.i18n.text("canvas.help_text");
+            format!("{} | {} | {}", world, zoom, help)
         } else {
-            format!(
-                "Zoom: {:.2}x | 左键拖拽节点 | 中键平移 | 滚轮缩放 | Space 搜索",
-                self.canvas.viewport.zoom
-            )
+            let zoom = self.i18n.format("status_bar.zoom", &[&format!("{:.2}", self.canvas.viewport.zoom)]);
+            let help = self.i18n.text("canvas.help_text");
+            format!("{} | {}", zoom, help)
         };
         ui.painter().text(
             canvas_rect.min + EVec2::new(10.0, 10.0),

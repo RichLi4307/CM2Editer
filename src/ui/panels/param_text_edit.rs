@@ -1,4 +1,5 @@
 use crate::graph::node::ParamValue;
+use crate::ui::i18n::I18n;
 use std::collections::HashMap;
 
 /// 持久编辑缓冲区：在失焦/回车时才提交文本到 ParamValue。
@@ -19,6 +20,7 @@ impl ParamTextEdit {
         value: &ParamValue,  // 当前值（仅用于初始化缓冲区）
         buffers: &mut EditBuffers,
         placeholder: &str,
+        i18n: &I18n,
     ) -> Option<(String, ParamValue)> {
         // 初始化或读取缓冲区
         let buf = buffers
@@ -48,7 +50,7 @@ impl ParamTextEdit {
         }
         if !json_ok {
             ui.label(
-                egui::RichText::new("格式错误：请输入合法 JSON")
+                egui::RichText::new(i18n.text("param_text_edit.json_error"))
                     .color(egui::Color32::from_rgb(240, 80, 80))
                     .size(10.0),
             );

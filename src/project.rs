@@ -227,7 +227,7 @@ impl Project {
     pub fn open(root: PathBuf) -> Result<Self> {
         if !root.is_dir() {
             return Err(FlowError::Validation(format!(
-                "工程路径不是文件夹: {}",
+                "Project path is not a directory: {}",
                 root.display()
             )));
         }
@@ -336,7 +336,7 @@ impl Project {
             Ok(())
         } else {
             Err(FlowError::Validation(format!(
-                "工程中不存在 .code 文件: {}",
+                "No .code files in project: {}",
                 name
             )))
         }
@@ -354,11 +354,11 @@ impl Project {
     pub fn add_code_file(&mut self, name: &str) -> Result<()> {
         let sanitized = sanitize_name(name);
         if sanitized.is_empty() {
-            return Err(FlowError::Validation("代码文件名不能为空".to_string()));
+            return Err(FlowError::Validation("Code file name cannot be empty".to_string()));
         }
         if self.code_files.iter().any(|c| c.name == sanitized) {
             return Err(FlowError::Validation(format!(
-                "代码文件 {} 已存在",
+                "Code file {} already exists",
                 sanitized
             )));
         }
@@ -384,14 +384,14 @@ impl Project {
     pub fn rename_code_file(&mut self, old_name: &str, new_name: &str) -> Result<()> {
         let new_name = sanitize_name(new_name);
         if new_name.is_empty() {
-            return Err(FlowError::Validation("代码文件名不能为空".to_string()));
+            return Err(FlowError::Validation("Code file name cannot be empty".to_string()));
         }
         if old_name == new_name {
             return Ok(());
         }
         if self.code_files.iter().any(|c| c.name == new_name) {
             return Err(FlowError::Validation(format!(
-                "代码文件 {} 已存在",
+                "Code file {} already exists",
                 new_name
             )));
         }
@@ -427,7 +427,7 @@ impl Project {
             .code_files
             .iter()
             .position(|c| c.name == name)
-            .ok_or_else(|| FlowError::Validation(format!("代码文件 {} 不存在", name)))?;
+            .ok_or_else(|| FlowError::Validation(format!("Code file {} does not exist", name)))?;
         let code_file = self.code_files.remove(index);
 
         let code_path = code_file.code_path(&self.root);
@@ -581,7 +581,7 @@ fn copy_dir_all(src: &Path, dst: &Path) -> Result<()> {
         let path = entry.path();
         let file_name = path
             .file_name()
-            .ok_or_else(|| FlowError::Io(format!("无法获取文件名: {}", path.display())))?;
+            .ok_or_else(|| FlowError::Io(format!("Cannot get file name: {}", path.display())))?;
         let target = dst.join(file_name);
         if path.is_dir() {
             copy_dir_all(&path, &target)?;
