@@ -30,6 +30,8 @@ impl I18n {
     /// Load all `.json` translation files from a directory.
     ///
     /// Files are keyed by their stem (e.g. `zh.json` -> language `zh`).
+    /// Files that fail to parse are skipped so that a single broken translation
+    /// file does not prevent the rest from loading.
     pub fn load_from_dir(&mut self, dir: &Path) -> Result<()> {
         if !dir.is_dir() {
             return Ok(());
@@ -48,10 +50,20 @@ impl I18n {
                     .and_then(|s| s.to_str())
                     .unwrap_or_default()
                     .to_string();
-                let text = std::fs::read_to_string(&path).map_err(FlowError::from)?;
-                let map: HashMap<String, String> =
-                    serde_json::from_str(&text).map_err(FlowError::from)?;
-                self.translations.insert(lang, map);
+                if lang.is_empty() || lang.starts_with('_') {
+                    continue;
+                }
+                match std::fs::read_to_string(&path)
+                    .map_err(FlowError::from)
+                    .and_then(|text| serde_json::from_str::<HashMap<String, String>>(&text).map_err(FlowError::from))
+                {
+                    Ok(map) => {
+                        self.translations.insert(lang, map);
+                    }
+                    Err(e) => {
+                        eprintln!("i18n: failed to load {}: {}", path.display(), e);
+                    }
+                }
             }
         }
         Ok(())
@@ -266,5 +278,19 @@ mod tests {
         map.insert("saved".to_string(), "Saved {}".to_string());
         i18n.translations.insert("en".to_string(), map);
         assert_eq!(i18n.format("saved", &["proj"]), "Saved proj");
+    }
+
+    /// Ensure the bundled zh.json actually loads and overrides English toolbar
+    /// strings when the active language is set to Chinese.
+    #[test]
+    fn test_bundled_zh_translations_load() {
+        let mut i18n = I18n::load_bundled();
+        i18n.set_language("zh");
+        assert!(
+            !i18n.translations.get("zh").expect("zh translations missing").is_empty(),
+            "zh.json should contain translations"
+        );
+        assert_eq!(i18n.text("button.export_project"), "导出工程");
+        assert_eq!(i18n.text("canvas.help_text"), "左键拖拽节点 | 中键平移 | 滚轮缩放 | Space 搜索");
     }
 }

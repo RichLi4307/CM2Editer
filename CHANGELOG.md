@@ -55,7 +55,9 @@
 
 ### 修复（i18n）
 
-- 修复语言选择器切换无反应的问题：`I18n::load_bundled` 现在尝试多个翻译目录（当前工作目录、可执行文件目录、可执行文件父目录），避免从 `target/debug/` 直接运行或打包后找不到 `assets/i18n/`。
+- 修复语言选择器切换无反应的问题：根因是 `assets/i18n/ja.json` 存在双逗号语法错误，导致 `I18n::load_from_dir` 在加载 `ja.json` 时失败并中止，排在后面的 `zh.json` 没有被加载。已修复 `ja.json` 语法错误，并让 `load_from_dir` 跳过单个损坏文件、打印错误并继续加载其余文件。
+- 修复 `zh.json` 中 `status_bar.world` / `status_bar.zoom` 仍为英文的问题，改为中文。
+- `I18n::load_bundled` 现在尝试多个翻译目录（当前工作目录、可执行文件目录、可执行文件父目录），避免从 `target/debug/` 直接运行或打包后找不到 `assets/i18n/`。
 - 新增 `src/settings.rs`：语言偏好现在持久化到用户配置目录（Windows 为 `%APPDATA%/CM2Editer/settings.json`），切换语言时自动保存，下次启动自动恢复。
 - 修复语言选择器显示语言代码问题，改为显示翻译后的语言名。
 - 修复左栏命名空间卡片 `ns_card` 硬编码 `"zh"` 问题，改为使用当前语言。

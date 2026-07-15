@@ -79,7 +79,7 @@
     "status.port_incompatible": "Target port incompatible or invalid",
     "status.selected_count": "Selected {} nodes, {} edges",
     "status.namespace_entry_added": "Added {} → {}",
-    "status.coordinate_added": "Added coordinate {} @ {}",,
+    "status.coordinate_added": "Added coordinate {} @ {}",
     "dialog.clear_graph_title": "Confirm New Graph",
     "dialog.clear_graph_body": "Current graph has unsaved nodes. Clear it?",
     "dialog.export_empty_title": "Export Empty",
