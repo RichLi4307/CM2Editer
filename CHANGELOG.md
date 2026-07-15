@@ -45,6 +45,20 @@
   - 从 `NodeType` 枚举中移除 `Start` / `Label`（变体数 168 → 166）。
   - 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器。
   - 重新启用 `src/app.rs` 和 `src/ui` 模块，并迁移到容器化模型。
+### 新增（i18n）
+
+- 创建运行时国际化基础设施：`src/ui/i18n.rs` 提供 `I18n` 结构体，支持从 `assets/i18n/` 加载 JSON 翻译文件、运行时切换语言、缺失时 fallback 到英语。
+- 创建 `assets/i18n/zh.json`、`assets/i18n/en.json` 首批翻译文件，`assets/i18n/ja.json` 作为占位文件由英语 fallback。
+- 在 `App` 工具栏添加语言切换菜单（中文 / English / 日本語），切换即时生效。
+- 完成阶段二 UI 面板文本迁移：工具栏、状态栏、对话框、欢迎界面、画布提示、工程树、属性面板、命名空间/坐标选择器、代码编辑器、数据菜单、meta 编辑器、状态栏、右键菜单、入口钉、参数文本编辑等全部改用 i18n 键。
+- 新增翻译键命名空间：`app.*`、`panel.*`、`button.*`、`status.*`、`dialog.*`、`label.*`、`search.*`、`context_menu.*`、`code_editor.*`、`data_menu.*`、`status_bar.*`、`welcome.*` 等。
+
+### 修复（i18n）
+
+- 修复语言选择器显示语言代码问题，改为显示翻译后的语言名。
+- 修复左栏命名空间卡片 `ns_card` 硬编码 `"zh"` 问题，改为使用当前语言。
+- 修复 `label.position` 翻译占位符拼写错误 `{:..1}` → `{}`。
+
 ### 新增（P2 — UI 与编辑器重构）
 
 - 将 `App` 内部图模型从旧 `Graph` 迁移到 `ContainerGraph` / `GraphDocument`，新增 `SelectedContainer` 与 `ContainerKind` 跟踪当前编辑容器。
