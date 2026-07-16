@@ -147,6 +147,7 @@
 | 2026-07-16 | 修复-UI | 修复条件组合编辑器按钮点击后文本框失去焦点导致光标位置失效的问题：保存 `TextEdit` 响应 id，点击时从 `TextEditState::load_state` 重新读取 caret/selection；无焦点时使用 `last_insert_pos` 避免误替换；`cargo test` 129 项通过 | 已完成 |
 | 2026-07-16 | 优化-UI | 优化条件组合编辑器条件按钮美术：增加按钮高度、显示条件译名与原始 token；在 `zh.json` 补充 49 个 `condition.{token}` 翻译键；新增 2 个测试；`cargo test` 129 项通过 | 已完成 |
 | 2026-07-16 | 修复-UI | 修复条件组合编辑器选择文本后点击 AND/OR 仍追加到末尾的问题：改为只在 `TextEdit` 报告有效光标/选区时更新 `state.cursor_range`，按钮点击只使用 `state.cursor_range`（不再依赖 `has_focus()` 或 `TextEditState`），并同步更新插入后的光标位置；`cargo test` 129 项通过 | 已完成 |
+| 2026-07-16 | 优化-节点 | 为 `CreateCondition` 与 `CreateItemCondition` 添加 `id` 数据输入端口，使 ID 可通过数据流传入；检查其他类似创建条件节点，无其他候选；新增 2 个生成器测试；`cargo test` 131 项通过 | 已完成 |
 
 ---
 

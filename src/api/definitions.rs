@@ -252,6 +252,10 @@ fn out_data(id: &str, port_type: PortType, label: &str) -> PortDefinition {
     PortDefinition::new(id, port_type, label).required(true)
 }
 
+fn in_data(id: &str, port_type: PortType, label: &str) -> PortDefinition {
+    PortDefinition::new(id, port_type, label).required(true)
+}
+
 // -------------------------------------------------------------------------
 // Parameter helpers
 // -------------------------------------------------------------------------
@@ -1941,7 +1945,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "创建条件对象",
             CONDITIONS_COLOR,
         )
-        .with_inputs(vec![in_flow()])
+        .with_inputs(vec![
+            in_flow(),
+            in_data("id", PortType::String, "ID"),
+        ])
         .with_outputs(vec![
             out_flow(),
             out_data("out_condition", PortType::Object, "条件"),
@@ -1956,7 +1963,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             "创建物品条件",
             CONDITIONS_COLOR,
         )
-        .with_inputs(vec![in_flow()])
+        .with_inputs(vec![
+            in_flow(),
+            in_data("id", PortType::String, "ID"),
+        ])
         .with_outputs(vec![
             out_flow(),
             out_data("out_condition", PortType::Object, "条件"),

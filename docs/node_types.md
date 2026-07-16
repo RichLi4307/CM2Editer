@@ -241,4 +241,4 @@
 - 点击下方基础条件标签自动追加到表达式；
 - 已有条件 ID 列表显示当前标签内所有 `CreateCondition` / `CreateItemCondition` 节点的非空 `id`，点击生成 `SubCondition_<id>` 复用。
 
-`CreateCondition.id` 参数：当填写 ID 后，当前条件会注册为可复用子条件，其他 `CreateCondition` 节点可通过 `SubCondition_<id>` 引用它。留空表示不注册。
+`CreateCondition.id` 与 `CreateItemCondition.id` 同时支持属性面板输入和数据流输入。当左侧 `id` 数据端口有连接时，代码生成器优先使用连接的变量值；无连接时使用属性面板中的常量值。留空表示不注册子条件。

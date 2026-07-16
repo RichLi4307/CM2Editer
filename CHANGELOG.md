@@ -39,7 +39,8 @@
 - 在 `src/ui/panels/properties.rs` 中为 `CreateCondition` 的 `condition` 参数添加 **编辑条件...** 按钮，为 `id` 参数添加中文/英文说明，解释 ID 用于 `SubCondition_<id>` 复用。
 - 在 `app.rs` 中管理 `condition_editor` 窗口状态，确认后通过 `Command::SetParam` 更新节点参数。
 - 在 `assets/i18n/zh.json`、`en.json`、`ja.json` 中添加 `condition_editor.*` 与 `button.edit_condition` 翻译键。
-- 更新 `docs/node_types.md`：新增 `CreateCondition.condition` 组合语法与 `id` 复用说明章节。
+- 为 `CreateCondition` 与 `CreateItemCondition` 增加 `id` 数据输入端口：ID 现在可通过数据流从其他节点（如 `StringConstant`）传入；代码生成器优先使用数据端口连接，无连接时仍回退到属性面板中的常量值。检查了所有创建条件/物品的节点，仅有这两个节点使用 `id` 字符串参数用于子条件复用，因此只在此处普及该功能。新增 2 个生成器测试验证数据流 ID 行为。
+- 更新 `docs/node_types.md`：说明 `CreateCondition.id` / `CreateItemCondition.id` 同时支持常量输入与数据流输入。
 
 ### 新增（P1 低难度节点）
 

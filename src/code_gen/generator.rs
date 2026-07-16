@@ -1256,6 +1256,96 @@ mod tests {
     }
 
     #[test]
+    fn test_create_condition_id_from_data_input() -> Result<()> {
+        let mut graph = make_graph();
+        // Create a data node that outputs the id string "data_id".
+        let mut id_node = make_data_node("id_src", NodeType::StringConstant, "out_value");
+        id_node.params = [("value".to_string(), ParamValue::Literal(serde_json::json!("data_id")))]
+            .into();
+        graph.threads[0].labels[0].nodes.insert("id_src".to_string(), id_node);
+
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateCondition,
+            [(
+                "condition".to_string(),
+                ParamValue::Literal(serde_json::json!("Exposed_All")),
+            )]
+            .into(),
+        );
+        // The test helper only creates Flow ports; add the id data input port.
+        graph.threads[0].labels[0]
+            .nodes
+            .get_mut("n1")
+            .unwrap()
+            .inputs
+            .push(Port::new("id", PortType::String, "ID"));
+        // Wire StringConstant.value -> CreateCondition.id
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "id_src",
+            "out_value",
+            "n1",
+            "id",
+            PortType::String,
+        );
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_n1_out_condition = CreateCondition(\"Exposed_All\", id=\"data_id\")"),
+            "Expected CreateCondition id from data input, got:\n{}",
+            code
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_item_condition_id_from_data_input() -> Result<()> {
+        let mut graph = make_graph();
+        let mut id_node = make_data_node("id_src", NodeType::StringConstant, "out_value");
+        id_node.params = [("value".to_string(), ParamValue::Literal(serde_json::json!("item_id")))]
+            .into();
+        graph.threads[0].labels[0].nodes.insert("id_src".to_string(), id_node);
+
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateItemCondition,
+            [("itemtype".to_string(), ParamValue::Literal(serde_json::json!("Key")))]
+                .into(),
+        );
+        graph.threads[0].labels[0]
+            .nodes
+            .get_mut("n1")
+            .unwrap()
+            .inputs
+            .push(Port::new("id", PortType::String, "ID"));
+        graph.threads[0].labels[0]
+            .nodes
+            .get_mut("n1")
+            .unwrap()
+            .outputs
+            .push(Port::new("out_condition", PortType::Object, "Condition"));
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "id_src",
+            "out_value",
+            "n1",
+            "id",
+            PortType::String,
+        );
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_n1_out_condition = CreateItemCondition(itemtype=\"Key\", id=\"item_id\")"),
+            "Expected CreateItemCondition id from data input, got:\n{}",
+            code
+        );
+        Ok(())
+    }
+
+    #[test]
     fn test_create_item_condition_skips_empty_id() -> Result<()> {
         let mut graph = make_graph();
         add_flow_node(
