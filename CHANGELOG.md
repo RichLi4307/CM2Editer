@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 新增（事件监听器节点，P0.1）
+
+- 新增 `CreateEventListener` / `CreateEventListenerLocal` 节点（`NodeType` 168 → 170）：官方 `CreateEventListener(LabelName, EventName[, params...])` 的事件驱动监听器，仅在 `SetEvent` 触发时立即执行，标签内可用局部变量 `__eventdata_` / `__eventname_`，此前完全无法用节点表达（轮询 Listener 语义不等价）。
+- 代码生成：`labelName` / `eventName` 按官方签名走前两个位置参数，`params` 对象展开为命名参数，生成 `var_{id}_out_listener = CreateEventListener("label", "event", key=value)`；`out_name` 数据输出与其他 Create* 节点一致。
+- 概览图新增 `CreateEventListener` / `CreateEventListenerLocal` 两种关系边（样式同 Listener 虚线）；节点库归入 `scene.mission_flow.threading` 子分类。
+- 新增 zh/en i18n 键（名称、详细描述、参数、端口）；同步更新 `docs/node_types.md`（2.1 节）与 AGENTS.md 计数规则。
+- 测试：新增 `test_create_event_listener_positional_args_and_params`、`test_create_event_listener_local_generates_local_variant` 两个专项生成器测试；计数断言更新至 170；`cargo test` 133 项通过。
+
 ### 修复（代码生成）
 
 - 修正 `CreateCondition` 的 `.code` 输出语法：官方 API 把 `Condition` 作为位置参数，且 `id` 为空字符串时省略，现在生成 `CreateCondition("Exposed_All")` 或 `CreateCondition("...", id="MyID")`。

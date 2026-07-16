@@ -38,6 +38,8 @@ enum OverviewEdgeKind {
     CreateThread,
     CreateListener,
     CreateListenerLocal,
+    CreateEventListener,
+    CreateEventListenerLocal,
     Foreach,
 }
 
@@ -246,6 +248,28 @@ fn collect_edges(
                     }
                 }
             }
+            NodeType::CreateEventListener => {
+                if let Some(target) = literal_string_param(node.params.get("labelName")) {
+                    if let Some(to) = name_to_id.get(&target) {
+                        edges.push(OverviewEdge {
+                            from: label.id.clone(),
+                            to: to.clone(),
+                            kind: OverviewEdgeKind::CreateEventListener,
+                        });
+                    }
+                }
+            }
+            NodeType::CreateEventListenerLocal => {
+                if let Some(target) = literal_string_param(node.params.get("labelName")) {
+                    if let Some(to) = name_to_id.get(&target) {
+                        edges.push(OverviewEdge {
+                            from: label.id.clone(),
+                            to: to.clone(),
+                            kind: OverviewEdgeKind::CreateEventListenerLocal,
+                        });
+                    }
+                }
+            }
             NodeType::ForeachNode => {
                 if let Some(target) = literal_string_param(node.params.get("threadVar")) {
                     if let Some(to) = name_to_id.get(&target) {
@@ -277,6 +301,8 @@ fn draw_edge(painter: &egui::Painter, from: Pos2, to: Pos2, kind: OverviewEdgeKi
         OverviewEdgeKind::CreateThread => (Theme::SELECTED_GLOW, 1.5, true),
         OverviewEdgeKind::CreateListener => (Theme::WIRE_OCCUPIED, 1.5, true),
         OverviewEdgeKind::CreateListenerLocal => (Theme::WIRE_OCCUPIED, 1.5, true),
+        OverviewEdgeKind::CreateEventListener => (Theme::WIRE_OCCUPIED, 1.5, true),
+        OverviewEdgeKind::CreateEventListenerLocal => (Theme::WIRE_OCCUPIED, 1.5, true),
         OverviewEdgeKind::Foreach => (Theme::TEXT_DIM, 1.5, true),
     };
 

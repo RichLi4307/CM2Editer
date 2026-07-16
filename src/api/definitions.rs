@@ -1857,6 +1857,40 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::Object),
         ]),
         NodeDefinition::new(
+            NodeType::CreateEventListener, "Threading & Concurrency",
+            "创建事件监听器",
+            "创建事件监听器（父作用域），仅在 SetEvent 触发时执行；标签内可用局部变量 `__eventdata_` / `__eventname_`",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![
+            out_flow(),
+            out_data("out_listener", PortType::Object, "监听器"),
+            out_data("out_name", PortType::String, "标签名"),
+        ])
+        .with_params(vec![
+            p_req("labelName", "标签名", ParamType::String),
+            p_req("eventName", "事件名", ParamType::String),
+            p_opt("params", "参数", ParamType::Object),
+        ]),
+        NodeDefinition::new(
+            NodeType::CreateEventListenerLocal, "Threading & Concurrency",
+            "创建局部事件监听器",
+            "创建事件监听器（当前作用域），仅在 SetEvent 触发时执行；标签内可用局部变量 `__eventdata_` / `__eventname_`",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![
+            out_flow(),
+            out_data("out_listener", PortType::Object, "监听器"),
+            out_data("out_name", PortType::String, "标签名"),
+        ])
+        .with_params(vec![
+            p_req("labelName", "标签名", ParamType::String),
+            p_req("eventName", "事件名", ParamType::String),
+            p_opt("params", "参数", ParamType::Object),
+        ]),
+        NodeDefinition::new(
             NodeType::DestroyListener, "Threading & Concurrency",
             "销毁监听器",
             "销毁当前 listener（`listener = null`）",
@@ -2302,7 +2336,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 168);
+        assert_eq!(all.len(), 170);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2311,7 +2345,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 168);
+        assert_eq!(seen.len(), 170);
     }
 
 

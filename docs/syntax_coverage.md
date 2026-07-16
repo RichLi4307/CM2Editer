@@ -57,27 +57,35 @@ MissionPanel（10）、MissionMenuItem（16）、Area（5）、Zone（5）、Tex
 ## P3 — "加轮子"结构性优化点
 
 ### P3-1 对象方法生态全靠 CallMethod 兜底（架构取舍）
+
 50+ 个对象方法需用户记忆大小写敏感的方法名与参数顺序，是出错主要来源。**轮子建议**：做"对象方法选择器"——选中 CallMethod 节点后按对象类型弹出方法下拉+参数模板，而不是逐个加节点。
 
 ### P3-2 `_state` 嵌套属性探针
+
 GetStateBool/Number 只暴露扁平硬编码键。`_state.Position.x`、`_state.Camera.pitch`、`_state.Handcuffs.Type`、`_state.Exposed.All`、`_state.Cosplay.<name>`、`_state.NPCs[n].*` 等嵌套路径只能靠 Variable 手写字符串。**轮子建议**：`_state` 路径浏览节点（树形选择器，类似命名空间选择器），输出类型安全。
 
 ### P3-3 CreateArea 缺 cuboid 参数集
+
 官方支持 sphere/cylinder/cuboid 三种，当前只有 x/y/z/r/h。cuboid 需 x1,y1,z1,x2,y2,z2,w,h。
 
 ### P3-4 For 循环体验
+
 For+Range 需要手动连线。**轮子建议**：For 节点直接提供 start/stop/step 参数，无 iterable 连线时自动包装 `Range()`。
 
 ### P3-5 elseif 折叠
+
 False 分支首节点是 If 且无其他入度时生成 `elseif` 而非嵌套。非功能性优化，提升生成代码可读性。
 
 ### P3-6 用户定义函数语义
+
 当前"函数"= 某线程里的普通 Label + CallFunction 引用。**轮子建议**：LabelContainer 加"函数"标记（参数列表元数据），属性面板可视化定义参数，调用处 CallFunction 参数自动带名。
 
 ### P3-7 条件 DSL 已部分解决
+
 CreateCondition 组合编辑器已落地（6.5 节）。后续可加：表达式实时校验（括号配平、token 合法性）、常用条件模板收藏。
 
 ### P3-8 GetKeys/GetValues 存疑
+
 `code_api_reference.md` 提到的 `GetValues()` 在官方 Objects 文档中不存在，可能非官方 API，暂不实现。
 
 ---

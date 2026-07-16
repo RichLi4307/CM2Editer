@@ -297,6 +297,10 @@ pub enum NodeType {
     CreateListener,
     /// 创建一个 listener（局部作用域）
     CreateListenerLocal,
+    /// 创建一个事件监听器（父作用域，`SetEvent` 触发）
+    CreateEventListener,
+    /// 创建一个事件监听器（局部作用域，`SetEvent` 触发）
+    CreateEventListenerLocal,
     /// 销毁当前 listener（`listener = null`）
     DestroyListener,
     /// 获取当前线程引用（`_this`）
@@ -582,6 +586,8 @@ mod tests {
             NodeType::CreateThread,
             NodeType::CreateListener,
             NodeType::CreateListenerLocal,
+            NodeType::CreateEventListener,
+            NodeType::CreateEventListenerLocal,
             NodeType::CreateMissionPanel,
             NodeType::CreateMissionMenuItem,
             NodeType::CreateArea,
@@ -630,6 +636,6 @@ mod tests {
             NodeType::SetVariable,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 168);
+        assert_eq!(variants.len(), 170);
     }
 }

@@ -188,7 +188,8 @@ impl<'a> CodeGenerator<'a> {
                     .write_line(&format!("{var} = Foreach({list}, {thread})"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
-            NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal => {
+            NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
+            | NodeType::CreateEventListener | NodeType::CreateEventListenerLocal => {
                 self.generate_node_call(label, node)?;
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
@@ -346,11 +347,13 @@ impl<'a> CodeGenerator<'a> {
         let is_thread_or_listener = matches!(
             node.node_type,
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
+            | NodeType::CreateEventListener | NodeType::CreateEventListenerLocal
         );
 
         let mut params: Vec<String> = Vec::new();
         for param in &def.params {
-            if is_thread_or_listener && param.name == "labelName" {
+            // labelName / eventName 按官方签名走位置参数（CreateEventListener(LabelName, EventName, ...)）
+            if is_thread_or_listener && (param.name == "labelName" || param.name == "eventName") {
                 let value = match self.resolve_param_opt(label, node, &param.name) {
                     Some(v) => v,
                     None if param.required => "\"\"".to_string(),
@@ -650,6 +653,7 @@ impl<'a> CodeGenerator<'a> {
                 Some(label.trim_matches('"').to_string())
             }
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
+            | NodeType::CreateEventListener | NodeType::CreateEventListenerLocal
                 if port_name == "out_name" =>
             {
                 let name = self.resolve_param_opt(label, node, "labelName")?;
@@ -955,12 +959,53 @@ mod tests {
             "labelName".to_string(),
             ParamValue::Literal(serde_json::json!("sub")),
         )].into())?;
+        assert_flow_node_generates(NodeType::CreateEventListener, [
+            ("labelName".to_string(), ParamValue::Literal(serde_json::json!("sub"))),
+            ("eventName".to_string(), ParamValue::Literal(serde_json::json!("my_event"))),
+        ].into())?;
+        assert_flow_node_generates(NodeType::CreateEventListenerLocal, [
+            ("labelName".to_string(), ParamValue::Literal(serde_json::json!("sub"))),
+            ("eventName".to_string(), ParamValue::Literal(serde_json::json!("my_event"))),
+        ].into())?;
         assert_flow_node_generates(NodeType::DestroyListener, HashMap::new())?;
         assert_data_node_generates(NodeType::GetCurrentThread, "out_value", HashMap::new())?;
         assert_flow_node_generates(NodeType::WaitForThread, [(
             "thread".to_string(),
             ParamValue::Literal(serde_json::json!("t")),
         )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_event_listener_positional_args_and_params() -> Result<()> {
+        let mut graph = make_graph();
+        let params: HashMap<String, ParamValue> = [
+            ("labelName".to_string(), ParamValue::Literal(serde_json::json!("on_hit"))),
+            ("eventName".to_string(), ParamValue::Literal(serde_json::json!("player_hit"))),
+            ("params".to_string(), ParamValue::Literal(serde_json::json!({ "level": 2 }))),
+        ].into();
+        add_flow_node(&mut graph, "n1", NodeType::CreateEventListener, params);
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("CreateEventListener(\"on_hit\", \"player_hit\", level=2)"),
+            "Expected CreateEventListener with positional labelName/eventName then expanded named params, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_event_listener_local_generates_local_variant() -> Result<()> {
+        let mut graph = make_graph();
+        let params: HashMap<String, ParamValue> = [
+            ("labelName".to_string(), ParamValue::Literal(serde_json::json!("on_hit"))),
+            ("eventName".to_string(), ParamValue::Literal(serde_json::json!("player_hit"))),
+        ].into();
+        add_flow_node(&mut graph, "n1", NodeType::CreateEventListenerLocal, params);
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("CreateEventListenerLocal(\"on_hit\", \"player_hit\")"),
+            "Expected CreateEventListenerLocal with positional args, got:\n{code}"
+        );
         Ok(())
     }
 

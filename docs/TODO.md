@@ -23,10 +23,10 @@
 
 > 目标：解除"无法表达/无法绕行"的缺口，保证常见脚本都能用节点拼出合法 `.code`。
 
-- [ ] **CreateEventListener / CreateEventListenerLocal 节点**
-  - 官方：`CreateEventListener(LabelName, EventName[, params...])`（kb part_004:204）
+- [x] **CreateEventListener / CreateEventListenerLocal 节点** ✅ 2026-07-16
+  - 官方：`CreateEventListener(LabelName, EventName[, Named_Or_Unnamed_Parameter]...)`（kb part_004:204）
   - 事件驱动监听器，`SetEvent` 触发时执行，注入 `__eventdata_` / `__eventname_` 局部变量；轮询 Listener 语义无法替代
-  - 设计：新增 NodeType，`eventName` 参数 + `__eventdata_` / `__eventname_` 数据输出端口；生成 `{var} = CreateEventListener("label", "event")`
+  - 实现：NodeType 新增两变体（168→170）；`labelName`/`eventName` 按官方签名走位置参数，`params` 对象展开为命名参数；`out_name` 数据输出；概览图新增两种关系边；节点库归入 `scene.mission_flow.threading`；zh/en i18n 键齐全 |
 - [ ] **StopAudio 节点**
   - 官方：`StopAudio(InstanceID[, FadeOutTime])`（kb part_003:1764）
   - 全局函数（非对象方法），CallMethod 无法表达；停止 `Audio.Play()` 返回的实例
@@ -99,3 +99,4 @@
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
 | 2026-07-16 | 文档-归档 | 归档旧版 TODO 为 `docs/archive/TODO_20260716_v9.md`；新建本 TODO，纳入 `docs/syntax_coverage.md` 的 P0 六项 + P1 高频节点 + P2 体验轮子，保留旧版未完成的 P3.3–P3.5 发布准备项 | 已完成 |
+| 2026-07-16 | 实现-P0.1 | 新增 `CreateEventListener` / `CreateEventListenerLocal` 节点：NodeType 168→170；definitions 注册（Threading & Concurrency，B 类）；生成器复用 thread/listener 特判，`labelName`/`eventName` 走位置参数、`params` 对象展开；`evaluate_data_output` 支持 `out_name`；概览图新增两种关系边；catalog 归入 threading 子分类；zh/en i18n 键；新增 2 个专项生成器测试；同步更新 `docs/node_types.md` 与 AGENTS.md 计数；`cargo test` 133 项通过 | 已完成 |

@@ -46,6 +46,8 @@ impl SceneCatalog {
                             NodeType::CreateThread,
                             NodeType::CreateListener,
                             NodeType::CreateListenerLocal,
+                            NodeType::CreateEventListener,
+                            NodeType::CreateEventListenerLocal,
                             NodeType::DestroyListener,
                             NodeType::GetCurrentThread,
                             NodeType::WaitForThread,

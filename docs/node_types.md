@@ -61,6 +61,8 @@
 | `CreateThread` | B | 创建并启动一个线程 | `var = CreateThread(labelName="x")` |
 | `CreateListener` | B | 创建全局监听器 | `var = CreateListener(labelName="x")` |
 | `CreateListenerLocal` | B | 创建局部监听器 | `var = CreateListenerLocal(labelName="x")` |
+| `CreateEventListener` | B | 创建全局事件监听器（`SetEvent` 触发，标签内可用 `__eventdata_` / `__eventname_`） | `var = CreateEventListener("label", "event")` |
+| `CreateEventListenerLocal` | B | 创建局部事件监听器（`SetEvent` 触发） | `var = CreateEventListenerLocal("label", "event")` |
 | `DestroyListener` | A | 销毁监听器 | `listener = null` |
 | `GetCurrentThread` | C | 获取当前线程引用 | `_this` |
 | `WaitForThread` | A | 等待线程结束 | `{thread}.WaitForFinish()` |
