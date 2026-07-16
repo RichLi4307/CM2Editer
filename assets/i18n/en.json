@@ -1275,7 +1275,7 @@
     "welcome.placeholder_properties": "Edit node properties after opening a project",
     "welcome.space_hint": "Or press Space to quickly add nodes",
     "welcome.subtitle": "Custom Missions 2 Visual Mission Editor",
-    "welcome.title": "CM2Editer v0.1.0",
+    "welcome.title": "CM2Editer v{}",
     "scene.mission_flow": "Mission / Flow",
     "scene.mission_flow.threading": "Threading & Listeners",
     "scene.mission_flow.control": "Control Flow",

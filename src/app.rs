@@ -2207,7 +2207,7 @@ impl App {
             ui.painter().text(
                 title_pos,
                 Align2::CENTER_TOP,
-                self.i18n.text("welcome.title"),
+                self.i18n.format("welcome.title", &[env!("CARGO_PKG_VERSION")]),
                 FontId::proportional(22.0),
                 Theme::TEXT,
             );

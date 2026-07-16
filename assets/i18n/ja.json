@@ -206,7 +206,7 @@
     "status.serialize_failed": "Serialization failed: {}",
     "status.exported_to": "Exported to {}",
     "canvas.help_text": "Left drag nodes | Middle pan | Wheel zoom | Space search",
-    "welcome.title": "CM2Editer v0.1.0",
+    "welcome.title": "CM2Editer v{}",
     "welcome.subtitle": "Custom Missions 2 Visual Mission Editor",
     "welcome.open_project": "Open Project...",
     "welcome.new_project": "New Project...",

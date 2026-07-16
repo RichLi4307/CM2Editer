@@ -1322,7 +1322,7 @@
     "welcome.placeholder_properties": "打开工程后编辑节点属性",
     "welcome.space_hint": "或按 Space 快速添加节点",
     "welcome.subtitle": "Custom Missions 2 可视化任务编辑器",
-    "welcome.title": "CM2Editer v0.1.0",
+    "welcome.title": "CM2Editer v{}",
     "scene.mission_flow": "任务 / 流程",
     "scene.mission_flow.threading": "线程与监听器",
     "scene.mission_flow.control": "流程控制",
