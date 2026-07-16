@@ -10,10 +10,11 @@
 
 ## 当前状态
 
-- 新架构（ThreadContainer / LabelContainer / ListenerContainer）已落地，`NodeType` 168 变体，JSON v2.0。
+- 新架构（ThreadContainer / LabelContainer / ListenerContainer）已落地，`NodeType` 174 变体，JSON v2.0。
 - i18n 三语（zh/en/ja）已接入；`zh.json` 节点描述已升级为 `docs/node_details.md` 提取的详细版。
 - 节点库按场景分类（`catalog.rs`）；CreateCondition 组合编辑器、id 数据流输入、For+Range 直连已实现。
-- `cargo test` 131 项 lib tests + 9 项 integration tests 通过；版本号 v0.3.0（欢迎页从 Cargo.toml 注入）。
+- P0 语法缺口：事件监听器/停止音频/全局变量/性高潮/elseif 折叠/复合赋值已全部补齐；动态端口基础设施已完成（P0.7），为 P0.8 多分支 If 奠基。
+- `cargo test` 142 项 lib tests 通过；版本号 v0.3.0（欢迎页从 Cargo.toml 注入）。
 
 ---
 
@@ -47,16 +48,17 @@
   - 官方：`i += 1` 等（kb part_002:166）
   - 参数增加 `op` 枚举（`=` / `+=` / `-=` / `*=` / `/=`），默认 `=`；避免 `i = i + 1` 的多节点拼凑
   - 实现：`SetVariable` 增加 `op` 可选枚举参数，生成器读取并校验后生成 `{name} {op} {value}`；兼容旧图（无 op 时回退 `=`）；新增 1 个复合赋值生成器测试；同步更新 `docs/node_types.md` 与 i18n |
-- [ ] **P0.7 动态输出端口基础设施**
+- [x] **P0.7 动态输出端口基础设施** ✅ 2026-07-16
   - 目标：让 `NodeDefinition` / `Node` 支持运行时动态添加/删除输出端口与参数，这是编辑器追赶文本编辑器的关键基础能力
   - 需求来源：`If` 多分支、`Format` 可变参数、`CallFunction` 可变参数、`List` 方法（如 `Keys` 的多返回值）等都需要
-  - 设计方向：
-    - `NodeDefinition` 增加 `dynamic_ports` 元数据：哪些端口组可扩展（如 `elseif_branches`、`format_args`）
-    - `Node` 的 `outputs` / `params` 本来就是 `Vec`，支持运行时增删；序列化原样保存
-    - 属性面板提供统一的 `+` / `-` 按钮管理动态端口，每个动态端口绑定一个可编辑的 `key`（用于代码生成）和显示名
-    - 验证器识别动态端口，禁止重复 key，保证 Flow/Data 边在端口删除时自动清理
-    - 节点渲染器根据动态端口数量调整高度，端口按组排列
-  - 配套测试：序列化往返、验证器清理过期边、动态端口代码生成
+  - 实现：
+    - 新增 `graph::types::{DynamicPortGroup, DynamicPortKind, DynamicPortTemplate}`，定义动态端口/参数组模板
+    - `NodeDefinition` 增加 `dynamic_ports: Vec<DynamicPortGroup>`，支持 Input / Output / Param 三种动态组
+    - `Node` 增加 `dynamic_ports: HashMap<String, Vec<String>>`，记录每个组的当前成员 ID；实际端口/参数仍保存在 `inputs`/`outputs`/`params` 中，序列化原样往返
+    - `Command` 扩展 `AddDynamicPort` / `RemoveDynamicPort`，支持撤销/重做；`RemoveDynamicPort` 自动清理连接到被删端口的边
+    - 属性面板返回 `PropertiesPanelAction`，统一处理参数修改与动态端口增删；对每个动态组渲染 `+`/`-` 按钮与成员列表
+    - 验证器识别动态端口：检查 ID 在节点内唯一且恰好存在于 `inputs`/`outputs`/`params` 之一
+    - 新增单元测试：Node 动态输出/参数增删、序列化往返、验证器重复 ID 与孤儿 ID 检测；`cargo test` 142 项 lib tests 通过 |
 - [ ] **P0.8 多分支 If 节点（elseif 单节点化）**
   - 依赖 P0.7 动态输出端口
   - 目标：一个 `If` 节点支持多个 `elseif` 分支 + 一个 `else` 分支，不再需要手动串多个 `If` 节点

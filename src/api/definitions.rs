@@ -6,7 +6,7 @@ use crate::api::enums::{
     VIBRATOR_STRENGTHS,
 };
 use crate::graph::node::ParamValue;
-use crate::graph::types::{NodeType, PortType};
+use crate::graph::types::{DynamicPortGroup, NodeType, PortType};
 
 /// Logical parameter type used in node definitions.
 ///
@@ -167,6 +167,9 @@ pub struct NodeDefinition {
     pub params: Vec<ParamDefinition>,
     /// Title bar color in RGBA.
     pub color: [u8; 4],
+    /// 动态端口/参数组定义。
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dynamic_ports: Vec<DynamicPortGroup>,
 }
 
 impl NodeDefinition {
@@ -187,6 +190,7 @@ impl NodeDefinition {
             outputs: Vec::new(),
             params: Vec::new(),
             color,
+            dynamic_ports: Vec::new(),
         }
     }
 
@@ -205,6 +209,12 @@ impl NodeDefinition {
     /// Sets the parameters.
     pub fn with_params(mut self, params: Vec<ParamDefinition>) -> Self {
         self.params = params;
+        self
+    }
+
+    /// Sets dynamic port/param groups.
+    pub fn with_dynamic_ports(mut self, groups: Vec<DynamicPortGroup>) -> Self {
+        self.dynamic_ports = groups;
         self
     }
 }

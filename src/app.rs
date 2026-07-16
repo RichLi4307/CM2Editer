@@ -36,7 +36,7 @@ use crate::ui::panels::{
     node_library::{NodeLibraryAction, NodeLibraryPanel},
     overview::{OverviewAction, OverviewContainerKind, OverviewPanel},
     project_tree::{ProjectTreeAction, ProjectTreePanel},
-    properties::PropertiesPanel,
+    properties::{PropertiesPanel, PropertiesPanelAction},
     status_bar::StatusBarPanel,
     status_bar::{ErrorDetailWindow, StatusBarEvent},
     condition_editor::{ConditionEditor, ConditionEditorState},
@@ -103,6 +103,18 @@ pub enum Command {
         from: ParamValue,
         to: ParamValue,
     },
+    /// 添加一个动态端口/参数
+    AddDynamicPort {
+        node_id: String,
+        group_id: String,
+    },
+    /// 删除一个动态端口/参数（同时保存被级联删除的边）
+    RemoveDynamicPort {
+        node_id: String,
+        group_id: String,
+        port_id: String,
+        edges: Vec<Edge>,
+    },
     /// 将当前选中节点复制到剪贴板（无 graph 变更）
     CopySelected,
     /// 在指定屏幕坐标处粘贴剪贴板内容（由 App 转换为世界坐标）
@@ -140,6 +152,34 @@ impl Command {
                     node.set_param(key, to.clone());
                 }
             }
+            Self::AddDynamicPort { node_id, group_id } => {
+                if let Some(node) = label.nodes.get_mut(node_id) {
+                    if let Some(def) = get_definition(node.node_type) {
+                        if let Some(group) = def.dynamic_ports.iter().find(|g| g.id == *group_id) {
+                            node.add_dynamic_port(group);
+                        }
+                    }
+                }
+            }
+            Self::RemoveDynamicPort {
+                node_id,
+                group_id,
+                port_id,
+                ..
+            } => {
+                if let Some(node) = label.nodes.get_mut(node_id) {
+                    if let Some(def) = get_definition(node.node_type) {
+                        if let Some(group) = def.dynamic_ports.iter().find(|g| g.id == *group_id) {
+                            node.remove_dynamic_port(group, port_id);
+                        }
+                    }
+                    // 同时删除任何连接到该端口的边
+                    label.edges.retain(|_, e| {
+                    !(e.from.node_id == *node_id && e.from.port_id == *port_id
+                        || e.to.node_id == *node_id && e.to.port_id == *port_id)
+                    });
+                }
+            }
             Self::CopySelected | Self::PasteAt { .. } => {
                 // 剪贴板/粘贴操作在 update_canvas 或全局快捷键中直接处理，不进入 Undo 栈。
             }
@@ -174,6 +214,45 @@ impl Command {
             } => {
                 if let Some(node) = label.nodes.get_mut(node_id) {
                     node.set_param(key, from.clone());
+                }
+            }
+            Self::AddDynamicPort { node_id, group_id } => {
+                if let Some(node) = label.nodes.get_mut(node_id) {
+                    if let Some(def) = get_definition(node.node_type) {
+                        if let Some(group) = def.dynamic_ports.iter().find(|g| g.id == *group_id) {
+                            // 撤销：删除该组最后一个动态端口
+                            let ids = node.dynamic_port_ids(group_id);
+                            if let Some(last_id) = ids.last() {
+                                let last_id = last_id.to_string();
+                                node.remove_dynamic_port(group, &last_id);
+                            }
+                        }
+                    }
+                }
+            }
+            Self::RemoveDynamicPort {
+                node_id,
+                group_id,
+                port_id,
+                edges,
+            } => {
+                if let Some(node) = label.nodes.get_mut(node_id) {
+                    if let Some(def) = get_definition(node.node_type) {
+                        if let Some(group) = def.dynamic_ports.iter().find(|g| g.id == *group_id) {
+                            let new_id = node.add_dynamic_port(group);
+                            // 恢复保存的边，但将其端口 ID 映射到重新创建的端口
+                            for edge in edges {
+                                let mut restored = edge.clone();
+                                if restored.from.node_id == *node_id && restored.from.port_id == *port_id {
+                                    restored.from.port_id = new_id.clone();
+                                }
+                                if restored.to.node_id == *node_id && restored.to.port_id == *port_id {
+                                    restored.to.port_id = new_id.clone();
+                                }
+                                label.edges.insert(restored.id.clone(), restored);
+                            }
+                        }
+                    }
                 }
             }
             Self::CopySelected | Self::PasteAt { .. } => {
@@ -1513,7 +1592,7 @@ impl eframe::App for App {
                     edited_node_id = Some(node_id.clone());
                     let label = self.current_label().clone();
                     if let Some(node) = label.nodes.get(&node_id).cloned() {
-                        if let Some((key, value)) = PropertiesPanel::show(
+                        let actions = PropertiesPanel::show(
                             ui,
                             &self.i18n,
                             &node,
@@ -1524,14 +1603,42 @@ impl eframe::App for App {
                             &mut self.coordinate_picker,
                             &mut self.condition_editor,
                             &mut self.edit_buffers,
-                        ) {
-                            let from = self.node_param(&node_id, &key);
-                            self.push_command(Command::SetParam {
-                                node_id: node_id.clone(),
-                                key,
-                                from,
-                                to: value,
-                            });
+                        );
+                        for action in actions {
+                            match action {
+                                PropertiesPanelAction::SetParam { key, value } => {
+                                    let from = self.node_param(&node_id, &key);
+                                    self.push_command(Command::SetParam {
+                                        node_id: node_id.clone(),
+                                        key,
+                                        from,
+                                        to: value,
+                                    });
+                                }
+                                PropertiesPanelAction::AddDynamicPort { group_id } => {
+                                    self.push_command(Command::AddDynamicPort {
+                                        node_id: node_id.clone(),
+                                        group_id,
+                                    });
+                                }
+                                PropertiesPanelAction::RemoveDynamicPort { group_id, port_id } => {
+                                    let edges: Vec<Edge> = label
+                                        .edges
+                                        .values()
+                                        .filter(|e| {
+                                            (e.from.node_id == node_id && e.from.port_id == port_id)
+                                                || (e.to.node_id == node_id && e.to.port_id == port_id)
+                                        })
+                                        .cloned()
+                                        .collect();
+                                    self.push_command(Command::RemoveDynamicPort {
+                                        node_id: node_id.clone(),
+                                        group_id,
+                                        port_id,
+                                        edges,
+                                    });
+                                }
+                            }
                         }
                     }
                 } else if self.project.is_some() {

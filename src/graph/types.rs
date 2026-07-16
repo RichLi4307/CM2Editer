@@ -1,5 +1,91 @@
 use serde::{Deserialize, Serialize};
 
+use crate::api::definitions::{ParamDefinition, PortDefinition};
+
+/// 动态端口/参数分组模板。
+///
+/// 某些节点（如多分支 If、Format、CallFunction）需要运行时扩展输入、输出或参数。
+/// `NodeDefinition` 通过该结构声明哪些端口组是动态的，UI 据此渲染 `+`/`-` 管理按钮。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DynamicPortGroup {
+    /// 组 ID，用于在节点状态中查找。
+    pub id: String,
+    /// 在 UI 上显示的分组标题。
+    pub label: String,
+    /// 动态端口/参数的种类。
+    pub kind: DynamicPortKind,
+    /// 端口/参数 ID 前缀。实际 ID 格式为 `{prefix}_{index}`。
+    pub prefix: String,
+    /// 该组最少保留的成员数量。
+    pub min_count: usize,
+    /// 该组最多允许的成员数量，`None` 表示无限制。
+    pub max_count: Option<usize>,
+    /// 每个新增成员的模板。
+    pub template: DynamicPortTemplate,
+}
+
+impl DynamicPortGroup {
+    pub fn new(
+        id: &str,
+        label: &str,
+        kind: DynamicPortKind,
+        prefix: &str,
+        template: DynamicPortTemplate,
+    ) -> Self {
+        Self {
+            id: id.to_string(),
+            label: label.to_string(),
+            kind,
+            prefix: prefix.to_string(),
+            min_count: 0,
+            max_count: None,
+            template,
+        }
+    }
+
+    /// 设置最小数量。
+    pub fn min_count(mut self, n: usize) -> Self {
+        self.min_count = n;
+        self
+    }
+
+    /// 设置最大数量。
+    pub fn max_count(mut self, n: usize) -> Self {
+        self.max_count = Some(n);
+        self
+    }
+}
+
+/// 动态端口/参数的种类。
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DynamicPortKind {
+    /// 动态输入端口。
+    Input,
+    /// 动态输出端口。
+    Output,
+    /// 动态参数。
+    Param,
+}
+
+/// 动态端口/参数模板。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DynamicPortTemplate {
+    Port(PortDefinition),
+    Param(ParamDefinition),
+}
+
+impl DynamicPortTemplate {
+    pub fn port(def: PortDefinition) -> Self {
+        Self::Port(def)
+    }
+
+    pub fn param(def: ParamDefinition) -> Self {
+        Self::Param(def)
+    }
+}
+
 /// 编辑器支持的所有节点类型
 ///
 /// 每个变体对应 CustomMissions2 API 中定义的一个函数调用、控制结构

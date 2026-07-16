@@ -162,6 +162,7 @@ mod tests {
             params: HashMap::new(),
             inputs: vec![Port::new("in_flow", PortType::Flow, "执行")],
             outputs: vec![Port::new("out_flow", PortType::Flow, "下一步")],
+            dynamic_ports: HashMap::new(),
             category: "Control".to_string(),
         }
     }

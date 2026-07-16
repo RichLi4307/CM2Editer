@@ -6,6 +6,17 @@
 
 ## [Unreleased]
 
+### 新增（动态端口基础设施，P0.7）
+
+- 在 `graph::types` 中引入 `DynamicPortGroup` / `DynamicPortKind` / `DynamicPortTemplate`，支持 Input / Output / Param 三种动态端口/参数组。
+- `NodeDefinition` 新增 `dynamic_ports` 字段，声明节点可运行时扩展的端口组（ID、前缀、最小/最大数量、模板）。
+- `Node` 新增 `dynamic_ports: HashMap<String, Vec<String>>`，记录各组当前成员 ID；成员端口/参数仍保存在 `inputs` / `outputs` / `params` 中，序列化原样保存，旧图无此字段时默认空。
+- `Command` 扩展 `AddDynamicPort` 与 `RemoveDynamicPort`（含级联边删除），支持撤销/重做。
+- 属性面板返回 `PropertiesPanelAction` 枚举，统一处理参数修改与动态端口增删；对每个动态组渲染 `+`/`-` 按钮与成员列表。
+- 验证器识别动态端口：检查成员 ID 在节点内唯一，且每个 ID 恰好存在于 `inputs` / `outputs` / `params` 之一。
+- 新增 i18n 键 `label.dynamic_ports` / `tooltip.add_dynamic_port` / `tooltip.remove_dynamic_port`（zh/en/ja）。
+- 测试：新增 `test_dynamic_port_add_and_remove_output`、`test_dynamic_param_add_and_remove`、`test_dynamic_port_serialization_roundtrip`；验证器新增 `test_dynamic_port_id_must_be_unique_and_exist`、`test_dynamic_port_must_exist_in_exactly_one_place`；`cargo test` 142 项 lib tests 通过，`cargo clippy --lib` 保持 22 个 pre-existing warnings。
+
 ### 新增（SetVariable 复合赋值，P0.6）
 
 - 为 `SetVariable` 节点新增 `op` 可选枚举参数：`=` / `+=` / `-=` / `*=` / `/=`，默认 `=`。

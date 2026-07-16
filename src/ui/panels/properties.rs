@@ -1,21 +1,34 @@
-use crate::api::namespace::NamespaceRegistry;
 use crate::api::coordinate::CoordinateRegistry;
+use crate::api::definitions::ParamType;
+use crate::api::namespace::NamespaceRegistry;
 use crate::api::registry::get_definition;
 use crate::graph::container::LabelContainer;
 use crate::graph::node::{Node, ParamValue};
-use crate::graph::types::{NodeType, PortType};
+use crate::graph::types::{DynamicPortTemplate, NodeType, PortType};
 use crate::ui::i18n::I18n;
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::ui::panels::condition_editor::ConditionEditorState;
-use crate::api::definitions::ParamType;
 use crate::ui::panels::param_text_edit::{EditBuffers, ParamTextEdit};
+
+/// 属性面板可能触发的动作。
+///
+/// 属性面板不直接操作图，而是把动作返回给 `App`，由 `App` 转换为可撤销命令。
+#[derive(Debug, Clone)]
+pub enum PropertiesPanelAction {
+    /// 修改参数
+    SetParam { key: String, value: ParamValue },
+    /// 添加动态端口/参数
+    AddDynamicPort { group_id: String },
+    /// 删除动态端口/参数
+    RemoveDynamicPort { group_id: String, port_id: String },
+}
 
 /// 属性面板。
 pub struct PropertiesPanel;
 
 impl PropertiesPanel {
-    /// 显示选中节点的可编辑参数，返回发生变更的参数键值（如果有）。
+    /// 显示选中节点的可编辑参数，返回发生变更的动作列表（可能为空）。
     #[allow(clippy::too_many_arguments)]
     pub fn show(
         ui: &mut egui::Ui,
@@ -28,7 +41,8 @@ impl PropertiesPanel {
         coord_picker: &mut Option<CoordinatePickerState>,
         condition_editor: &mut Option<ConditionEditorState>,
         edit_bufs: &mut EditBuffers,
-    ) -> Option<(String, ParamValue)> {
+    ) -> Vec<PropertiesPanelAction> {
+        let mut actions = Vec::new();
         // 节点标题 + 简介
         if let Some(_def) = get_definition(node.node_type) {
             let display_name = i18n.node_display_name(node.node_type);
@@ -46,14 +60,13 @@ impl PropertiesPanel {
         }
         ui.separator();
 
-        let mut changed = None;
         for (key, value) in &node.params {
             let type_hint = param_type_label(node, key);
             let param_label = i18n.param_display_name(node.node_type, key);
             // 纵向布局：标签在上，编辑器在下
             ui.vertical(|ui| {
                 ui.label(format!("{} {}", param_label, type_hint));
-                if let Some((new_key, new_value)) =
+                if let Some(action) =
                     Self::param_editor(
                         ui,
                         i18n,
@@ -69,7 +82,7 @@ impl PropertiesPanel {
                         value,
                     )
                 {
-                    changed = Some((new_key, new_value));
+                    actions.push(action);
                 }
             });
             ui.add_space(2.0);
@@ -78,6 +91,11 @@ impl PropertiesPanel {
 
         if node.params.is_empty() {
             ui.label(i18n.text("label.none"));
+        }
+
+        // 动态端口/参数管理
+        if let Some(def) = get_definition(node.node_type) {
+            Self::render_dynamic_port_groups(ui, i18n, node, def, &mut actions);
         }
 
         ui.separator();
@@ -90,7 +108,7 @@ impl PropertiesPanel {
             &[&format!("{:.0}", node.size.x), &format!("{:.0}", node.size.y)],
         ));
 
-        changed
+        actions
     }
 
     /// 为单个参数绘制合适的编辑控件。
@@ -112,7 +130,7 @@ impl PropertiesPanel {
         edit_bufs: &mut EditBuffers,
         key: &str,
         value: &ParamValue,
-    ) -> Option<(String, ParamValue)> {
+    ) -> Option<PropertiesPanelAction> {
         // 如果该参数对应的 Data 输入端口已被连接，则只读显示来源。
         if let Some((src_node, src_port)) = connected_data_source(label, &node.id, key) {
             ui.label(format!("🔗 {}.{}", src_node, src_port));
@@ -218,7 +236,7 @@ impl PropertiesPanel {
         key: &str,
         value: &ParamValue,
         options: &[String],
-    ) -> Option<(String, ParamValue)> {
+    ) -> Option<PropertiesPanelAction> {
         let selected = match value {
             ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
             _ => String::new(),
@@ -236,7 +254,10 @@ impl PropertiesPanel {
                 }
             });
 
-        changed.map(|new_value| (key.to_string(), ParamValue::Literal(serde_json::json!(new_value))))
+        changed.map(|new_value| PropertiesPanelAction::SetParam {
+            key: key.to_string(),
+            value: ParamValue::Literal(serde_json::json!(new_value)),
+        })
     }
 
     /// 数据源选择编辑器：下拉框选择字面量或数据端口引用。
@@ -248,7 +269,7 @@ impl PropertiesPanel {
         value: &ParamValue,
         edit_bufs: &mut EditBuffers,
         i18n: &I18n,
-    ) -> Option<(String, ParamValue)> {
+    ) -> Option<PropertiesPanelAction> {
         // 收集可选数据源：所有兼容类型的非 Flow 输出端口。
         let options = available_data_sources(i18n, label, node, key);
 
@@ -283,12 +304,18 @@ impl PropertiesPanel {
                 // 选择“字面量”时，如果原值已经是字面量则保留，否则回退到默认空字面量。
                 ParamValue::Null => {
                     if matches!(value, ParamValue::Ref { .. }) {
-                        Some((key.to_string(), infer_default_literal(node, key)))
+                        Some(PropertiesPanelAction::SetParam {
+                            key: key.to_string(),
+                            value: infer_default_literal(node, key),
+                        })
                     } else {
                         None
                     }
                 }
-                source => Some((key.to_string(), source)),
+                source => Some(PropertiesPanelAction::SetParam {
+                    key: key.to_string(),
+                    value: source,
+                }),
             };
         }
 
@@ -307,19 +334,25 @@ impl PropertiesPanel {
         node_id: &str,
         edit_bufs: &mut EditBuffers,
         i18n: &I18n,
-    ) -> Option<(String, ParamValue)> {
+    ) -> Option<PropertiesPanelAction> {
         match value {
             ParamValue::Literal(v) if v.is_boolean() => {
                 let mut b = v.as_bool().unwrap_or(false);
                 if ui.checkbox(&mut b, "").changed() {
-                    return Some((key.to_string(), ParamValue::Literal(serde_json::json!(b))));
+                    return Some(PropertiesPanelAction::SetParam {
+                        key: key.to_string(),
+                        value: ParamValue::Literal(serde_json::json!(b)),
+                    });
                 }
                 None
             }
             ParamValue::Literal(v) if v.is_number() => {
                 let mut num = v.as_f64().unwrap_or(0.0);
                 if ui.add(egui::DragValue::new(&mut num)).changed() {
-                    return Some((key.to_string(), ParamValue::Literal(serde_json::json!(num))));
+                    return Some(PropertiesPanelAction::SetParam {
+                        key: key.to_string(),
+                        value: ParamValue::Literal(serde_json::json!(num)),
+                    });
                 }
                 None
             }
@@ -328,7 +361,10 @@ impl PropertiesPanel {
                 if let Some(arr) = v.as_array() {
                     if !arr.is_empty() {
                         if let Some(v2) = Self::vector_editor(ui, key, arr) {
-                            return Some((key.to_string(), v2));
+                            return Some(PropertiesPanelAction::SetParam {
+                                key: key.to_string(),
+                                value: v2,
+                            });
                         }
                     }
                 }
@@ -344,6 +380,53 @@ impl PropertiesPanel {
                     String::new()
                 };
                 ParamTextEdit::show(ui, &format!("{node_id}.{key}"), value, edit_bufs, &hint, i18n)
+                    .map(|(k, v)| PropertiesPanelAction::SetParam { key: k, value: v })
+            }
+        }
+    }
+
+    /// 渲染动态端口/参数组管理 UI（+/- 按钮）。
+    fn render_dynamic_port_groups(
+        ui: &mut egui::Ui,
+        i18n: &I18n,
+        node: &Node,
+        def: &crate::api::definitions::NodeDefinition,
+        actions: &mut Vec<PropertiesPanelAction>,
+    ) {
+        if def.dynamic_ports.is_empty() {
+            return;
+        }
+        ui.separator();
+        ui.label(egui::RichText::new(i18n.text("label.dynamic_ports")).strong());
+        for group in &def.dynamic_ports {
+            let count = node.dynamic_port_count(&group.id);
+            let can_add = group.max_count.is_none_or(|max| count < max);
+            let can_remove = count > group.min_count;
+            ui.horizontal(|ui| {
+                ui.label(&group.label);
+                if ui.button("+").on_hover_text(i18n.text("tooltip.add_dynamic_port")).clicked() && can_add {
+                    actions.push(PropertiesPanelAction::AddDynamicPort {
+                        group_id: group.id.clone(),
+                    });
+                }
+            if ui.button("-").on_hover_text(i18n.text("tooltip.remove_dynamic_port")).clicked() && can_remove {
+                // 删除该组最后一个成员
+                let ids = node.dynamic_port_ids(&group.id);
+                if let Some(last_id) = ids.get(ids.len().saturating_sub(1)) {
+                    actions.push(PropertiesPanelAction::RemoveDynamicPort {
+                        group_id: group.id.clone(),
+                        port_id: last_id.clone(),
+                    });
+                }
+            }
+            });
+            // 列出当前成员
+            for id in node.dynamic_port_ids(&group.id) {
+                let label = match &group.template {
+                    DynamicPortTemplate::Port(def) => format!("{}: {}", id, def.label),
+                    DynamicPortTemplate::Param(def) => format!("{}: {}", id, def.display_name),
+                };
+                ui.label(egui::RichText::new(label).size(11.0));
             }
         }
     }
@@ -478,7 +561,7 @@ impl PropertiesPanel {
         key: &str,
         value: &ParamValue,
         i18n: &I18n,
-    ) -> Option<(String, ParamValue)> {
+    ) -> Option<PropertiesPanelAction> {
         let current = match value {
             ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
             _ => String::new(),
@@ -503,13 +586,19 @@ impl PropertiesPanel {
             });
 
         if let Some(expr) = picked {
-            return Some((key.to_string(), ParamValue::Literal(serde_json::json!(expr))));
+            return Some(PropertiesPanelAction::SetParam {
+                key: key.to_string(),
+                value: ParamValue::Literal(serde_json::json!(expr)),
+            });
         }
 
         // 文本框允许手动微调
         let mut text = current;
         if ui.text_edit_singleline(&mut text).changed() {
-            return Some((key.to_string(), ParamValue::Literal(serde_json::json!(text))));
+            return Some(PropertiesPanelAction::SetParam {
+                key: key.to_string(),
+                value: ParamValue::Literal(serde_json::json!(text)),
+            });
         }
         None
     }

@@ -1,8 +1,9 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::types::PortType;
+use super::types::{DynamicPortGroup, DynamicPortKind, DynamicPortTemplate, PortType};
 
 /// 节点上的单个端口定义
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +86,12 @@ pub struct Node {
     pub inputs: Vec<Port>,
     /// 输出端口列表
     pub outputs: Vec<Port>,
+    /// 动态端口/参数分组状态。
+    ///
+    /// Key 为 `DynamicPortGroup::id`，Value 为该组当前实际存在的端口/参数 ID 列表。
+    /// 这些 ID 必须同时存在于 `inputs`、`outputs` 或 `params` 中。
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub dynamic_ports: HashMap<String, Vec<String>>,
     /// 节点分类，用于 UI 着色
     pub category: String,
 }
@@ -102,8 +109,69 @@ impl Node {
             params: HashMap::new(),
             inputs: Vec::new(),
             outputs: Vec::new(),
+            dynamic_ports: HashMap::new(),
             category: String::new(),
         }
+    }
+
+    /// 获取某个动态端口组的当前成员 ID 列表。
+    pub fn dynamic_port_ids(&self, group_id: &str) -> &[String] {
+        self.dynamic_ports.get(group_id).map(|v| v.as_slice()).unwrap_or(&[])
+    }
+
+    /// 添加一个动态端口/参数到指定组，返回新成员的 ID。
+    ///
+    /// 如果该组在 `dynamic_ports` 中不存在则自动创建。
+    pub fn add_dynamic_port(&mut self, group: &DynamicPortGroup) -> String {
+        let existing = self.dynamic_ports.entry(group.id.clone()).or_default();
+        let index = existing.len();
+        let id = format!("{}_{}", group.prefix, index);
+        match &group.template {
+            DynamicPortTemplate::Port(def) => {
+                let port = Port::new(&id, def.port_type.clone(), &def.label);
+                if group.kind == DynamicPortKind::Input {
+                    self.inputs.push(port);
+                } else {
+                    self.outputs.push(port);
+                }
+            }
+            DynamicPortTemplate::Param(def) => {
+                self.params.insert(id.clone(), def.default_value());
+            }
+        }
+        existing.push(id.clone());
+        id
+    }
+
+    /// 从指定组删除一个动态端口/参数，并返回是否删除成功。
+    ///
+    /// 删除后不会重排其余成员的 ID，以保持连接稳定。
+    pub fn remove_dynamic_port(&mut self, group: &DynamicPortGroup, port_id: &str) -> bool {
+        let Some(existing) = self.dynamic_ports.get_mut(&group.id) else {
+            return false;
+        };
+        if !existing.contains(&port_id.to_string()) {
+            return false;
+        }
+        existing.retain(|id| id != port_id);
+        match &group.template {
+            DynamicPortTemplate::Port(_) => {
+                if group.kind == DynamicPortKind::Input {
+                    self.inputs.retain(|p| p.id != port_id);
+                } else {
+                    self.outputs.retain(|p| p.id != port_id);
+                }
+            }
+            DynamicPortTemplate::Param(_) => {
+                self.params.remove(port_id);
+            }
+        }
+        true
+    }
+
+    /// 返回某个动态端口组的当前成员数量。
+    pub fn dynamic_port_count(&self, group_id: &str) -> usize {
+        self.dynamic_ports.get(group_id).map(|v| v.len()).unwrap_or(0)
     }
 
     /// 批量设置节点的输入和输出端口
@@ -247,6 +315,79 @@ mod tests {
         assert_eq!(json_str, "null");
         let back: ParamValue = serde_json::from_str(&json_str).unwrap();
         assert!(matches!(back, ParamValue::Null));
+    }
+
+    #[test]
+    fn test_dynamic_port_add_and_remove_output() {
+        use super::super::types::{DynamicPortGroup, DynamicPortKind, DynamicPortTemplate};
+        use crate::api::definitions::PortDefinition;
+
+        let mut node = Node::new(super::super::types::NodeType::Log, Vec2::ZERO);
+        let group = DynamicPortGroup::new(
+            "extras",
+            "Extras",
+            DynamicPortKind::Output,
+            "extra",
+            DynamicPortTemplate::Port(PortDefinition::new("extra", PortType::String, "Extra")),
+        );
+        let id1 = node.add_dynamic_port(&group);
+        let id2 = node.add_dynamic_port(&group);
+        assert_eq!(node.dynamic_port_count("extras"), 2);
+        assert!(node.get_port(&id1, false).is_some());
+        assert!(node.get_port(&id2, false).is_some());
+        assert!(node.remove_dynamic_port(&group, &id1));
+        assert!(node.get_port(&id1, false).is_none());
+        assert!(node.get_port(&id2, false).is_some());
+    }
+
+    #[test]
+    fn test_dynamic_param_add_and_remove() {
+        use super::super::types::{DynamicPortGroup, DynamicPortKind, DynamicPortTemplate};
+        use crate::api::definitions::{ParamDefinition, ParamType};
+
+        let mut node = Node::new(super::super::types::NodeType::Log, Vec2::ZERO);
+        let group = DynamicPortGroup::new(
+            "args",
+            "Args",
+            DynamicPortKind::Param,
+            "arg",
+            DynamicPortTemplate::Param(ParamDefinition::new("arg", "Arg", ParamType::String)),
+        );
+        let id1 = node.add_dynamic_port(&group);
+        assert!(node.params.contains_key(&id1));
+        assert!(node.remove_dynamic_port(&group, &id1));
+        assert!(!node.params.contains_key(&id1));
+    }
+
+    #[test]
+    fn test_dynamic_port_serialization_roundtrip() {
+        use super::super::types::{DynamicPortGroup, DynamicPortKind, DynamicPortTemplate};
+        use crate::api::definitions::{ParamDefinition, ParamType, PortDefinition};
+
+        let mut node = Node::new(super::super::types::NodeType::Log, Vec2::ZERO);
+        let out_group = DynamicPortGroup::new(
+            "outs",
+            "Outs",
+            DynamicPortKind::Output,
+            "out",
+            DynamicPortTemplate::Port(PortDefinition::new("out", PortType::String, "Out")),
+        );
+        let _ = node.add_dynamic_port(&out_group);
+        let param_group = DynamicPortGroup::new(
+            "args",
+            "Args",
+            DynamicPortKind::Param,
+            "arg",
+            DynamicPortTemplate::Param(ParamDefinition::new("arg", "Arg", ParamType::String)),
+        );
+        let _ = node.add_dynamic_port(&param_group);
+
+        let json = serde_json::to_string(&node).expect("serialize");
+        let back: Node = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back.dynamic_port_count("outs"), 1);
+        assert_eq!(back.dynamic_port_count("args"), 1);
+        assert_eq!(back.outputs.len(), 1);
+        assert_eq!(back.params.len(), 1);
     }
 
     #[test]

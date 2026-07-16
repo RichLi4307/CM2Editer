@@ -204,11 +204,41 @@
   "id": "node-1",
   "type": "Log",
   "position": {"x": 100, "y": 100},
+  "size": {"x": 180, "y": 120},
+  "collapsed": false,
   "params": {"message": "hello"},
-  "ports": [
-    {"name": "in_flow", "type": "Flow", "direction": "input"},
-    {"name": "out_flow", "type": "Flow", "direction": "output"}
-  ]
+  "inputs": [
+    {"id": "in_flow", "type": "Flow", "label": "执行", "required": true}
+  ],
+  "outputs": [
+    {"id": "out_flow", "type": "Flow", "label": "下一步", "required": true}
+  ],
+  "dynamic_ports": {},
+  "category": "General"
+}
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 节点唯一标识符 |
+| `type` | string | `NodeType` 的 PascalCase 名称，如 `"Log"` |
+| `position` | object | 节点在画布上的位置 `{x, y}` |
+| `size` | object | 节点在画布上的尺寸 `{x, y}` |
+| `collapsed` | boolean | 是否折叠 |
+| `params` | object | 节点参数表，键为 API 参数名，值为字面量或引用 |
+| `inputs` | array | 输入端口列表 |
+| `outputs` | array | 输出端口列表 |
+| `dynamic_ports` | object | 动态端口/参数分组状态，键为组 ID，值为端口/参数 ID 数组（可选，默认空） |
+| `category` | string | 节点分类，用于 UI 着色 |
+
+### 动态端口
+
+`dynamic_ports` 记录运行时由用户扩展的端口/参数。每个键对应 `NodeDefinition.dynamic_ports` 中的一个组，值为该组当前实际存在的成员 ID。这些 ID 必须同时存在于 `inputs`、`outputs` 或 `params` 中。
+
+```json
+"dynamic_ports": {
+  "elseif_branches": ["elseif_0", "elseif_1"],
+  "format_args": ["arg_0", "arg_1"]
 }
 ```
 
@@ -221,13 +251,18 @@ v2.0 中不再包含以下节点：
 | `Start` | 由 `ThreadContainer` / `LabelContainer` 的 `entry_pin` 替代 |
 | `Label` | 由 `LabelContainer.name` 替代 |
 
-### 端口方向
+### 端口字段
 
-| 方向 | 说明 |
-|------|------|
-| `input` | 可接收连线的端口 |
-| `output` | 可发出连线的端口 |
-| `entry` | 标签入口（仅入口钉） |
+`inputs` 与 `outputs` 数组中的每个端口对象包含以下字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | string | 端口唯一标识（节点内） |
+| `type` | string | 端口类型，如 `"Flow"`、`"Number"`、`"String"`、`"Boolean"`、`"List"`、`"Object"` |
+| `label` | string | UI 显示文本 |
+| `required` | boolean | 是否为必填端口 |
+
+特殊端口 `in_flow` / `out_flow` 类型为 `"Flow"`，表示执行顺序；其他类型端口用于数据传递。
 
 ---
 

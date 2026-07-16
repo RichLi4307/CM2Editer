@@ -98,9 +98,40 @@ impl GraphValidator {
     /// 检查单个标签容器内部
     fn check_label(label: &LabelContainer) -> Result<()> {
         Self::check_edge_endpoints(label)?;
+        Self::check_dynamic_ports(label)?;
         Self::check_type_compatibility(label)?;
         Self::check_single_input_per_port(label)?;
         Self::check_no_cycles(label)?;
+        Ok(())
+    }
+
+    /// 检查动态端口/参数状态是否合法。
+    ///
+    /// 验证：动态端口 ID 在节点内唯一，且每个 ID 恰好存在于 inputs、outputs 或 params 之一。
+    fn check_dynamic_ports(label: &LabelContainer) -> Result<()> {
+        for node in label.nodes.values() {
+            let mut seen_ids = HashSet::new();
+            for port_id in node.dynamic_ports.values().flat_map(|v| v.iter()) {
+                if !seen_ids.insert(port_id.to_string()) {
+                    return Err(FlowError::Validation(format!(
+                        "Node {} has duplicate dynamic port id '{}'",
+                        node.id, port_id
+                    )));
+                }
+                let in_inputs = node.get_port(port_id, true).is_some();
+                let in_outputs = node.get_port(port_id, false).is_some();
+                let in_params = node.params.contains_key(port_id);
+                match (in_inputs, in_outputs, in_params) {
+                    (true, false, false) | (false, true, false) | (false, false, true) => {}
+                    _ => {
+                        return Err(FlowError::Validation(format!(
+                            "Node {} dynamic port id '{}' must exist in exactly one of inputs/outputs/params",
+                            node.id, port_id
+                        )));
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
@@ -242,6 +273,7 @@ mod tests {
             params: HashMap::new(),
             inputs: vec![Port::new("in_flow", PortType::Flow, "执行")],
             outputs: vec![Port::new("out_flow", PortType::Flow, "下一步")],
+            dynamic_ports: HashMap::new(),
             category: "Control".to_string(),
         }
     }
@@ -318,6 +350,47 @@ mod tests {
         );
         graph.threads[0].labels[0].edges.insert(e1.id.clone(), e1);
         graph.threads[0].labels[0].edges.insert(e2.id.clone(), e2);
+        assert!(GraphValidator::validate(&graph).is_err());
+    }
+
+    #[test]
+    fn test_dynamic_port_id_must_be_unique_and_exist() {
+        use crate::api::definitions::{ParamDefinition, ParamType, PortDefinition};
+        use crate::graph::types::{DynamicPortGroup, DynamicPortKind, DynamicPortTemplate};
+
+        let mut graph = ContainerGraph::default_main();
+        let mut node = make_node("a", NodeType::Log);
+        node.dynamic_ports
+            .insert("outs".to_string(), vec!["out_0".to_string()]);
+        node.outputs.push(Port::new("out_0", PortType::String, "Out"));
+        graph.threads[0].labels[0]
+            .nodes
+            .insert("a".to_string(), node);
+        assert!(GraphValidator::validate(&graph).is_ok());
+
+        // 重复 ID
+        let mut bad = make_node("b", NodeType::Log);
+        bad.dynamic_ports.insert(
+            "outs".to_string(),
+            vec!["out_0".to_string(), "out_0".to_string()],
+        );
+        bad.outputs.push(Port::new("out_0", PortType::String, "Out"));
+        graph.threads[0].labels[0]
+            .nodes
+            .insert("b".to_string(), bad);
+        assert!(GraphValidator::validate(&graph).is_err());
+    }
+
+    #[test]
+    fn test_dynamic_port_must_exist_in_exactly_one_place() {
+        let mut graph = ContainerGraph::default_main();
+        let mut node = make_node("a", NodeType::Log);
+        // 注册了动态端口但 inputs/outputs/params 都没有
+        node.dynamic_ports
+            .insert("orphan".to_string(), vec!["orphan_0".to_string()]);
+        graph.threads[0].labels[0]
+            .nodes
+            .insert("a".to_string(), node);
         assert!(GraphValidator::validate(&graph).is_err());
     }
 }
