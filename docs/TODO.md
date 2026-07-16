@@ -141,6 +141,7 @@
 | 2026-07-16 | 修复-左栏滚动条 | 在 Project 标签页新增可拖拽分隔条，节点库与工程文件树各自独立滚动并支持手动调整高度；`ScrollArea` 增加 max_height 与 auto_shrink，避免工程树被挤出屏幕；`cargo test` 111 项通过 | 已完成 |
 | 2026-07-16 | 优化-工程树滚动 | 将 `.code 文件` 分类标签移入工程文件树 `ScrollArea` 内，使分类提示随列表滚动；`cargo test` 111 项通过 | 已完成 |
 | 2026-07-16 | 优化-左栏分隔条视觉 | 左栏节点库/工程树分隔条视觉对齐底栏：灰色默认、悬停拖拽蓝色高亮、显示 ResizeVertical 光标；`cargo test` 111 项通过 | 已完成 |
+| 2026-07-16 | 修复-Condition 代码生成 | 修正 `CreateCondition` 输出为官方位置参数语法，空 `id` 时省略；`CreateItemCondition` 同样跳过空 `id`；更新 fixture；新增 3 个生成器测试；`cargo test` 114 项通过 | 已完成 |
 
 ---
 

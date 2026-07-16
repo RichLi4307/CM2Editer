@@ -326,6 +326,23 @@ impl<'a> CodeGenerator<'a> {
             .get(&node.node_type)
             .ok_or_else(|| FlowError::UnknownNodeType(format!("{:?}", node.node_type)))?;
 
+        // CreateCondition 的官方语法把 Condition 作为位置参数：
+        //   CreateCondition("Exposed_All") 或 CreateCondition("...", id="MyID")
+        if node.node_type == NodeType::CreateCondition {
+            let condition = self.require_param(label, node, "condition")?;
+            let id = self
+                .resolve_param_opt(label, node, "id")
+                .filter(|v| !v.is_empty() && v != "\"\"");
+            let mut args = vec![condition];
+            if let Some(id) = id {
+                args.push(format!("id={id}"));
+            }
+            let param_str = args.join(", ");
+            self.formatter
+                .write_line(&format!("var_{}_out_condition = CreateCondition({param_str})", node.id));
+            return Ok(());
+        }
+
         let is_thread_or_listener = matches!(
             node.node_type,
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
@@ -368,6 +385,10 @@ impl<'a> CodeGenerator<'a> {
                 },
                 None => continue,
             };
+            // 可选 id 参数为空字符串时无意义，直接跳过。
+            if param.name == "id" && (value == "\"\"" || value == "''") {
+                continue;
+            }
             params.push(format!("{}={}", param.name, value));
         }
         let param_str = params.join(", ");
@@ -1172,6 +1193,102 @@ mod tests {
         assert!(
             code.contains("(Cosplay_Maid && Cosplay_Bunny)"),
             "Expected CheckCosplay with multiple keys to generate parenthesized AND expression, got:\n{}",
+            code
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_condition_uses_positional_argument_and_skips_empty_id() -> Result<()> {
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateCondition,
+            [(
+                "condition".to_string(),
+                ParamValue::Literal(serde_json::json!("Exposed_All")),
+            ),
+            (
+                "id".to_string(),
+                ParamValue::Literal(serde_json::json!("")),
+            )]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_n1_out_condition = CreateCondition(\"Exposed_All\")"),
+            "Expected CreateCondition with positional argument and no empty id, got:\n{}",
+            code
+        );
+        assert!(
+            !code.contains("condition=") && !code.contains("id=\"\""),
+            "CreateCondition should not emit 'condition=' or empty id, got:\n{}",
+            code
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_condition_with_id_emits_named_id() -> Result<()> {
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateCondition,
+            [(
+                "condition".to_string(),
+                ParamValue::Literal(serde_json::json!("Exposed_All")),
+            ),
+            (
+                "id".to_string(),
+                ParamValue::Literal(serde_json::json!("my_id")),
+            )]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_n1_out_condition = CreateCondition(\"Exposed_All\", id=\"my_id\")"),
+            "Expected CreateCondition with named id, got:\n{}",
+            code
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_item_condition_skips_empty_id() -> Result<()> {
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateItemCondition,
+            [(
+                "itemtype".to_string(),
+                ParamValue::Literal(serde_json::json!("Key")),
+            ),
+            (
+                "id".to_string(),
+                ParamValue::Literal(serde_json::json!("")),
+            )]
+            .into(),
+        );
+        // CreateItemCondition 通用分支依赖 node.outputs 生成变量赋值，
+        // 而测试 helper make_node 只创建默认 Flow 端口，这里手动补上 out_condition。
+        graph.threads[0].labels[0]
+            .nodes
+            .get_mut("n1")
+            .unwrap()
+            .outputs
+            .push(Port::new("out_condition", PortType::Object, "Condition"));
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_n1_out_condition = CreateItemCondition(itemtype=\"Key\")"),
+            "Expected CreateItemCondition without empty id, got:\n{}",
+            code
+        );
+        assert!(
+            !code.contains("id=\"\""),
+            "CreateItemCondition should not emit empty id, got:\n{}",
             code
         );
         Ok(())

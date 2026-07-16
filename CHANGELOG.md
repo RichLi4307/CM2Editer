@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### 修复（代码生成）
+
+- 修正 `CreateCondition` 的 `.code` 输出语法：官方 API 把 `Condition` 作为位置参数，且 `id` 为空字符串时省略，现在生成 `CreateCondition("Exposed_All")` 或 `CreateCondition("...", id="MyID")`。
+- 修正 `CreateItemCondition`：当 `id` 参数为空字符串时不再输出无意义的 `id=""`。
+- 同步更新 `tests/fixtures/example_drop_bra.code` 中的示例代码，使用新的正确语法。
+
 ### 新增（节点库场景分类）
 
 - 新增 `src/ui/panels/node_library/catalog.rs`：按开发者实际使用场景（任务/流程、条件判定、数据获取、数据修改、数据处理、视觉/UI、编辑器专用）组织全部 168 个节点，支持二级折叠、按场景分类搜索。
