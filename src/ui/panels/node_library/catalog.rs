@@ -154,6 +154,8 @@ impl SceneCatalog {
                             NodeType::GetSettings,
                             NodeType::GetMod,
                             NodeType::GetMods,
+                            NodeType::GetStageChanged,
+                            NodeType::GetProjectName,
                             NodeType::Variable,
                             NodeType::GetEvent,
                             NodeType::GetType,

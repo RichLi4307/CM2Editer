@@ -599,6 +599,20 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         )
         .with_outputs(vec![out_data("out_value", PortType::Object, "Mods")]),
         NodeDefinition::new(
+            NodeType::GetStageChanged, "Variables & Globals",
+            "场景已切换",
+            "读取 `_stagechanged`：若本帧与上一帧之间发生了场景切换则为 true",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Boolean, "已切换")]),
+        NodeDefinition::new(
+            NodeType::GetProjectName, "Variables & Globals",
+            "工程名称",
+            "读取 `_name`：当前工程文件夹名（在 `_mods` 中使用的标识）",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::String, "名称")]),
+        NodeDefinition::new(
             NodeType::Variable,
             "Variables & Globals",
             "变量",
@@ -2349,7 +2363,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 171);
+        assert_eq!(all.len(), 173);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2358,7 +2372,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 171);
+        assert_eq!(seen.len(), 173);
     }
 
 

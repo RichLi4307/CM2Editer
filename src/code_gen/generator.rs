@@ -645,6 +645,8 @@ impl<'a> CodeGenerator<'a> {
             NodeType::GetSettings => Some("_settings".to_string()),
             NodeType::GetMod => Some("_mod".to_string()),
             NodeType::GetMods => Some("_mods".to_string()),
+            NodeType::GetStageChanged => Some("_stagechanged".to_string()),
+            NodeType::GetProjectName => Some("_name".to_string()),
             NodeType::Variable => {
                 let name = self.resolve_param_opt(label, node, "name")?;
                 Some(name.trim_matches('"').to_string())
@@ -1074,6 +1076,8 @@ mod tests {
         assert_data_node_generates(NodeType::GetSettings, "out_value", HashMap::new())?;
         assert_data_node_generates(NodeType::GetMod, "out_value", HashMap::new())?;
         assert_data_node_generates(NodeType::GetMods, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetStageChanged, "out_value", HashMap::new())?;
+        assert_data_node_generates(NodeType::GetProjectName, "out_value", HashMap::new())?;
         assert_flow_node_generates(NodeType::SetEvent, [
             ("name".to_string(), ParamValue::Literal(serde_json::json!("evt"))),
             ("value".to_string(), ParamValue::Literal(serde_json::json!(1))),
@@ -1100,6 +1104,26 @@ mod tests {
             "name".to_string(),
             ParamValue::Literal(serde_json::json!("testVar")),
         )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_stagechanged_and_project_name_globals() -> Result<()> {
+        let mut graph = make_graph();
+        add_data_node_through_setvar(&mut graph, "n1", NodeType::GetStageChanged, "out_value", HashMap::new());
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("testVar = _stagechanged"),
+            "Expected GetStageChanged to output _stagechanged, got:\n{code}"
+        );
+
+        let mut graph2 = make_graph();
+        add_data_node_through_setvar(&mut graph2, "n1", NodeType::GetProjectName, "out_value", HashMap::new());
+        let code2 = generate_code(&graph2)?;
+        assert!(
+            code2.contains("testVar = _name"),
+            "Expected GetProjectName to output _name, got:\n{code2}"
+        );
         Ok(())
     }
 

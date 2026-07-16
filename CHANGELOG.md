@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 新增（全局变量节点，P0.3）
+
+- 新增 `GetStageChanged` / `GetProjectName` 节点（`NodeType` 171 → 173）：读取官方 Built-In Global Variables `_stagechanged` 和 `_name`。
+  - `GetStageChanged`：C 类纯数据节点，Boolean 输出，生成 `_stagechanged`；用于监听器中检测本帧是否发生场景切换，从而做一次性初始化逻辑。
+  - `GetProjectName`：C 类纯数据节点，String 输出，生成 `_name`；即当前工程文件夹名（在 `_mods` 中使用的标识）。
+- 注册在 `Variables & Globals` API 分类；节点库归入 `scene.data_get.global_vars`；补充 zh/en i18n 键；同步更新 `docs/node_types.md` 与 AGENTS.md 计数。
+- 测试：新增 `test_stagechanged_and_project_name_globals` 专项生成器测试，验证输出分别为 `_stagechanged` 和 `_name`；计数断言更新至 173；`cargo test` 135 项通过。
+
 ### 新增（停止音频节点，P0.2）
 
 - 新增 `StopAudio` 节点（`NodeType` 170 → 171）：官方 `StopAudio(AudioInstanceID[, FadeOutTime])` 全局函数，用于停止 `Audio.Play()` 启动的音频实例；此前该函数不是对象方法，无法用 `CallMethod` 表达。

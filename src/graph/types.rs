@@ -64,6 +64,10 @@ pub enum NodeType {
     GetMod,
     /// 读取所有已激活 mod 的数据（`_mods`）
     GetMods,
+    /// 读取本帧是否发生场景切换（`_stagechanged`）
+    GetStageChanged,
+    /// 读取当前工程在 _mods 中使用的文件夹名（`_name`）
+    GetProjectName,
     /// 读取当前作用域中指定名称的变量值
     Variable,
     /// 将值赋给当前作用域中的变量
@@ -635,10 +639,12 @@ mod tests {
             NodeType::GetSettings,
             NodeType::GetMod,
             NodeType::GetMods,
+            NodeType::GetStageChanged,
+            NodeType::GetProjectName,
             NodeType::Variable,
             NodeType::SetVariable,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 171);
+        assert_eq!(variants.len(), 173);
     }
 }

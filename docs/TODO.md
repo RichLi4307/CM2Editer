@@ -31,10 +31,10 @@
   - 官方：`StopAudio(InstanceID[, FadeOutTime])`（kb part_003:1764）
   - 全局函数（非对象方法），CallMethod 无法表达；停止 `Audio.Play()` 返回的实例
   - 实现：A 类显式生成位置参数 `StopAudio(id)` / `StopAudio(id, fade)`；NodeType 170→171；API 分类 `Game API`，场景分类 `scene.visual_ui.audio_screen`；zh/en i18n 键齐全 |
-- [ ] **_stagechanged / _name 全局变量节点**
+- [x] **_stagechanged / _name 全局变量节点** ✅ 2026-07-16
   - 官方：kb part_002:118 / :140
   - `_stagechanged`（Boolean，本帧是否发生场景切换）是监听器中做一次性初始化逻辑的常用手段；`_name` 为当前工程文件夹名
-  - 设计：C 类纯数据节点 GetStageChanged（Boolean 输出）/ GetProjectName（String 输出），生成 `_stagechanged` / `_name`
+  - 实现：C 类纯数据节点 `GetStageChanged`（Boolean，输出 `_stagechanged`）与 `GetProjectName`（String，输出 `_name`）；NodeType 171→173；归入 `Variables & Globals` 与 `scene.data_get.global_vars`；zh/en i18n 键齐全 |
 - [ ] **TriggerSexOrgasm 节点**
   - 官方：`TriggerSexOrgasm()`（kb part_003:1687）
   - 原子语义（隐含 ecstasy=1），组合 SetEcstasy(1)+SetAction 只是近似
@@ -98,6 +98,6 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
-| 2026-07-16 | 文档-归档 | 归档旧版 TODO 为 `docs/archive/TODO_20260716_v9.md`；新建本 TODO，纳入 `docs/syntax_coverage.md` 的 P0 六项 + P1 高频节点 + P2 体验轮子，保留旧版未完成的 P3.3–P3.5 发布准备项 | 已完成 |
+| 2026-07-16 | 实现-P0.3 | 新增 `GetStageChanged` / `GetProjectName` 全局变量节点：C 类输出 `_stagechanged` / `_name`；NodeType 171→173；归入 `Variables & Globals` 与 `scene.data_get.global_vars`；新增 2 个生成器测试（含专项验证）；`cargo test` 135 项通过 | 已完成 |
 | 2026-07-16 | 实现-P0.2 | 新增 `StopAudio` 节点：A 类显式生成位置参数 `StopAudio(id)` / `StopAudio(id, fade)`；NodeType 170→171；API 分类 `Game API`，场景分类 `scene.visual_ui.audio_screen`；补充 zh/en i18n；新增 1 个专项生成器测试；`cargo test` 134 项通过 | 已完成 |
 | 2026-07-16 | 实现-P0.1 | 新增 `CreateEventListener` / `CreateEventListenerLocal` 节点：NodeType 168→170；definitions 注册（Threading & Concurrency，B 类）；生成器复用 thread/listener 特判，`labelName`/`eventName` 走位置参数、`params` 对象展开；`evaluate_data_output` 支持 `out_name`；概览图新增两种关系边；catalog 归入 threading 子分类；zh/en i18n 键；新增 2 个专项生成器测试；同步更新 `docs/node_types.md` 与 AGENTS.md 计数；`cargo test` 133 项通过 | 已完成 |

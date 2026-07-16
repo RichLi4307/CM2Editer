@@ -97,6 +97,8 @@
 | `GetSettings` | C | 读取 meta 设置 | `_settings.Key` |
 | `GetMod` | C | 读取 mod 共享数据 | `_mod.Key` |
 | `GetMods` | C | 读取所有已激活 mod 数据 | `_mods` |
+| `GetStageChanged` | C | 读取本帧是否发生场景切换 | `_stagechanged` |
+| `GetProjectName` | C | 读取当前工程文件夹名 | `_name` |
 | `SetEvent` | B | 设置跨项目事件 | `SetEvent("name", data)` |
 | `GetEvent` | C | 获取事件数据 | `_event` |
 | `DumpVariables` | B | 导出所有变量 | `DumpVariables()` |
