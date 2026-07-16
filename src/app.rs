@@ -251,6 +251,8 @@ pub struct App {
     pub coord_add_y: String,
     pub coord_add_z: String,
     left_panel_tab: LeftPanelTab,
+    /// 左栏 Project 标签页中节点库区域的高度（可拖拽调整）。
+    node_library_height: f32,
     /// 新建工程对话框状态
     new_project_dialog_open: bool,
     new_project_parent: Option<PathBuf>,
@@ -327,6 +329,7 @@ impl App {
             left_ns_multi: false,
             left_ns_selected: HashSet::new(),
             left_panel_tab: LeftPanelTab::default(),
+            node_library_height: 280.0,
             new_project_dialog_open: false,
             new_project_parent: None,
             new_project_name: String::new(),
@@ -1071,8 +1074,24 @@ impl eframe::App for App {
                         let spawn_pos = self
                             .hover_world_pos(ctx, self.canvas_rect(ctx))
                             .map(|p| Vec2::new(p.x, p.y));
-                        // 节点库（置顶，可搜索）
-                        match NodeLibraryPanel::show(ui, &self.i18n, &mut self.search_query, &mut self.search_window_open) {
+                        // 节点库与工程文件树之间用可拖拽分隔条分割，
+                        // 两者各自独立滚动，并可通过分隔条手动调整上下高度。
+                        let total_height = ui.available_height();
+                        let handle_height = 6.0;
+                        let min_tree_height = 120.0;
+                        let max_node_height =
+                            (total_height - handle_height - min_tree_height).max(100.0);
+                        self.node_library_height =
+                            self.node_library_height.clamp(100.0, max_node_height);
+
+                        // 节点库（上半部分，可滚动）
+                        match NodeLibraryPanel::show(
+                            ui,
+                            &self.i18n,
+                            &mut self.search_query,
+                            &mut self.search_window_open,
+                            self.node_library_height,
+                        ) {
                             NodeLibraryAction::Create(node_type) => {
                                 let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
                                 self.add_node_at(node_type, pos);
@@ -1082,8 +1101,29 @@ impl eframe::App for App {
                             }
                             NodeLibraryAction::None => {}
                         }
-                        ui.separator();
-                        // 工程文件树
+
+                        // 可拖拽分隔条：调整节点库与工程树的高度分配。
+                        let handle_rect = {
+                            let available = ui.available_rect_before_wrap();
+                            egui::Rect::from_min_size(
+                                egui::pos2(available.min.x, available.min.y),
+                                egui::vec2(available.width(), handle_height),
+                            )
+                        };
+                        let handle_id = ui.id().with("node_library_splitter");
+                        let handle_response = ui.interact(handle_rect, handle_id, egui::Sense::drag());
+                        if handle_response.dragged() {
+                            self.node_library_height += handle_response.drag_delta().y;
+                        }
+                        let handle_color = if handle_response.hovered() || handle_response.dragged() {
+                            ui.visuals().widgets.active.bg_fill
+                        } else {
+                            ui.visuals().widgets.noninteractive.bg_fill
+                        };
+                        ui.painter().rect_filled(handle_rect, 0.0, handle_color);
+                        ui.add_space(handle_height);
+
+                        // 工程文件树（下半部分，填满剩余空间）
                         let active_code = self.active_code_name();
                         let selected_thread = self.selected_container.thread_idx;
                         let selected_container = Some(match self.selected_container.kind {

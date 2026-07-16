@@ -23,6 +23,7 @@ impl NodeLibraryPanel {
         i18n: &I18n,
         search_query: &mut String,
         search_window_open: &mut bool,
+        max_height: f32,
     ) -> NodeLibraryAction {
         ui.heading(i18n.text("node_library.title"));
         ui.text_edit_singleline(search_query);
@@ -33,6 +34,8 @@ impl NodeLibraryPanel {
         let query_lower = search_query.to_lowercase();
         egui::ScrollArea::vertical()
             .id_salt("node_library_scroll")
+            .max_height(max_height)
+            .auto_shrink([false, true])
             .show(ui, |ui| {
                 for category in categories {
                     let mut visible_subs = Vec::new();

@@ -138,6 +138,7 @@
 | 2026-07-15 | 实现-i18n-P3 | 将 If/While 条件模板硬编码中文改为 i18n `template.*` 键，并补充 zh/en 翻译 | 已完成 |
 | 2026-07-15 | 文档-i18n | 精翻 `assets/i18n/en.json` 全部 169 条节点描述，英文界面不再使用占位文本 | 已完成 |
 | 2026-07-16 | 实现-节点库场景分类 | 实现 `src/ui/panels/node_library/catalog.rs` 场景分类注册表，将 `NodeLibraryPanel` 从 API 分类改为场景分类（二级折叠 + 搜索），同步更新 i18n 与 theme；`cargo test` 111 项 lib tests 通过 | 已完成 |
+| 2026-07-16 | 修复-左栏滚动条 | 在 Project 标签页新增可拖拽分隔条，节点库与工程文件树各自独立滚动并支持手动调整高度；`ScrollArea` 增加 max_height 与 auto_shrink，避免工程树被挤出屏幕；`cargo test` 111 项通过 | 已完成 |
 
 ---
 

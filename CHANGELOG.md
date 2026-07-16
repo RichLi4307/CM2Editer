@@ -14,6 +14,12 @@
 - 新增 `src/ui/theme.rs::scene_category_color`：为场景分类提供稳定的节点库颜色。
 - 在 `assets/i18n/zh.json`、`en.json`、`ja.json` 中补充全部场景分类翻译键。
 
+### 修复（左栏滚动条与工程树布局）
+
+- 在 `app.rs` 的 Project 标签页中，节点库与工程文件树之间新增可拖拽分隔条，用户可手动调整上下两块高度。
+- `NodeLibraryPanel` 与 `ProjectTreePanel` 的 `ScrollArea` 均添加 `max_height` 与 `auto_shrink([false, true])`，保证在侧边栏高度不足时两者都独立出现滚动条，而不是整体被挤出屏幕。
+- 工程文件树现在根据剩余可用空间自动计算滚动区域高度，避免上下文过长时底部按钮不可见。
+
 ### 新增（P1 低难度节点）
 
 - **DestroyListener**：销毁当前监听器，生成 `listener = null`。
