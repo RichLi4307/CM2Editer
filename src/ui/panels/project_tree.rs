@@ -46,13 +46,13 @@ impl ProjectTreePanel {
         }
 
         ui.separator();
-        ui.label(i18n.text("project_tree.code_files"));
 
         egui::ScrollArea::vertical()
             .id_salt("project_tree_scroll")
             .max_height(ui.available_height() * 0.9)
             .auto_shrink([false, true])
             .show(ui, |ui| {
+                ui.label(i18n.text("project_tree.code_files"));
                 for (cf_idx, code_file) in project.code_files.iter().enumerate() {
                     let is_active = project.active_code == code_file.name
                         || (selected_code == code_file.name && project.active_code.is_empty());
