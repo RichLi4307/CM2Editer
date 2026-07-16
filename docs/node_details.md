@@ -1631,12 +1631,11 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 - `LogicAnd` / `LogicOr` — 组合其它条件
 - `GetStateBool` — 读取其它状态值
 
-
 ## DropItem
 
 - **中文名**：掉落物品
 - **官方 API 签名**：
-  ```
+  ```code
   DropItem(itemtype = DropItemType, stage = StageName, x = PositionX, y = PositionY, z = PositionZ[, rx = RotationX, ry = RotationY, rz = RotationZ, rw = RotationW][, compass = CompassIconVisible])
   DropItem(itemtype = DropItemType, position = Position[, compass = CompassIconVisible])
   ```
@@ -1672,7 +1671,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：拾取物品
 - **官方 API 签名**：
-  ```
+  ```code
   CollectItem(itemtype = DropItemType[, stage = StageName, x = PositionX, y = PositionY, z = PositionZ])
   CollectItem(itemtype = DropItemType[, position = Position])
   CollectItem(itemtype = DropItemType)
@@ -1706,7 +1705,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：设置跳蛋
 - **官方 API 签名**：
-  ```
+  ```code
   SetVibrator(VibratorStrength)
   ```
 - **返回值类型**：`null`（无 Data 输出端口）
@@ -1735,7 +1734,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：设置活塞
 - **官方 API 签名**：
-  ```
+  ```code
   SetPiston(PistonStrength)
   ```
 - **返回值类型**：`null`（无 Data 输出端口）
@@ -1764,7 +1763,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：锁手铐
 - **官方 API 签名**：
-  ```
+  ```code
   LockHandcuffs(handcuffstype = HandcuffsType[, attachtoobject = AttachToObject][, duration = DurationInSeconds])
   ```
 - **返回值类型**：`null`（无 Data 输出端口）
@@ -1795,7 +1794,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：解锁手铐
 - **官方 API 签名**：
-  ```
+  ```code
   UnlockHandcuffs()
   ```
 - **返回值类型**：`null`（无 Data 输出端口）
@@ -1819,7 +1818,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：装备 Cosplay
 - **官方 API 签名**：
-  ```
+  ```code
   EquipCosplay(CosplayNameKey1[, CosplayNameKey2]...)
   EquipCosplay(ListOfCosplayNameKeys1[, ListOfCosplayNameKeys2]...)
   ```
@@ -1849,7 +1848,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：卸下 Cosplay
 - **官方 API 签名**：
-  ```
+  ```code
   UnequipCosplay(CosplayNameKey1[, CosplayNameKey2]...)
   UnequipCosplay(ListOfCosplayNameKeys1[, ListOfCosplayNameKeys2]...)
   ```
@@ -1879,7 +1878,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：卸下全部 Cosplay
 - **官方 API 签名**：
-  ```
+  ```code
   UnequipAllCosplay()
   ```
 - **返回值类型**：`null`（无 Data 输出端口）
@@ -1903,7 +1902,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：拥有 Cosplay
 - **官方 API 签名**：
-  ```
+  ```code
   OwnCosplay(owns = NewOwn, CosplayNameKey1[, CosplayNameKey2]...)
   OwnCosplay(owns = NewOwn, ListOfCosplayNameKeys1[, ListOfCosplayNameKeys2]...)
   ```
@@ -1934,7 +1933,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：装备成人玩具
 - **官方 API 签名**：
-  ```
+  ```code
   EquipAdultToy(AdultToyName1[, AdultToyName2]...)
   EquipAdultToy(ListOfAdultToyNames1[, ListOfAdultToyNames2]...)
   ```
@@ -1964,7 +1963,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：卸下成人玩具
 - **官方 API 签名**：
-  ```
+  ```code
   UnequipAdultToy(AdultToyName1[, AdultToyName2]...)
   UnequipAdultToy(ListOfAdultToyNames1[, ListOfAdultToyNames2]...)
   ```
@@ -1994,7 +1993,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：设置物品数量
 - **官方 API 签名**：
-  ```
+  ```code
   SetItemCount(Item, newCount)
   ```
 - **返回值类型**：`Number`（编辑器 Data 输出端口名 `out_count`）
@@ -2024,7 +2023,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：增加物品数量
 - **官方 API 签名**：
-  ```
+  ```code
   AddItemCount(Item, addCount)
   ```
 - **返回值类型**：`Number`（编辑器 Data 输出端口名 `out_count`）
@@ -2054,7 +2053,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 
 - **中文名**：获取物品数量
 - **官方 API 签名**：
-  ```
+  ```code
   GetItemCount(Item)
   ```
 - **返回值类型**：`Number`（编辑器 Data 输出端口名 `out_count`）
@@ -2076,7 +2075,6 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
   - 配合 If 节点实现"物品数量不足"的分支逻辑
 
 - **相关节点**：SetItemCount、AddItemCount、DropItem、CollectItem、If
-
 
 > 本文档涵盖与玩家位置、场景、相机、动作、技能、数值统计、游戏控制、性爱相关的全部节点。
 >
@@ -3479,7 +3477,6 @@ SetSexMenu(canfinish=false, canposition={0=true, 1=false})
 
 SetSexPosition, DeactivateSex, SetAction, SetFutanari, TriggerSexOrgasm
 
-
 > 本文档涵盖对象构造类节点和视觉/图形功能节点。
 > 分类依据：`src/api/definitions.rs` 的 `category` 字段与 `docs/node_types.md` 的场景分类。
 > 代码生成方式：除特殊说明外均为 **B 类**（通用 `generate_node_call`），自动生成 `var_{id}_{port} = FunctionName(params...)`。
@@ -4391,7 +4388,6 @@ if currentBrightness < 100
 - `GetSettings` — 读取 meta 设置
 - `If` — 条件判断
 
-
 > 本文档涵盖数学与向量相关的所有节点。
 > 分类依据：`docs/node_types.md` — 所有数学/向量节点均为 C 类（纯 Data 节点），可在 Flow 链中用于数据计算。
 > 代码生成：B 类流程节点通过 `generate_node_call` 自动生成 `var_{id}_{port} = FuncName(params)`；C 类通过 `evaluate_data_output` 直接返回表达式。
@@ -5015,7 +5011,6 @@ if currentBrightness < 100
 - **常见使用场景**：提供固定数字给其它节点作为参数、测试时注入特定值
 - **相关节点**：`StringConstant`, `Boolean`, `Random`, `RandomInt`
 
-
 ## Length
 
 - **中文名**：字符串长度
@@ -5029,11 +5024,13 @@ if currentBrightness < 100
 | `s` | 是 | String | 要计算长度的字符串 |
 
 - **`.code` 示例**：
-```
+
+```code
 s = "Hello World"
 len = Length(s)
 Log(len) // 输出 11
 ```
+
 - **常见使用场景**：验证输入长度、判断字符串是否为空、与 `SubString` 配合实现动态截取。
 - **相关节点**：`SubString`、`Find`、`Format`、`Lower`、`Upper`
 
@@ -5052,11 +5049,13 @@ Log(len) // 输出 11
 | `s` | 是 | String | 要转换的字符串 |
 
 - **`.code` 示例**：
-```
+
+```code
 s = "Hello World"
 low = Lower(s)
 Log(low) // 输出 "hello world"
 ```
+
 - **常见使用场景**：实现大小写不敏感的用户输入匹配、规范化字符串存储、与 `Find` 组合实现不区分大小写的搜索。
 - **相关节点**：`Upper`、`Find`、`Length`、`Format`
 
@@ -5075,11 +5074,13 @@ Log(low) // 输出 "hello world"
 | `s` | 是 | String | 要转换的字符串 |
 
 - **`.code` 示例**：
-```
+
+```code
 s = "Hello World"
 up = Upper(s)
 Log(up) // 输出 "HELLO WORLD"
 ```
+
 - **常见使用场景**：统一格式化显示、生成大写标识符、与 `Find` 组合实现不区分大小写的搜索。
 - **相关节点**：`Lower`、`Find`、`Length`、`Format`
 
@@ -5099,11 +5100,13 @@ Log(up) // 输出 "HELLO WORLD"
 | `s` | 是 | String | 被搜索的源字符串 |
 
 - **`.code` 示例**：
-```
+
+```code
 s = "Hello World"
 pos = Find("World", s)
 Log(pos) // 输出 6
 ```
+
 - **常见使用场景**：检查字符串是否包含特定关键词、定位子串位置以配合 `SubString` 截取、实现关键字搜索逻辑。
 - **相关节点**：`SubString`、`Length`、`Lower`、`Upper`、`Format`
 
@@ -5125,7 +5128,8 @@ Log(pos) // 输出 6
 | `length` | 否 | Number | 截取长度 |
 
 - **`.code` 示例**：
-```
+
+```code
 s = "Hello World"
 Log(SubString(s, start=4))        // "o World"
 Log(SubString(s, start=4, length=5)) // "o Wor"
@@ -5133,6 +5137,7 @@ Log(SubString(s, start=4, end=9))    // "o Worl"
 Log(SubString(s, end=9))             // "Hello Worl"
 Log(SubString(s, end=3, length=3))   // "ell"
 ```
+
 - **常见使用场景**：提取文件名、分割对话文本、从格式化字符串中截取特定部分、实现文本省略号。
 - **相关节点**：`Length`、`Find`、`Format`、`Lower`、`Upper`
 
@@ -5152,7 +5157,8 @@ Log(SubString(s, end=3, length=3))   // "ell"
 | `params` | 否 | Object | 参数列表或键值对，替换占位符 |
 
 - **`.code` 示例**：
-```
+
+```code
 // 使用独立参数
 Log(Format("Number with 3 decimals: {0:F3}", 1/7))
 // 输出 "Number with 3 decimals: 0.143"
@@ -5162,6 +5168,7 @@ list = CreateList("cow", 4, "legs")
 Log(Format("A {0} has {1} {2}.", list))
 // 输出 "A cow has 4 legs."
 ```
+
 - **常见使用场景**：动态拼接对话文本、格式化数值显示、构建包含变量的日志消息、多语言字符串模板。
 - **相关节点**：`SubString`、`Length`、`Find`、`ToNumber`、`CreateList`
 
@@ -5180,13 +5187,15 @@ Log(Format("A {0} has {1} {2}.", list))
 | `s` | 是 | String | 要转换的字符串 |
 
 - **`.code` 示例**：
-```
+
+```code
 val = ToNumber("123.45")
 Log(val) // 输出 123.45
 
 bad = ToNumber("abc")
 Log(bad) // 输出 null
 ```
+
 - **常见使用场景**：解析配置文件中的数字、转换用户输入、处理从文件读取的数值字符串。
 - **相关节点**：`Format`、`Find`、`Length`、`StringConstant`
 
@@ -5205,12 +5214,14 @@ Log(bad) // 输出 null
 | `path` | 是 | String | 文件路径（相对项目目录） |
 
 - **`.code` 示例**：
-```
+
+```code
 if FileExists("data/settings.json")
     Log("Settings file found")
 else
     Log("Settings file missing")
 ```
+
 - **常见使用场景**：检查配置文件是否存在、图片/音效资源前置校验、条件分支加载逻辑。
 - **相关节点**：`GetFiles`、`GetFileExtension`、`CreateListFromJson`、`If`
 
@@ -5230,13 +5241,15 @@ else
 | `subfolders` | 否 | Boolean | 是否包含子文件夹中的文件 |
 
 - **`.code` 示例**：
-```
+
+```code
 files = GetFiles(path="Images", subfolders=true)
 i = 0
 while i < files.Count()
     Log(files[i])
     i += 1
 ```
+
 - **常见使用场景**：动态查找项目中所有图片/音频资源、批量处理文件、资产浏览器功能。
 - **相关节点**：`FileExists`、`GetFileExtension`、`CreateList`、`For`
 
@@ -5255,13 +5268,15 @@ while i < files.Count()
 | `path` | 是 | String | 文件路径 |
 
 - **`.code` 示例**：
-```
+
+```code
 ext = GetFileExtension("image.png")
 Log(ext) // 输出 ".png"
 
 noext = GetFileExtension("README")
 Log(noext) // 输出 ""
 ```
+
 - **常见使用场景**：按扩展名筛选文件列表、验证输入路径是否为指定类型、与 `GetFiles` 组合实现资产分类。
 - **相关节点**：`FileExists`、`GetFiles`、`SubString`、`Find`
 
@@ -5280,7 +5295,8 @@ Log(noext) // 输出 ""
 | `keyValues` | 否 | Object | 键值对，作为列表的初始条目 |
 
 - **`.code` 示例**：
-```
+
+```code
 // 空列表
 list1 = CreateList()
 
@@ -5295,6 +5311,7 @@ Log(list3.name) // "Player"
 // 混合使用
 list4 = CreateList("first", key = "value", 3)
 ```
+
 - **常见使用场景**：构建函数参数包、存储配置数据、作为键值对字典使用、构造多值返回值。
 - **相关节点**：`Copy`、`CreateListFromJson`、`Format`、`For`
 
@@ -5314,7 +5331,8 @@ list4 = CreateList("first", key = "value", 3)
 | `deepCopy` | 否 | Boolean | 是否深拷贝（默认 false） |
 
 - **`.code` 示例**：
-```
+
+```code
 original = CreateList(a = 1, nested = CreateList(x = 10))
 
 // 浅拷贝
@@ -5328,6 +5346,7 @@ deep = Copy(original, deepCopy = true)
 deep.nested.x = 42
 Log(original.nested.x) // 不改变（仍为 99）
 ```
+
 - **常见使用场景**：在修改前保留原始数据快照、传递列表副本以避免副作用、序列化前深拷贝复杂结构。
 - **相关节点**：`CreateList`、`CreateListFromJson`、`Global`、`Local`
 
@@ -5346,7 +5365,8 @@ Log(original.nested.x) // 不改变（仍为 99）
 | `file` | 是 | String | JSON 文件路径（相对项目目录） |
 
 - **`.code` 示例**：
-```
+
+```code
 data = CreateListFromJson(file = "data/missions.json")
 Log(data.Count())
 // 遍历 JSON 中的每个条目
@@ -5355,6 +5375,7 @@ while i < data.Count()
     Log(Format("Mission: {0}", data[i].title))
     i += 1
 ```
+
 - **常见使用场景**：加载关卡/任务配置数据、读取 NPC 对话脚本、导入外部数据驱动的游戏内容。
 - **相关节点**：`CreateList`、`Copy`、`FileExists`、`GetFiles`
 
@@ -5373,14 +5394,15 @@ while i < data.Count()
 | `value` | 是 | String | 字符串常量值 |
 
 - **`.code` 示例**：
-```
+
+```code
 // 假设 StringConstant 节点 id 为 "sc1"，value 为 "Hello"
 // 在代码中直接作为字符串字面量使用：
 Log("Hello")
 ```
+
 - **常见使用场景**：为其他节点提供固定字符串输入、作为 `Format` 的模板字符串、作为 `Find`/`SubString` 的搜索目标。
 - **相关节点**：`NumberConstant`、`Boolean`、`Format`、`Find`
-
 
 > 这些节点在 `.code` 中没有对应物，代码生成器遇到它们时直接跳过（`follow_flow` 贯通执行链），不产生任何脚本输出。它们只服务于编辑器的可视化组织和元数据管理。
 
@@ -5417,7 +5439,7 @@ Log("Hello")
 
 ### 使用案例
 
-```
+```code
 Meta 节点参数示例：
   title: { "en": "Escape from Prison", "zh": "越狱" }
   description: { "en": "Break out of the high-security facility", "zh": "从高安全级别的监狱中逃出" }
@@ -5466,7 +5488,7 @@ Meta 节点参数示例：
 
 ### 使用案例
 
-```
+```code
 Comment 节点文本：
   "此处检查玩家是否拥有钥匙。
    如果拥有，走 True 分支开门；
@@ -5518,7 +5540,7 @@ Comment 节点文本：
 
 ### 使用案例
 
-```
+```code
 Group 节点参数示例：
   title: "初始化阶段"
   color: #4CAF50（绿色）
@@ -5536,13 +5558,6 @@ Group 节点参数示例：
 - `Comment` — 文本注释，补充说明
 - `Meta` — 任务元数据
 - `Log` — 调试输出
-
-
-# 缺失节点详细说明
-
-本文档为 15 个缺失节点生成详细说明，涵盖中文名、API 签名、返回值、参数、示例代码、使用场景和相关节点。
-
----
 
 ## If
 
