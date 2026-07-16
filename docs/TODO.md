@@ -39,10 +39,10 @@
   - 官方：`TriggerSexOrgasm()`（kb part_003:1687）
   - 原子语义（隐含 ecstasy=1），组合 SetEcstasy(1)+SetAction 只是近似
   - 实现：B 类 Flow 节点，无参数，生成 `TriggerSexOrgasm()`；NodeType 173→174；API 分类 `Game API: Stats`，场景分类 `scene.data_set.player_state`；zh/en i18n 键齐全 |
-- [ ] **生成器 elseif 折叠**
+- [x] **生成器 elseif 折叠** ✅ 2026-07-16
   - 官方：`elseif` 关键字（kb part_003:66）
   - False 分支首节点为 If 且无其他入度时，生成 `elseif` 而非嵌套 `else { if ... }`；提升生成代码可读性
-  - 位置：`src/code_gen/generator.rs::generate_if`
+  - 实现：修改 `generate_if`，遍历 false 链，对单一流入前驱的 If 节点生成 `elseif`，否则回退 `else`；新增 `is_single_flow_predecessor` 辅助函数；新增 1 个 elseif 链生成器测试；`cargo test` 136 项通过 |
 - [ ] **SetVariable 复合赋值**
   - 官方：`i += 1` 等（kb part_002:166）
   - 参数增加 `op` 枚举（`=` / `+=` / `-=` / `*=` / `/=`），默认 `=`；避免 `i = i + 1` 的多节点拼凑
@@ -98,6 +98,7 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
+| 2026-07-16 | 实现-P0.5 | 生成器 `elseif` 折叠：修改 `generate_if` 支持 `elseif` 链，False 分支为单一流入前驱的 If 节点时折叠，否则回退 `else`；新增辅助函数 `is_single_flow_predecessor` 与 1 个 elseif 链生成器测试；`cargo test` 136 项通过 | 已完成 |
 | 2026-07-16 | 实现-P0.4 | 新增 `TriggerSexOrgasm` 节点：B 类无参数 Flow 节点，生成 `TriggerSexOrgasm()`；NodeType 173→174；API 分类 `Game API: Stats`，场景分类 `scene.data_set.player_state`；zh/en i18n；`cargo test` 135 项通过 | 已完成 |
 | 2026-07-16 | 实现-P0.3 | 新增 `GetStageChanged` / `GetProjectName` 全局变量节点：C 类输出 `_stagechanged` / `_name`；NodeType 171→173；归入 `Variables & Globals` 与 `scene.data_get.global_vars`；新增 2 个生成器测试（含专项验证）；`cargo test` 135 项通过 | 已完成 |
 | 2026-07-16 | 实现-P0.2 | 新增 `StopAudio` 节点：A 类显式生成位置参数 `StopAudio(id)` / `StopAudio(id, fade)`；NodeType 170→171；API 分类 `Game API`，场景分类 `scene.visual_ui.audio_screen`；补充 zh/en i18n；新增 1 个专项生成器测试；`cargo test` 134 项通过 | 已完成 |

@@ -233,7 +233,10 @@ impl<'a> CodeGenerator<'a> {
         Ok(())
     }
 
-    /// 生成 `if` 条件分支
+    /// 生成 `if` 条件分支，支持 `elseif` 链折叠。
+    ///
+    /// 当 `out_false` 指向另一个 `If` 节点，且该 `If` 节点只有一条来自当前节点的
+    /// Flow 入边时，生成 `elseif` 而不是嵌套的 `else { if ... }`。
     fn generate_if(
         &mut self,
         label: &LabelContainer,
@@ -260,17 +263,54 @@ impl<'a> CodeGenerator<'a> {
             self.generate_sequence(label, target, join.as_deref())?;
         }
         self.formatter.dedent();
-        if let Some(ref target) = false_target {
-            self.formatter.write_line("else");
-            self.formatter.indent();
-            self.generate_sequence(label, target, join.as_deref())?;
-            self.formatter.dedent();
+
+        // 尝试折叠 elseif 链：false -> If -> If -> ... -> else
+        let mut prev_if_id = node_id.to_string();
+        let mut current_false = false_target;
+        while let Some(false_id) = current_false {
+            let false_node = label
+                .nodes
+                .get(&false_id)
+                .ok_or_else(|| FlowError::NodeNotFound(false_id.clone()))?;
+            if false_node.node_type == NodeType::If
+                && Self::is_single_flow_predecessor(label, &false_id, &prev_if_id)
+            {
+                let elif_condition = self.require_param(label, false_node, "condition")?;
+                self.formatter.write_line(&format!("elseif {elif_condition}"));
+                self.formatter.indent();
+                if let Some(ref target) = self.flow_target(label, &false_id, "out_true")? {
+                    self.generate_sequence(label, target, join.as_deref())?;
+                }
+                self.formatter.dedent();
+                prev_if_id = false_id.clone();
+                current_false = self.flow_target(label, &false_id, "out_false")?;
+            } else {
+                self.formatter.write_line("else");
+                self.formatter.indent();
+                self.generate_sequence(label, &false_id, join.as_deref())?;
+                self.formatter.dedent();
+                break;
+            }
         }
 
         if let Some(join_id) = join {
             self.generate_sequence(label, &join_id, stop_at)?;
         }
         Ok(())
+    }
+
+    /// 检查 `node_id` 是否只有一条 Flow 入边，且来自 `expected_from`。
+    fn is_single_flow_predecessor(
+        label: &LabelContainer,
+        node_id: &str,
+        expected_from: &str,
+    ) -> bool {
+        let incoming: Vec<_> = label
+            .edges
+            .values()
+            .filter(|e| e.edge_type == PortType::Flow && e.to.node_id == node_id)
+            .collect();
+        incoming.len() == 1 && incoming[0].from.node_id == expected_from
     }
 
     /// 生成 `while` 循环
@@ -1054,6 +1094,69 @@ mod tests {
             "eventName".to_string(),
             ParamValue::Literal(serde_json::json!("evt")),
         )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_if_elseif_else_chain() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut if1 = make_node("if1", NodeType::If);
+        if1.set_param("condition", ParamValue::Literal(serde_json::json!(true)));
+        if1.outputs.retain(|p| p.port_type != PortType::Flow);
+        if1.outputs.push(Port::new("out_true", PortType::Flow, "True"));
+        if1.outputs.push(Port::new("out_false", PortType::Flow, "False"));
+        graph.threads[0].labels[0].nodes.insert("if1".to_string(), if1);
+
+        let mut if2 = make_node("if2", NodeType::If);
+        if2.set_param("condition", ParamValue::Literal(serde_json::json!(false)));
+        if2.outputs.retain(|p| p.port_type != PortType::Flow);
+        if2.outputs.push(Port::new("out_true", PortType::Flow, "True"));
+        if2.outputs.push(Port::new("out_false", PortType::Flow, "False"));
+        graph.threads[0].labels[0].nodes.insert("if2".to_string(), if2);
+
+        let mut log_a = make_node("logA", NodeType::Log);
+        log_a.set_param("output", ParamValue::Literal(serde_json::json!("A")));
+        graph.threads[0].labels[0].nodes.insert("logA".to_string(), log_a);
+
+        let mut log_b = make_node("logB", NodeType::Log);
+        log_b.set_param("output", ParamValue::Literal(serde_json::json!("B")));
+        graph.threads[0].labels[0].nodes.insert("logB".to_string(), log_b);
+
+        let mut log_c = make_node("logC", NodeType::Log);
+        log_c.set_param("output", ParamValue::Literal(serde_json::json!("C")));
+        graph.threads[0].labels[0].nodes.insert("logC".to_string(), log_c);
+
+        let mut ret = make_node("ret", NodeType::Return);
+        ret.set_param("value", ParamValue::Null);
+        graph.threads[0].labels[0].nodes.insert("ret".to_string(), ret);
+
+        let label = &mut graph.threads[0].labels[0];
+        for (from, from_port, to) in [
+            ("if1", "out_true", "logA"),
+            ("if1", "out_false", "if2"),
+            ("if2", "out_true", "logB"),
+            ("if2", "out_false", "logC"),
+            ("logA", "out_flow", "ret"),
+            ("logB", "out_flow", "ret"),
+            ("logC", "out_flow", "ret"),
+        ] {
+            let edge = Edge::new(
+                EdgeEndpoint::new(from, from_port),
+                EdgeEndpoint::new(to, "in_flow"),
+                PortType::Flow,
+            );
+            label.edges.insert(edge.id.clone(), edge);
+        }
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("if true"), "missing if:\n{code}");
+        assert!(code.contains("elseif false"), "missing elseif:\n{code}");
+        assert!(code.contains("else"), "missing else:\n{code}");
+        assert!(
+            !code.contains("else\n\tif"),
+            "should not have nested else {{ if:\n{code}"
+        );
         Ok(())
     }
 

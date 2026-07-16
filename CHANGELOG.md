@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 优化（代码生成：elseif 折叠，P0.5）
+
+- 改进 `generate_if`：当 `If` 节点的 `out_false` 直接连接到另一个 `If` 节点，且该后继 `If` 只有一条来自当前 `If` 的 Flow 入边时，生成 `elseif` 而非嵌套的 `else { if ... }`。
+- 支持连续折叠：多个 `If` 串成链时可以生成 `if ... elseif ... elseif ... else ...`。
+- 新增辅助函数 `is_single_flow_predecessor` 判断节点是否只有一条来自指定前驱的 Flow 入边，确保不会错误折叠具有多个流入的 If 节点。
+- 测试：新增 `test_if_elseif_else_chain`，验证 `if true ... elseif false ... else ...` 结构且不出现嵌套 `else { if`；`cargo test` 136 项通过。
+
 ### 新增（性高潮触发节点，P0.4）
 
 - 新增 `TriggerSexOrgasm` 节点（`NodeType` 173 → 174）：官方 `TriggerSexOrgasm()` 无参数全局函数，返回 null；原子语义，隐式设置 ecstasy=1，此前只能用 `SetEcstasy(1)` + `SetAction` 近似。
