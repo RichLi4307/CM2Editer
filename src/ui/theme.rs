@@ -124,7 +124,6 @@ pub fn port_color(port_type: &PortType) -> Color32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::types::PortType;
 
     #[test]
     fn theme_colors_are_valid() {
