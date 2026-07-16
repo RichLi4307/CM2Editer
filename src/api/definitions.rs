@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::api::enums::{
-    to_strings, ACTIONS, CONDITION_TYPES, DROP_ITEM_TYPES, GRAPHICS_OPTIONS,
+    to_strings, ACTIONS, DROP_ITEM_TYPES, GRAPHICS_OPTIONS,
     HANDCUFFS_TYPES, ITEMS, PISTON_STRENGTHS, SEX_POSITIONS, SKILLS, SOUND_EFFECTS, STAGE_TYPES,
     VIBRATOR_STRENGTHS,
 };
@@ -1947,7 +1947,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_condition", PortType::Object, "条件"),
         ])
         .with_params(vec![
-            e("condition", "条件", CONDITION_TYPES),
+            p_req("condition", "条件", ParamType::String),
             p_opt("id", "ID", ParamType::String),
         ]),
         NodeDefinition::new(

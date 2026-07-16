@@ -220,3 +220,25 @@
 | `Start` | 已弃用 | 新架构中由 `ThreadContainer` / `LabelContainer` 入口钉替代。保留反序列化兼容。 |
 | `Label` | 已弃用 | 新架构中由 `LabelContainer` 名称替代。保留反序列化兼容。 |
 
+---
+
+## 5. 特殊参数说明
+
+### 5.1 `CreateCondition.condition` 组合语法
+
+`CreateCondition` 的 `condition` 参数支持组合表达式，游戏加载器按以下规则解析：
+
+| 语法 | 含义 | 示例 |
+|------|------|------|
+| `[A, B]` | AND：A 与 B 同时成立 | `[Exposed_All, IsDayTime]` |
+| `(A, B)` | OR：A 或 B 任一成立 | `(Crouching, Sitting)` |
+| `!A` | NOT：A 不成立 | `!Futanari` |
+| `SubCondition_<id>` | 复用本标签中已注册的子条件 | `SubCondition_main` |
+
+在编辑器属性面板中点击 **编辑条件...** 即可打开弹窗：
+- 文本框可直接编辑组合表达式；
+- `AND [ ]` / `OR ( )` / `NOT !` 按钮一键插入逻辑模板；
+- 点击下方基础条件标签自动追加到表达式；
+- 已有条件 ID 列表显示当前标签内所有 `CreateCondition` / `CreateItemCondition` 节点的非空 `id`，点击生成 `SubCondition_<id>` 复用。
+
+`CreateCondition.id` 参数：当填写 ID 后，当前条件会注册为可复用子条件，其他 `CreateCondition` 节点可通过 `SubCondition_<id>` 引用它。留空表示不注册。

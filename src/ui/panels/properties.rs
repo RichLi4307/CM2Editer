@@ -7,6 +7,7 @@ use crate::graph::types::{NodeType, PortType};
 use crate::ui::i18n::I18n;
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
+use crate::ui::panels::condition_editor::ConditionEditorState;
 use crate::api::definitions::ParamType;
 use crate::ui::panels::param_text_edit::{EditBuffers, ParamTextEdit};
 
@@ -15,6 +16,7 @@ pub struct PropertiesPanel;
 
 impl PropertiesPanel {
     /// 显示选中节点的可编辑参数，返回发生变更的参数键值（如果有）。
+    #[allow(clippy::too_many_arguments)]
     pub fn show(
         ui: &mut egui::Ui,
         i18n: &I18n,
@@ -24,6 +26,7 @@ impl PropertiesPanel {
         picker: &mut Option<NamespacePickerState>,
         coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
+        condition_editor: &mut Option<ConditionEditorState>,
         edit_bufs: &mut EditBuffers,
     ) -> Option<(String, ParamValue)> {
         // 节点标题 + 简介
@@ -51,7 +54,20 @@ impl PropertiesPanel {
             ui.vertical(|ui| {
                 ui.label(format!("{} {}", param_label, type_hint));
                 if let Some((new_key, new_value)) =
-                    Self::param_editor(ui, i18n, node, label, registry, picker, coord, coord_picker, edit_bufs, key, value)
+                    Self::param_editor(
+                        ui,
+                        i18n,
+                        node,
+                        label,
+                        registry,
+                        picker,
+                        coord,
+                        coord_picker,
+                        condition_editor,
+                        edit_bufs,
+                        key,
+                        value,
+                    )
                 {
                     changed = Some((new_key, new_value));
                 }
@@ -82,6 +98,7 @@ impl PropertiesPanel {
     /// 参数现在支持两种数据源：
     /// - 字面量：直接在节点属性中编辑。
     /// - 数据端口：通过节点边框的 Data 端口连接或下拉框选择其他节点的输出。
+    #[allow(clippy::too_many_arguments)]
     fn param_editor(
         ui: &mut egui::Ui,
         i18n: &I18n,
@@ -91,6 +108,7 @@ impl PropertiesPanel {
         picker: &mut Option<NamespacePickerState>,
         _coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
+        condition_editor: &mut Option<ConditionEditorState>,
         edit_bufs: &mut EditBuffers,
         key: &str,
         value: &ParamValue,
@@ -121,6 +139,40 @@ impl PropertiesPanel {
             && key == "condition"
         {
             return Self::condition_template_editor(ui, key, value, i18n);
+        }
+
+        // CreateCondition 条件组合编辑器：用弹窗组合 AND/OR/NOT 与已有 ID。
+        if node.node_type == NodeType::CreateCondition && key == "condition" {
+            let current = match value {
+                ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
+                _ => String::new(),
+            };
+            if ui.button(i18n.text("button.edit_condition"))
+                .on_hover_text(i18n.text("tooltip.edit_condition"))
+                .clicked()
+            {
+                *condition_editor = Some(ConditionEditorState::new(key, current));
+            }
+            ui.label(
+                egui::RichText::new(i18n.text("condition_editor.inline_preview"))
+                    .size(11.0)
+                    .color(egui::Color32::from_gray(140)),
+            );
+            if let ParamValue::Literal(v) = value {
+                if let Some(s) = v.as_str() {
+                    ui.label(egui::RichText::new(s).monospace().size(12.0));
+                }
+            }
+            return None;
+        }
+
+        // CreateCondition ID 说明：提示开发者 id 用于复用以及如何在弹窗中选择。
+        if node.node_type == NodeType::CreateCondition && key == "id" {
+            ui.label(
+                egui::RichText::new(i18n.text("condition_editor.id_hint"))
+                    .size(11.0)
+                    .color(egui::Color32::from_gray(140)),
+            );
         }
 
         // Vector 参数：坐标预设选择器按钮

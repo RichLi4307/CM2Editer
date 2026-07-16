@@ -39,6 +39,7 @@ use crate::ui::panels::{
     properties::PropertiesPanel,
     status_bar::StatusBarPanel,
     status_bar::{ErrorDetailWindow, StatusBarEvent},
+    condition_editor::{ConditionEditor, ConditionEditorState},
 };
 use crate::ui::theme::Theme;
 
@@ -229,6 +230,8 @@ pub struct App {
     pub coordinate_registry: CoordinateRegistry,
     /// 坐标选择器窗口状态。
     pub coordinate_picker: Option<CoordinatePickerState>,
+    /// 条件组合编辑器窗口状态。
+    pub condition_editor: Option<ConditionEditorState>,
     /// 国际化文本注册表。
     pub i18n: crate::ui::i18n::I18n,
     pub dragged_node: Option<NodeType>,
@@ -295,6 +298,7 @@ impl App {
             namespace_picker: None,
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
+            condition_editor: None,
             i18n: {
                 let mut i18n = crate::ui::i18n::I18n::load_bundled();
                 let settings = AppSettings::load();
@@ -1518,6 +1522,7 @@ impl eframe::App for App {
                             &mut self.namespace_picker,
                             &self.coordinate_registry,
                             &mut self.coordinate_picker,
+                            &mut self.condition_editor,
                             &mut self.edit_buffers,
                         ) {
                             let from = self.node_param(&node_id, &key);
@@ -1605,6 +1610,28 @@ impl eframe::App for App {
                 }
             } else {
                 self.coordinate_picker = None;
+            }
+        }
+
+        // 条件组合编辑器悬浮窗口
+        if let Some(mut editor) = self.condition_editor.take() {
+            if editor.open {
+                let label = self.current_label().clone();
+                if let Some(new_value) = ConditionEditor::show(ctx, &mut editor, &label, &self.i18n) {
+                    if let Some(node_id) = edited_node_id.as_ref() {
+                        let key = editor.param_key.clone();
+                        let from = self.node_param(node_id, &key);
+                        self.push_command(Command::SetParam {
+                            node_id: node_id.clone(),
+                            key,
+                            from,
+                            to: ParamValue::Literal(serde_json::json!(new_value)),
+                        });
+                    }
+                }
+                if editor.open {
+                    self.condition_editor = Some(editor);
+                }
             }
         }
 

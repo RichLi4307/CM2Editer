@@ -28,6 +28,15 @@
 - 将 `.code 文件` 分类标签也移入工程文件树的 `ScrollArea` 内，滚动时分类提示始终跟随列表。
 - 左栏分隔条视觉风格对齐底栏分隔条：默认灰色、悬停/拖拽时高亮蓝色，并显示 `ResizeVertical` 光标。
 
+### 新增（CreateCondition 条件组合编辑器）
+
+- 将 `CreateCondition` 的 `condition` 参数从枚举下拉框改为字符串类型，支持 `.code` 官方组合语法：`[A, B]`（AND）、`(A, B)`（OR）、`!A`（NOT）与 `SubCondition_<id>`（复用已有条件）。
+- 新增 `src/ui/panels/condition_editor.rs`：弹出式条件组合编辑器，提供可编辑表达式框、AND/OR/NOT 插入按钮、按分类折叠的基础条件列表、当前标签内已有条件 ID 复用列表，以及实时预览。
+- 在 `src/ui/panels/properties.rs` 中为 `CreateCondition` 的 `condition` 参数添加 **编辑条件...** 按钮，为 `id` 参数添加中文/英文说明，解释 ID 用于 `SubCondition_<id>` 复用。
+- 在 `app.rs` 中管理 `condition_editor` 窗口状态，确认后通过 `Command::SetParam` 更新节点参数。
+- 在 `assets/i18n/zh.json`、`en.json`、`ja.json` 中添加 `condition_editor.*` 与 `button.edit_condition` 翻译键。
+- 更新 `docs/node_types.md`：新增 `CreateCondition.condition` 组合语法与 `id` 复用说明章节。
+
 ### 新增（P1 低难度节点）
 
 - **DestroyListener**：销毁当前监听器，生成 `listener = null`。
