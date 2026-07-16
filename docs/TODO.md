@@ -91,7 +91,7 @@
 
 1. **更新 `CHANGELOG.md`** — 每次功能交付后追加条目。
 2. **更新 `docs/TODO.md`** — 标记已完成任务 ✅，追加工作日志条目。
-3. **`cargo test` 全过再 commit** — 118 项全部通过为提交门槛。
+3. **`cargo test` 全过再 commit** — 127 项全部通过为提交门槛。
 4. **任何任务完成后必须提交一次 commit** — 不要留下未提交改动。
 5. **commit message 用中文前缀** — 格式 `<类型>: <简要描述>`，例如：`重构: 容器化图模型`、`文档: 更新节点分类`。
 6. **重大文档变更需归档** — 将旧版按 `{文件名}_{YYYYMMDD}_v{序号}.md` 放入 `docs/archive/`。
@@ -143,6 +143,7 @@
 | 2026-07-16 | 优化-左栏分隔条视觉 | 左栏节点库/工程树分隔条视觉对齐底栏：灰色默认、悬停拖拽蓝色高亮、显示 ResizeVertical 光标；`cargo test` 111 项通过 | 已完成 |
 | 2026-07-16 | 修复-Condition 代码生成 | 修正 `CreateCondition` 输出为官方位置参数语法，空 `id` 时省略；`CreateItemCondition` 同样跳过空 `id`；更新 fixture；新增 3 个生成器测试；`cargo test` 114 项通过 | 已完成 |
 | 2026-07-16 | 新增-UI | 实现 `CreateCondition` 弹出式条件组合编辑器：`condition` 参数支持 AND `[A,B]` / OR `(A,B)` / NOT `!A` / `SubCondition_<id>` 复用；属性面板为 `id` 参数添加说明；补充中/英/日 i18n 键；`cargo test` 118 项通过 | 已完成 |
+| 2026-07-16 | 优化-UI | 条件组合编辑器支持基于光标位置/选区的智能插入：选中文本被 AND/OR/NOT 包裹；光标在 `[...]` 或 `(...)` 内时按条件追加逗号，按 AND/OR 直接追加逗号；新增 9 个单元测试；`cargo test` 127 项通过 | 已完成 |
 | 2026-07-16 | 文档-节点 | 更新 `docs/node_types.md`：新增 `CreateCondition.condition` 组合语法与 `id` 复用说明 | 已完成 |
 
 ---

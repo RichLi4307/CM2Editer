@@ -17,7 +17,7 @@ use crate::ui::i18n::I18n;
 #[derive(Debug, Clone)]
 pub struct ConditionEditorState {
     pub open: bool,
-    /// Parameter key that will receive the final expression.
+    /// Parameter key that will receive the final value.
     pub param_key: String,
     /// Editable expression value.
     pub value: String,
@@ -27,6 +27,10 @@ pub struct ConditionEditorState {
     pub flash: Option<String>,
     /// Frame counter for the flash message.
     pub flash_frames: u32,
+    /// Last known text cursor range as character indices (start, end). Used to
+    /// insert operators at the caret or wrap the current selection when the user
+    /// clicks toolbar buttons.
+    pub cursor_range: Option<(usize, usize)>,
 }
 
 impl ConditionEditorState {
@@ -39,6 +43,7 @@ impl ConditionEditorState {
             search: String::new(),
             flash: None,
             flash_frames: 0,
+            cursor_range: None,
         }
     }
 
@@ -155,35 +160,40 @@ impl ConditionEditor {
             .default_size([520.0, 560.0])
             .show(ctx, |ui| {
                 ui.label(i18n.text("condition_editor.expression_label"));
-                let text_edit = egui::TextEdit::multiline(&mut state.value)
+                let output = egui::TextEdit::multiline(&mut state.value)
                     .id_salt("condition_editor_expression")
                     .desired_rows(3)
                     .desired_width(f32::INFINITY)
-                    .font(egui::TextStyle::Monospace);
-                ui.add(text_edit);
+                    .font(egui::TextStyle::Monospace)
+                    .show(ui);
+                state.cursor_range = output.cursor_range.map(|r| {
+                    let range = r.as_sorted_char_range();
+                    (range.start, range.end)
+                });
 
                 // Toolbar
+                let cursor = state.cursor_range;
                 ui.horizontal(|ui| {
                     if ui
                         .button(i18n.text("condition_editor.and"))
                         .on_hover_text(i18n.text("condition_editor.and_hint"))
                         .clicked()
                     {
-                        insert_at_cursor_or_end(&mut state.value, "[, ]", "condition_editor.and");
+                        insert_and(&mut state.value, cursor);
                     }
                     if ui
                         .button(i18n.text("condition_editor.or"))
                         .on_hover_text(i18n.text("condition_editor.or_hint"))
                         .clicked()
                     {
-                        insert_at_cursor_or_end(&mut state.value, "(, )", "condition_editor.or");
+                        insert_or(&mut state.value, cursor);
                     }
                     if ui
                         .button(i18n.text("condition_editor.not"))
                         .on_hover_text(i18n.text("condition_editor.not_hint"))
                         .clicked()
                     {
-                        insert_at_cursor_or_end(&mut state.value, "!", "condition_editor.not");
+                        insert_not(&mut state.value, cursor);
                     }
                     if ui.button(i18n.text("condition_editor.clear")).clicked() {
                         state.value.clear();
@@ -250,7 +260,7 @@ impl ConditionEditor {
                                     ui.horizontal_wrapped(|ui| {
                                         for item in filtered {
                                             if condition_token_button(ui, item).clicked() {
-                                                append_token(&mut state.value, item);
+                                                insert_token(&mut state.value, item, state.cursor_range);
                                                 state.set_flash(i18n.format(
                                                     "condition_editor.inserted",
                                                     &[item],
@@ -271,7 +281,7 @@ impl ConditionEditor {
                                     if (query.is_empty() || token.to_lowercase().contains(&query))
                                         && condition_token_button(ui, &token).clicked()
                                     {
-                                        append_token(&mut state.value, &token);
+                                        insert_token(&mut state.value, &token, state.cursor_range);
                                         state.set_flash(i18n.format(
                                             "condition_editor.inserted",
                                             &[&token],
@@ -331,19 +341,146 @@ fn condition_token_button(ui: &mut egui::Ui, token: &str) -> egui::Response {
     )
 }
 
-/// Append a token to the expression, adding a leading separator if needed.
-fn append_token(expression: &mut String, token: &str) {
-    if !expression.is_empty() && !expression.ends_with(['[', '(', ',', '!', ' ']) {
-        expression.push_str(", ");
-    }
-    expression.push_str(token);
+/// Extract a character range from a string as a new `String`.
+fn char_slice(expression: &str, start: usize, end: usize) -> String {
+    expression.chars().skip(start).take(end.saturating_sub(start)).collect()
 }
 
-/// Insert a template into the expression. Since egui does not expose cursor
-/// position, we append at the end and rely on the user editing the text box
-/// directly for precise placement. The `kind` parameter is used to show a
-/// helpful flash message.
-fn insert_at_cursor_or_end(expression: &mut String, template: &str, _kind: &str) {
+/// Replace the character range `[start, end)` with `replacement`.
+fn replace_char_range(expression: &mut String, start: usize, end: usize, replacement: &str) {
+    let before: String = expression.chars().take(start).collect();
+    let after: String = expression.chars().skip(end).collect();
+    *expression = format!("{}{}{}", before, replacement, after);
+}
+
+/// Insert `text` at the given character index.
+fn insert_at_char_index(expression: &mut String, char_idx: usize, text: &str) {
+    let before: String = expression.chars().take(char_idx).collect();
+    let after: String = expression.chars().skip(char_idx).collect();
+    *expression = format!("{}{}{}", before, text, after);
+}
+
+/// Return the character immediately before the given character index.
+fn char_before(expression: &str, char_idx: usize) -> Option<char> {
+    if char_idx == 0 {
+        None
+    } else {
+        expression.chars().nth(char_idx - 1)
+    }
+}
+
+/// Determine which bracket pair (if any) the caret at `char_idx` is inside.
+/// Returns `'['` for AND brackets, `'('` for OR brackets, or `None`.
+fn enclosing_bracket(expression: &str, char_idx: usize) -> Option<char> {
+    let mut stack: Vec<char> = Vec::new();
+    for (i, c) in expression.chars().enumerate() {
+        if i == char_idx {
+            return stack.last().copied();
+        }
+        match c {
+            '[' => stack.push('['),
+            '(' => stack.push('('),
+            ']' if stack.last() == Some(&'[') => {
+                stack.pop();
+            }
+            ')' if stack.last() == Some(&'(') => {
+                stack.pop();
+            }
+            _ => {}
+        }
+    }
+    // Caret is past the last character.
+    stack.last().copied()
+}
+
+/// Insert an AND group at the caret, or wrap the current selection.
+fn insert_and(expression: &mut String, cursor_range: Option<(usize, usize)>) {
+    if let Some((start, end)) = cursor_range {
+        if start != end {
+            // Wrap selected text in `[...]`.
+            let selected = char_slice(expression, start, end);
+            replace_char_range(expression, start, end, &format!("[{}]", selected));
+            return;
+        }
+        // Inside an existing bracket group: add a comma-separated entry.
+        if enclosing_bracket(expression, start).is_some() {
+            insert_at_char_index(expression, start, ", ");
+            return;
+        }
+        // Otherwise insert a fresh AND template at the caret.
+        insert_at_char_index(expression, start, "[, ]");
+    } else {
+        append_template(expression, "[, ]");
+    }
+}
+
+/// Insert an OR group at the caret, or wrap the current selection.
+fn insert_or(expression: &mut String, cursor_range: Option<(usize, usize)>) {
+    if let Some((start, end)) = cursor_range {
+        if start != end {
+            let selected = char_slice(expression, start, end);
+            replace_char_range(expression, start, end, &format!("({})", selected));
+            return;
+        }
+        if enclosing_bracket(expression, start).is_some() {
+            insert_at_char_index(expression, start, ", ");
+            return;
+        }
+        insert_at_char_index(expression, start, "(, )");
+    } else {
+        append_template(expression, "(, )");
+    }
+}
+
+/// Insert a NOT operator at the caret, or wrap the current selection.
+fn insert_not(expression: &mut String, cursor_range: Option<(usize, usize)>) {
+    if let Some((start, end)) = cursor_range {
+        if start != end {
+            let selected = char_slice(expression, start, end);
+            replace_char_range(expression, start, end, &format!("!{}", selected));
+            return;
+        }
+        insert_at_char_index(expression, start, "!");
+    } else {
+        append_template(expression, "!");
+    }
+}
+
+/// Insert a base condition token at the caret. If text is selected, it is
+/// replaced. If the caret is inside a bracket group, a leading comma is added
+/// when appropriate.
+fn insert_token(
+    expression: &mut String,
+    token: &str,
+    cursor_range: Option<(usize, usize)>,
+) {
+    if let Some((start, end)) = cursor_range {
+        if start != end {
+            replace_char_range(expression, start, end, token);
+            return;
+        }
+        let needs_comma = if enclosing_bracket(expression, start).is_some() {
+            match char_before(expression, start) {
+                Some('[') | Some('(') | Some(',') | Some('!') | Some(' ') => false,
+                _ => !expression.is_empty(),
+            }
+        } else {
+            !expression.is_empty() && !expression.ends_with(['[', '(', ',', '!', ' '])
+        };
+        if needs_comma {
+            insert_at_char_index(expression, start, ", ");
+            insert_at_char_index(expression, start + 2, token);
+        } else {
+            insert_at_char_index(expression, start, token);
+        }
+    } else {
+        append_token(expression, token);
+    }
+}
+
+/// Append a template to the end of the expression, adding a leading separator
+/// if needed. Used as a fallback when no cursor information is available.
+fn append_template(expression: &mut String, template: &str) {
     if expression.is_empty() {
         expression.push_str(template);
         return;
@@ -352,6 +489,15 @@ fn insert_at_cursor_or_end(expression: &mut String, template: &str, _kind: &str)
         expression.push_str(", ");
     }
     expression.push_str(template);
+}
+
+/// Append a token to the end of the expression, adding a leading separator if
+/// needed. Kept for non-cursor code paths.
+fn append_token(expression: &mut String, token: &str) {
+    if !expression.is_empty() && !expression.ends_with(['[', '(', ',', '!', ' ']) {
+        expression.push_str(", ");
+    }
+    expression.push_str(token);
 }
 
 /// Collect existing condition IDs from `CreateCondition` and `CreateItemCondition`
@@ -406,6 +552,90 @@ mod tests {
     }
 
     #[test]
+    fn test_insert_and_wraps_selection() {
+        let mut s = "A, B".to_string();
+        let range = cursor_range(0, 4);
+        insert_and(&mut s, Some(range));
+        assert_eq!(s, "[A, B]");
+    }
+
+    #[test]
+    fn test_insert_and_adds_comma_inside_bracket() {
+        let mut s = "[A, B]".to_string();
+        let range = cursor_range(5, 5); // caret between 'B' and ']'
+        insert_and(&mut s, Some(range));
+        assert_eq!(s, "[A, B, ]");
+    }
+
+    #[test]
+    fn test_insert_and_inserts_template_at_caret() {
+        let mut s = "A".to_string();
+        let range = cursor_range(1, 1); // caret after 'A'
+        insert_and(&mut s, Some(range));
+        assert_eq!(s, "A[, ]");
+    }
+
+    #[test]
+    fn test_insert_or_wraps_selection() {
+        let mut s = "A, B".to_string();
+        let range = cursor_range(0, 4);
+        insert_or(&mut s, Some(range));
+        assert_eq!(s, "(A, B)");
+    }
+
+    #[test]
+    fn test_insert_or_adds_comma_inside_bracket() {
+        let mut s = "(A, B)".to_string();
+        let range = cursor_range(5, 5);
+        insert_or(&mut s, Some(range));
+        assert_eq!(s, "(A, B, )");
+    }
+
+    #[test]
+    fn test_insert_not_wraps_selection() {
+        let mut s = "A".to_string();
+        let range = cursor_range(0, 1);
+        insert_not(&mut s, Some(range));
+        assert_eq!(s, "!A");
+    }
+
+    #[test]
+    fn test_insert_not_inserts_at_caret() {
+        let mut s = "A".to_string();
+        let range = cursor_range(0, 0); // caret before 'A'
+        insert_not(&mut s, Some(range));
+        assert_eq!(s, "!A");
+    }
+
+    #[test]
+    fn test_insert_token_adds_comma_inside_bracket() {
+        let mut s = "[A, B]".to_string();
+        let range = cursor_range(5, 5); // caret after 'B'
+        insert_token(&mut s, "C", Some(range));
+        assert_eq!(s, "[A, B, C]");
+    }
+
+    #[test]
+    fn test_insert_token_no_comma_after_open_bracket() {
+        let mut s = "[A]".to_string();
+        let range = cursor_range(1, 1); // caret after '['
+        insert_token(&mut s, "B", Some(range));
+        assert_eq!(s, "[BA]");
+    }
+
+    #[test]
+    fn test_insert_token_replaces_selection() {
+        let mut s = "A, B, C".to_string();
+        let range = cursor_range(0, 4); // select "A, B"
+        insert_token(&mut s, "X", Some(range));
+        assert_eq!(s, "X, C");
+    }
+
+    fn cursor_range(start: usize, end: usize) -> (usize, usize) {
+        (start, end)
+    }
+
+    #[test]
     fn test_append_token() {
         let mut s = String::new();
         append_token(&mut s, "A");
@@ -414,17 +644,6 @@ mod tests {
         assert_eq!(s, "A, B");
         append_token(&mut s, "C");
         assert_eq!(s, "A, B, C");
-    }
-
-    #[test]
-    fn test_insert_at_cursor_or_end() {
-        let mut s = String::new();
-        insert_at_cursor_or_end(&mut s, "[, ]", "and");
-        assert_eq!(s, "[, ]");
-
-        let mut s = "A".to_string();
-        insert_at_cursor_or_end(&mut s, "[, ]", "and");
-        assert_eq!(s, "A, [, ]");
     }
 
     #[test]
