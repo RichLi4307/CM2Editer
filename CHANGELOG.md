@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 新增（SetVariable 复合赋值，P0.6）
+
+- 为 `SetVariable` 节点新增 `op` 可选枚举参数：`=` / `+=` / `-=` / `*=` / `/=`，默认 `=`。
+- 代码生成器读取 `op` 并校验合法性，输出 `{name} {op} {value}`，例如 `i += 1`、`hp -= 5`。
+- 旧图反序列化时若缺少 `op` 参数，自动回退到 `=`，保持向后兼容。
+- 更新 zh/en i18n 的 `node.SetVariable.param.op` 键；在 `docs/node_types.md` 2.3 节补充 `SetVariable` / `Variable` 行，并将原"规划"说明改为已实现。
+- 测试：新增 `test_set_variable_compound_assignment`，覆盖全部 5 种操作符；`cargo test` 137 项通过。
+
 ### 优化（代码生成：elseif 折叠，P0.5）
 
 - 改进 `generate_if`：当 `If` 节点的 `out_false` 直接连接到另一个 `If` 节点，且该后继 `If` 只有一条来自当前 `If` 的 Flow 入边时，生成 `elseif` 而非嵌套的 `else { if ... }`。

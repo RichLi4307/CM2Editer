@@ -633,7 +633,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             PortDefinition::new("value", PortType::Any, "值").required(true),
         ])
         .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("name", "变量名", ParamType::String)]),
+        .with_params(vec![
+            p_req("name", "变量名", ParamType::String),
+            e_opt("op", "操作符", &["=", "+=", "-=", "*=", "/="]),
+        ]),
         // -----------------------------------------------------------------
         // Game API: Items & Equipment
         // -----------------------------------------------------------------

@@ -1008,6 +1008,7 @@
     "node.SetVariable.description": "Assign a value to a variable in the current scope",
     "node.SetVariable.name": "Set Variable",
     "node.SetVariable.param.name": "name",
+    "node.SetVariable.param.op": "op",
     "node.SetVariable.port.in_flow": "in_flow",
     "node.SetVariable.port.out_flow": "out_flow",
     "node.SetVariable.port.value": "value",

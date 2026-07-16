@@ -99,6 +99,8 @@
 | `GetMods` | C | 读取所有已激活 mod 数据 | `_mods` |
 | `GetStageChanged` | C | 读取本帧是否发生场景切换 | `_stagechanged` |
 | `GetProjectName` | C | 读取当前工程文件夹名 | `_name` |
+| `SetVariable` | A | 设置当前作用域变量，支持 `=`/`+=`/`-=`/`*=`/`/=` | `i += 1` |
+| `Variable` | C | 读取当前作用域变量 | `myVar` |
 | `SetEvent` | B | 设置跨项目事件 | `SetEvent("name", data)` |
 | `GetEvent` | C | 获取事件数据 | `_event` |
 | `DumpVariables` | B | 导出所有变量 | `DumpVariables()` |
@@ -106,7 +108,7 @@
 | `GetType` | C | 获取值类型名 | `type(value)` |
 | `GetLanguage` | C | 获取当前语言 | `GetLanguage()` |
 
-> **规划**：新架构将引入 `Set Variable` / `Variable` 通用变量节点，替换 `Global` / `Local` 的歧义用法。
+> **说明**：`SetVariable` / `Variable` 是新架构通用变量节点，已替代 `Global` / `Local` 的歧义用法。
 
 ### 2.4 Literals（字面量）
 

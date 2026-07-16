@@ -218,10 +218,20 @@ impl<'a> CodeGenerator<'a> {
             NodeType::SetVariable => {
                 let name = self.require_param(label, node, "name")?;
                 let name = name.trim_matches('"');
+                let op = self
+                    .resolve_param_opt(label, node, "op")
+                    .unwrap_or_else(|| "=".to_string())
+                    .trim_matches('"')
+                    .to_string();
+                let op = if ["=", "+=", "-=", "*=", "/="].contains(&op.as_str()) {
+                    op
+                } else {
+                    "=".to_string()
+                };
                 let value = self
                     .resolve_param_opt(label, node, "value")
                     .unwrap_or_else(|| "null".to_string());
-                self.formatter.write_line(&format!("{name} = {value}"));
+                self.formatter.write_line(&format!("{name} {op} {value}"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             _ => {
@@ -1227,6 +1237,32 @@ mod tests {
             code2.contains("testVar = _name"),
             "Expected GetProjectName to output _name, got:\n{code2}"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_variable_compound_assignment() -> Result<()> {
+        for (op, expected) in [
+            ("=", "i = 1"),
+            ("+=", "i += 1"),
+            ("-=", "i -= 1"),
+            ("*=", "i *= 1"),
+            ("/=", "i /= 1"),
+        ] {
+            let mut graph = make_graph();
+            let params: HashMap<String, ParamValue> = [
+                ("name".to_string(), ParamValue::Literal(serde_json::json!("i"))),
+                ("op".to_string(), ParamValue::Literal(serde_json::json!(op))),
+                ("value".to_string(), ParamValue::Literal(serde_json::json!(1))),
+            ]
+            .into();
+            add_flow_node(&mut graph, "n1", NodeType::SetVariable, params);
+            let code = generate_code(&graph)?;
+            assert!(
+                code.contains(expected),
+                "Expected SetVariable with op={op} to contain '{expected}', got:\n{code}"
+            );
+        }
         Ok(())
     }
 

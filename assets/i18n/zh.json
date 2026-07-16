@@ -1055,6 +1055,7 @@
     "node.SetVariable.description": "将计算后的值赋给当前作用域中的指定变量。如果变量不存在则创建。支持所有基本类型的赋值。",
     "node.SetVariable.name": "设置变量",
     "node.SetVariable.param.name": "变量名",
+    "node.SetVariable.param.op": "操作符",
     "node.SetVariable.port.in_flow": "执行",
     "node.SetVariable.port.out_flow": "下一步",
     "node.SetVariable.port.value": "值",
