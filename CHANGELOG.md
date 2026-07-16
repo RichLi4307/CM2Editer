@@ -57,7 +57,14 @@
 - 同步更新 `assets/i18n/zh.json`、`en.json`、`ja.json`，新增 `scene.data_process.file` 翻译键。
 - 更新 `docs/node_types.md` 中关于场景分类的说明。
 
+### 文档（节点详细介绍）
 
+- 启动 9 个子代理（按功能分组 + 补充缺失节点），基于 `src/api/definitions.rs`、`src/code_gen/generator.rs` 和官方 API 文档，为全部 168 个节点生成中文详细介绍。
+- 合并为 `docs/node_details.md`，每个节点包含：中文名、官方 API 签名、返回值、作用说明、参数表、`.code` 使用案例、常见场景、相关节点。
+- 该文档比官方 HTML 文档更结构化、更本地化，并作为属性面板未来改进的描述来源。
+- 在 `docs/node_types.md` 中新增 5.3 节引用该文档。
+
+### 新增（P1 低难度节点）
 
 - **DestroyListener**：销毁当前监听器，生成 `listener = null`。
 - **GetCurrentThread**：纯数据节点，输出当前线程引用 `_this`。

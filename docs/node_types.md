@@ -262,3 +262,17 @@
 - `FileExists` / `GetFiles` 是文件系统操作，归入 **数据处理 > 文件**，而非字符串处理。
 
 具体分类见 `src/ui/panels/node_library/catalog.rs`。
+
+### 5.3 节点详细介绍文档
+
+`docs/node_details.md` 为每个节点提供了中文详细介绍，包含：
+
+- 中文名与官方 API 签名
+- 返回值类型
+- 实际作用说明
+- 每个参数的必填/类型/含义
+- `.code` 使用案例
+- 常见使用场景
+- 相关节点推荐
+
+该文档由子代理基于 `src/api/definitions.rs`、`src/code_gen/generator.rs` 和官方 API 文档（`docs/kb/` / `docs/documentation.html`）生成，旨在比官方文档更结构化、更本地化，并更适合编辑器属性面板参考。属性面板中的节点简介未来将逐步抽取自该文档的关键内容。
