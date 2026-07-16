@@ -991,7 +991,6 @@ processItem:
   - 批量处理 NPC、物品或任务数据
 - **相关节点**：For, CallFunction, While, For, Range
 
-
 ---
 
 ## Boolean
@@ -2092,7 +2091,7 @@ if (Cosplay_maid_apron && Cosplay_maid_onepiece && Cosplay_maid_choker)
 | 属性 | 值 |
 |------|-----|
 | **中文名** | 设置玩家位置 |
-| **API 签名** | `SetPlayerPosition([x = PositionX, y = PositionY, z = PositionZ][, rx = RotationX, ry = RotationY, rz = RotationZ, rw = RotationW])`<br>`SetPlayerPosition([position = Position][, rotation = Rotation])` |
+| **API 签名** | `SetPlayerPosition([x = PositionX, y = PositionY, z = PositionZ][, rx = RotationX, ry = RotationY, rz = RotationZ, rw = RotationW])` / `SetPlayerPosition([position = Position][, rotation = Rotation])` |
 | **返回值** | `null` |
 | **分类** | Game API: Player State |
 | **类别** | B 类 |
@@ -2325,7 +2324,7 @@ SetFutanari, SetPlayerData, SetAction, SetStamina
 | 属性 | 值 |
 |------|-----|
 | **中文名** | 设置玩家数据 |
-| **API 签名** | `SetPlayerData(DataName, DataValue)`<br>`SetPlayerData("BodyPaintTypeDict", BodyPaintType, Active)`<br>`SetPlayerData("HairCustomizeDataDict", HairType, DataName, DataValue)` |
+| **API 签名** | `SetPlayerData(DataName, DataValue)` / `SetPlayerData("BodyPaintTypeDict", BodyPaintType, Active)` / `SetPlayerData("HairCustomizeDataDict", HairType, DataName, DataValue)` |
 | **返回值** | `null` |
 | **分类** | Game API: Player State |
 | **类别** | B 类 |
@@ -3448,7 +3447,7 @@ SetSexPosition, SetSexMenu, SetAction, SetFutanari, TriggerGameOver
 | 属性 | 值 |
 |------|-----|
 | **中文名** | 设置性爱菜单 |
-| **API 签名** | `SetSexMenu([canfinish = CanFinish][, canposition = CanChangePosition])`<br>`SetSexMenu([canfinish = CanFinish][, canposition = CanChangeToPosition])` |
+| **API 签名** | `SetSexMenu([canfinish = CanFinish][, canposition = CanChangePosition])` / `SetSexMenu([canfinish = CanFinish][, canposition = CanChangeToPosition])` |
 | **返回值** | `null` |
 | **分类** | Game API: Game Control |
 | **类别** | B 类 |
