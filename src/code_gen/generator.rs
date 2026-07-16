@@ -1571,6 +1571,7 @@ mod tests {
             NodeType::SetMoisture,
             NodeType::AddMoisture,
             NodeType::GetMoisture,
+            NodeType::TriggerSexOrgasm,
             NodeType::SetItemCount,
             NodeType::AddItemCount,
             NodeType::GetItemCount,

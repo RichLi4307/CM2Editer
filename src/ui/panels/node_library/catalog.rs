@@ -204,6 +204,7 @@ impl SceneCatalog {
                             NodeType::SetSexPosition,
                             NodeType::DeactivateSex,
                             NodeType::SetSexMenu,
+                            NodeType::TriggerSexOrgasm,
                         ],
                     },
                     SceneSubcategory {

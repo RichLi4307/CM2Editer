@@ -164,7 +164,7 @@
 |--------|------|
 | 物品与装备 | `DropItem`, `CollectItem`, `SetVibrator`, `SetPiston`, `LockHandcuffs`, `UnlockHandcuffs`, `EquipCosplay`, `UnequipCosplay`, `UnequipAllCosplay`, `OwnCosplay`, `EquipAdultToy`, `UnequipAdultToy` |
 | 玩家状态与设置 | `SetPlayerPosition`, `SetStage`, `SetCamera`, `SetAction`, `SetFutanari`, `SetSkill`, `SetPlayerData`, `SetSkillShortcut`, `GetSkillShortcut`, `GetRandomPosition` |
-| 数值统计 | `AddCurrentEarnRP`, `SetCurrentEarnRP`, `GetCurrentEarnRP`, `AddCurrentRP`, `SetCurrentRP`, `GetCurrentRP`, `SetEcstasy`, `AddEcstasy`, `GetEcstasy`, `SetStamina`, `AddStamina`, `GetStamina`, `SetMoisture`, `AddMoisture`, `GetMoisture`, `SetItemCount`, `AddItemCount`, `GetItemCount` |
+| 数值统计 | `AddCurrentEarnRP`, `SetCurrentEarnRP`, `GetCurrentEarnRP`, `AddCurrentRP`, `SetCurrentRP`, `GetCurrentRP`, `SetEcstasy`, `AddEcstasy`, `GetEcstasy`, `SetStamina`, `AddStamina`, `GetStamina`, `SetMoisture`, `AddMoisture`, `GetMoisture`, `TriggerSexOrgasm`, `SetItemCount`, `AddItemCount`, `GetItemCount` |
 | 游戏控制 | `CanGameOver`, `TriggerGameOver`, `PlaySoundEffect`, `SetStageRankLimit`, `GetStageRankLimit`, `SetPortalEnabled`, `GetAllWaypoints`, `SetSexPosition`, `DeactivateSex`, `SetSexMenu` |
 | 图形与杂项 | `ShowBlackscreen`, `GetSnapshotData`, `GetAllSnapshots`, `DeleteSnapshot`, `GetImageReference`, `SetGraphicsOption`, `GetGraphicsOption` |
 | 音频 | `StopAudio` |

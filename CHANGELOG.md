@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### 新增（性高潮触发节点，P0.4）
+
+- 新增 `TriggerSexOrgasm` 节点（`NodeType` 173 → 174）：官方 `TriggerSexOrgasm()` 无参数全局函数，返回 null；原子语义，隐式设置 ecstasy=1，此前只能用 `SetEcstasy(1)` + `SetAction` 近似。
+- B 类无参数 Flow 节点，代码生成器直接输出 `TriggerSexOrgasm()`；API 分类 `Game API: Stats`，节点库归入 `scene.data_set.player_state`；补充 zh/en i18n 键；同步更新 `docs/node_types.md` 与 AGENTS.md 计数。
+- 测试：将 `TriggerSexOrgasm` 加入 `test_generate_game_api_stats` 循环；计数断言更新至 174；`cargo test` 135 项通过。
+
 ### 新增（全局变量节点，P0.3）
 
 - 新增 `GetStageChanged` / `GetProjectName` 节点（`NodeType` 171 → 173）：读取官方 Built-In Global Variables `_stagechanged` 和 `_name`。

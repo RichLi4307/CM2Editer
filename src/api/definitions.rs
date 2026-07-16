@@ -1062,6 +1062,14 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_value", PortType::Number, "值"),
         ]),
         NodeDefinition::new(
+            NodeType::TriggerSexOrgasm, "Game API: Stats",
+            "触发性高潮",
+            "触发性高潮（原子操作，隐式设置 ecstasy=1）",
+            STATS_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()]),
+        NodeDefinition::new(
             NodeType::SetItemCount, "Game API: Stats",
             "设置物品数量",
             "设置物品数量",
@@ -2363,7 +2371,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 173);
+        assert_eq!(all.len(), 174);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2372,7 +2380,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 173);
+        assert_eq!(seen.len(), 174);
     }
 
 

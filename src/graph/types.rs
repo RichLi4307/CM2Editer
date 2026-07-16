@@ -152,6 +152,8 @@ pub enum NodeType {
     AddMoisture,
     /// 获取 moisture 值
     GetMoisture,
+    /// 触发性高潮（原子操作，隐式设置 ecstasy=1）
+    TriggerSexOrgasm,
     /// 设置物品数量
     SetItemCount,
     /// 增加物品数量
@@ -526,6 +528,7 @@ mod tests {
             NodeType::SetMoisture,
             NodeType::AddMoisture,
             NodeType::GetMoisture,
+            NodeType::TriggerSexOrgasm,
             NodeType::SetItemCount,
             NodeType::AddItemCount,
             NodeType::GetItemCount,
@@ -645,6 +648,6 @@ mod tests {
             NodeType::SetVariable,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 173);
+        assert_eq!(variants.len(), 174);
     }
 }
