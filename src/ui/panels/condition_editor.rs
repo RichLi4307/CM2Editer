@@ -35,6 +35,10 @@ pub struct ConditionEditorState {
     /// stored state (including the caret position) on the same frame even after
     /// toolbar buttons steal focus.
     pub text_edit_id: Option<egui::Id>,
+    /// Caret position to use when the [`TextEdit`] does not have keyboard focus.
+    /// We maintain it ourselves so that repeated button clicks do not re-use an
+    /// outdated selection from egui's stored state.
+    pub last_insert_pos: usize,
 }
 
 impl ConditionEditorState {
@@ -49,6 +53,7 @@ impl ConditionEditorState {
             flash_frames: 0,
             cursor_range: None,
             text_edit_id: None,
+            last_insert_pos: 0,
         }
     }
 
@@ -178,31 +183,36 @@ impl ConditionEditor {
                 });
 
                 // Toolbar
-                let cursor = load_cursor_range(ctx, state.text_edit_id).or(state.cursor_range);
+                let cursor = if output.response.has_focus() {
+                    load_cursor_range(ctx, state.text_edit_id).or(state.cursor_range)
+                } else {
+                    Some((state.last_insert_pos, state.last_insert_pos))
+                };
                 ui.horizontal(|ui| {
                     if ui
                         .button(i18n.text("condition_editor.and"))
                         .on_hover_text(i18n.text("condition_editor.and_hint"))
                         .clicked()
                     {
-                        insert_and(&mut state.value, cursor);
+                        state.last_insert_pos = insert_and(&mut state.value, cursor);
                     }
                     if ui
                         .button(i18n.text("condition_editor.or"))
                         .on_hover_text(i18n.text("condition_editor.or_hint"))
                         .clicked()
                     {
-                        insert_or(&mut state.value, cursor);
+                        state.last_insert_pos = insert_or(&mut state.value, cursor);
                     }
                     if ui
                         .button(i18n.text("condition_editor.not"))
                         .on_hover_text(i18n.text("condition_editor.not_hint"))
                         .clicked()
                     {
-                        insert_not(&mut state.value, cursor);
+                        state.last_insert_pos = insert_not(&mut state.value, cursor);
                     }
                     if ui.button(i18n.text("condition_editor.clear")).clicked() {
                         state.value.clear();
+                        state.last_insert_pos = 0;
                     }
                 });
 
@@ -265,10 +275,14 @@ impl ConditionEditor {
                                 .show(ui, |ui| {
                                     ui.horizontal_wrapped(|ui| {
                                         for item in filtered {
-                                            if condition_token_button(ui, item).clicked() {
-                                                let cursor = load_cursor_range(ctx, state.text_edit_id)
-                                                    .or(state.cursor_range);
-                                                insert_token(&mut state.value, item, cursor);
+                                            if condition_token_button(ui, item, i18n).clicked() {
+                                                let cursor = if output.response.has_focus() {
+                                                    load_cursor_range(ctx, state.text_edit_id)
+                                                        .or(state.cursor_range)
+                                                } else {
+                                                    Some((state.last_insert_pos, state.last_insert_pos))
+                                                };
+                                                state.last_insert_pos = insert_token(&mut state.value, item, cursor);
                                                 state.set_flash(i18n.format(
                                                     "condition_editor.inserted",
                                                     &[item],
@@ -287,11 +301,15 @@ impl ConditionEditor {
                                 for id in &existing_ids {
                                     let token = format!("SubCondition_{}", id);
                                     if (query.is_empty() || token.to_lowercase().contains(&query))
-                                        && condition_token_button(ui, &token).clicked()
+                                        && condition_token_button(ui, &token, i18n).clicked()
                                     {
-                                        let cursor = load_cursor_range(ctx, state.text_edit_id)
-                                            .or(state.cursor_range);
-                                        insert_token(&mut state.value, &token, cursor);
+                                        let cursor = if output.response.has_focus() {
+                                            load_cursor_range(ctx, state.text_edit_id)
+                                                .or(state.cursor_range)
+                                        } else {
+                                            Some((state.last_insert_pos, state.last_insert_pos))
+                                        };
+                                        state.last_insert_pos = insert_token(&mut state.value, &token, cursor);
                                         state.set_flash(i18n.format(
                                             "condition_editor.inserted",
                                             &[&token],
@@ -338,16 +356,45 @@ impl ConditionEditor {
     }
 }
 
-/// A compact button for a condition token.
-fn condition_token_button(ui: &mut egui::Ui, token: &str) -> egui::Response {
+/// A compact button for a condition token, showing its translated display name
+/// and optionally the raw token underneath.
+fn condition_token_button(
+    ui: &mut egui::Ui,
+    token: &str,
+    i18n: &I18n,
+) -> egui::Response {
+    let key = format!("condition.{token}");
+    let translation = i18n.text(&key);
+    let has_translation = !translation.starts_with("condition.");
+
+    let mut job = egui::text::LayoutJob::default();
+    job.append(
+        if has_translation { &translation } else { token },
+        0.0,
+        egui::TextFormat {
+            font_id: egui::FontId::proportional(13.0),
+            color: egui::Color32::from_gray(220),
+            ..Default::default()
+        },
+    );
+    if has_translation {
+        job.append("\n", 0.0, egui::TextFormat::default());
+        job.append(
+            token,
+            0.0,
+            egui::TextFormat {
+                font_id: egui::FontId::proportional(10.0),
+                color: egui::Color32::from_gray(140),
+                ..Default::default()
+            },
+        );
+    }
+
     ui.add(
-        egui::Button::new(
-            egui::RichText::new(token)
-                .size(12.0)
-                .monospace(),
-        )
-        .fill(egui::Color32::from_gray(40))
-        .stroke(egui::Stroke::new(1.0, egui::Color32::from_gray(90))),
+        egui::Button::new(job)
+            .fill(egui::Color32::from_gray(45))
+            .stroke(egui::Stroke::new(1.0, egui::Color32::from_gray(90)))
+            .min_size(egui::vec2(90.0, 40.0)),
     )
 }
 
@@ -418,70 +465,78 @@ fn load_cursor_range(ctx: &egui::Context, id: Option<egui::Id>) -> Option<(usize
 }
 
 /// Insert an AND group at the caret, or wrap the current selection.
-fn insert_and(expression: &mut String, cursor_range: Option<(usize, usize)>) {
+/// Returns the new caret position as a character index.
+fn insert_and(expression: &mut String, cursor_range: Option<(usize, usize)>) -> usize {
     if let Some((start, end)) = cursor_range {
         if start != end {
             // Wrap selected text in `[...]`.
             let selected = char_slice(expression, start, end);
             replace_char_range(expression, start, end, &format!("[{}]", selected));
-            return;
+            return end + 2;
         }
         // Inside an existing bracket group: add a comma-separated entry.
         if enclosing_bracket(expression, start).is_some() {
             insert_at_char_index(expression, start, ", ");
-            return;
+            return start + 2;
         }
         // Otherwise insert a fresh AND template at the caret.
         insert_at_char_index(expression, start, "[, ]");
-    } else {
-        append_template(expression, "[, ]");
+        return start + 2;
     }
+    append_template(expression, "[, ]");
+    expression.chars().count()
 }
 
 /// Insert an OR group at the caret, or wrap the current selection.
-fn insert_or(expression: &mut String, cursor_range: Option<(usize, usize)>) {
+/// Returns the new caret position as a character index.
+fn insert_or(expression: &mut String, cursor_range: Option<(usize, usize)>) -> usize {
     if let Some((start, end)) = cursor_range {
         if start != end {
             let selected = char_slice(expression, start, end);
             replace_char_range(expression, start, end, &format!("({})", selected));
-            return;
+            return end + 2;
         }
         if enclosing_bracket(expression, start).is_some() {
             insert_at_char_index(expression, start, ", ");
-            return;
+            return start + 2;
         }
         insert_at_char_index(expression, start, "(, )");
-    } else {
-        append_template(expression, "(, )");
+        return start + 2;
     }
+    append_template(expression, "(, )");
+    expression.chars().count()
 }
 
 /// Insert a NOT operator at the caret, or wrap the current selection.
-fn insert_not(expression: &mut String, cursor_range: Option<(usize, usize)>) {
+/// Returns the new caret position as a character index.
+fn insert_not(expression: &mut String, cursor_range: Option<(usize, usize)>) -> usize {
     if let Some((start, end)) = cursor_range {
         if start != end {
             let selected = char_slice(expression, start, end);
             replace_char_range(expression, start, end, &format!("!{}", selected));
-            return;
+            return end + 1;
         }
         insert_at_char_index(expression, start, "!");
-    } else {
-        append_template(expression, "!");
+        return start + 1;
     }
+    append_template(expression, "!");
+    expression.chars().count()
 }
 
 /// Insert a base condition token at the caret. If text is selected, it is
 /// replaced. If the caret is inside a bracket group, a leading comma is added
 /// when appropriate.
+/// Returns the new caret position as a character index.
 fn insert_token(
     expression: &mut String,
     token: &str,
     cursor_range: Option<(usize, usize)>,
-) {
+) -> usize {
+    let token_len = token.chars().count();
     if let Some((start, end)) = cursor_range {
         if start != end {
             replace_char_range(expression, start, end, token);
-            return;
+            return start + token_len;
         }
         let needs_comma = if enclosing_bracket(expression, start).is_some() {
             match char_before(expression, start) {
@@ -494,12 +549,13 @@ fn insert_token(
         if needs_comma {
             insert_at_char_index(expression, start, ", ");
             insert_at_char_index(expression, start + 2, token);
-        } else {
-            insert_at_char_index(expression, start, token);
+            return start + 2 + token_len;
         }
-    } else {
-        append_token(expression, token);
+        insert_at_char_index(expression, start, token);
+        return start + token_len;
     }
+    append_token(expression, token);
+    expression.chars().count()
 }
 
 /// Append a template to the end of the expression, adding a leading separator
@@ -653,6 +709,40 @@ mod tests {
         let range = cursor_range(0, 4); // select "A, B"
         insert_token(&mut s, "X", Some(range));
         assert_eq!(s, "X, C");
+    }
+
+    #[test]
+    fn test_insert_token_appends_sequentially_without_selection() {
+        // Simulates the unfocused-button-click path: each click uses the previous
+        // caret position, never a stale selection, so tokens are appended rather
+        // than replaced.
+        let mut s = String::new();
+        let pos = insert_token(&mut s, "A", None);
+        assert_eq!(s, "A");
+        assert_eq!(pos, 1);
+
+        let pos = insert_token(&mut s, "B", Some((pos, pos)));
+        assert_eq!(s, "A, B");
+        assert_eq!(pos, 4);
+
+        let pos = insert_token(&mut s, "C", Some((pos, pos)));
+        assert_eq!(s, "A, B, C");
+        assert_eq!(pos, 7);
+    }
+
+    #[test]
+    fn test_insert_and_sequentially_without_selection() {
+        let mut s = String::new();
+        let pos = insert_and(&mut s, None);
+        assert_eq!(s, "[, ]");
+        // Without a caret we append at the end; the returned position is the end.
+        assert_eq!(pos, 4);
+
+        let pos = insert_and(&mut s, Some((pos, pos)));
+        // Each subsequent unfocused click appends another template, never replacing.
+        assert_eq!(s, "[, ][, ]");
+        // Caret lands inside the newly inserted template, at the ", " position.
+        assert_eq!(pos, 6);
     }
 
     fn cursor_range(start: usize, end: usize) -> (usize, usize) {
