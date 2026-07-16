@@ -2238,6 +2238,89 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("modifier", "修饰键", ParamType::String),
             p_opt("interaction", "交互", ParamType::String),
         ]),
+        NodeDefinition::new(
+            NodeType::ListInsert,
+            "Objects",
+            "列表插入",
+            "在 List 对象中插入元素",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()])
+        .with_params(vec![
+            p_req("list", "列表", ParamType::List),
+            p_opt("index", "索引", ParamType::Number),
+            p_req("values", "值", ParamType::List),
+        ]),
+        NodeDefinition::new(
+            NodeType::ListRemove,
+            "Objects",
+            "列表移除",
+            "从 List 对象中移除元素",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()])
+        .with_params(vec![
+            p_req("list", "列表", ParamType::List),
+            p_opt("index", "索引", ParamType::Number),
+            p_opt("count", "数量", ParamType::Number),
+        ]),
+        NodeDefinition::new(
+            NodeType::ListCount,
+            "Objects",
+            "列表计数",
+            "获取 List 对象中元素数量",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![PortDefinition::new("list", PortType::List, "列表")])
+        .with_outputs(vec![out_data("out_value", PortType::Number, "数量")])
+        .with_params(vec![p_req("list", "列表", ParamType::List)]),
+        NodeDefinition::new(
+            NodeType::ListContains,
+            "Objects",
+            "列表包含",
+            "判断 List 对象是否包含指定值",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![
+            PortDefinition::new("list", PortType::List, "列表"),
+            PortDefinition::new("value", PortType::List, "值"),
+        ])
+        .with_outputs(vec![out_data("out_value", PortType::Boolean, "是否包含")])
+        .with_params(vec![
+            p_req("list", "列表", ParamType::List),
+            p_req("value", "值", ParamType::List),
+        ]),
+        NodeDefinition::new(
+            NodeType::ListIndexOf,
+            "Objects",
+            "列表索引",
+            "获取值在 List 对象中首次出现的键",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![
+            PortDefinition::new("list", PortType::List, "列表"),
+            PortDefinition::new("value", PortType::List, "值"),
+        ])
+        .with_outputs(vec![out_data("out_value", PortType::String, "键")])
+        .with_params(vec![
+            p_req("list", "列表", ParamType::List),
+            p_req("value", "值", ParamType::List),
+        ]),
+        NodeDefinition::new(
+            NodeType::ListKeys,
+            "Objects",
+            "列表键集",
+            "获取 List 对象的所有键",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![PortDefinition::new("list", PortType::List, "列表")])
+        .with_outputs(vec![out_data("out_value", PortType::List, "键集")])
+        .with_params(vec![
+            p_req("list", "列表", ParamType::List),
+            p_opt("includeAll", "包含数字索引", ParamType::Boolean),
+        ]),
         // -----------------------------------------------------------------
         // Editor-only
         // -----------------------------------------------------------------
@@ -2424,7 +2507,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 175);
+        assert_eq!(all.len(), 181);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2433,7 +2516,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 175);
+        assert_eq!(seen.len(), 181);
     }
 
 

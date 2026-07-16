@@ -299,6 +299,12 @@ impl SceneCatalog {
                             NodeType::Copy,
                             NodeType::CreateListFromJson,
                             NodeType::Range,
+                            NodeType::ListInsert,
+                            NodeType::ListRemove,
+                            NodeType::ListCount,
+                            NodeType::ListContains,
+                            NodeType::ListIndexOf,
+                            NodeType::ListKeys,
                         ],
                     },
                     SceneSubcategory {

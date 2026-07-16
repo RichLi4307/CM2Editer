@@ -475,6 +475,18 @@ pub enum NodeType {
     CreateNPC,
     /// 创建一个输入检测器
     CreateInput,
+    /// 在 List 中插入元素
+    ListInsert,
+    /// 从 List 中移除元素
+    ListRemove,
+    /// 获取 List 元素数量
+    ListCount,
+    /// 判断 List 是否包含值
+    ListContains,
+    /// 获取值在 List 中的键
+    ListIndexOf,
+    /// 获取 List 的所有键
+    ListKeys,
 
     // ── 特殊 ──
     /// Mission 元数据（不序列化到 .code）

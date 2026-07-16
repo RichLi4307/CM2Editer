@@ -37,7 +37,7 @@ mod tests {
         let all = all_node_definitions();
         let reg = registry();
         assert_eq!(reg.len(), all.len());
-        assert_eq!(all.len(), 175);
+        assert_eq!(all.len(), 181);
     }
 
     #[test]

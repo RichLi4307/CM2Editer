@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+### 新增（List 六方法节点，P1.3）
+
+- 新增 6 个 List 对象方法节点（`NodeType` 175 → 181）：
+  - Flow 节点：`ListInsert`、`ListRemove`
+  - Data 节点：`ListCount`、`ListContains`、`ListIndexOf`、`ListKeys`
+- 代码生成器 A 类生成：`list.Insert(index?, values...)` / `list.Remove(index?, count?)`，Data 节点在 `evaluate_data_output` 中生成 `list.Count()` / `list.Contains(value)` / `list.IndexOf(value)` / `list.Keys()`。
+- `Objects` 分类；节点库归入 `scene.data_process.list`；补充 zh/en i18n；更新 `docs/node_types.md` 与 AGENTS.md 计数（175→181）。
+- 测试：新增 `test_generate_list_methods` 覆盖全部 6 个方法；`cargo test` 145 项通过。
+
 ### 新增（Translate 节点，P1.2）
 
 - 新增 `NodeType::Translate`（175 变体）：`General Functions` 分类，`key` 必填参数 + `params` 可选 List 参数，输出 `out_value`（String）。

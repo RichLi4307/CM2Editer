@@ -10,7 +10,7 @@
 
 ## 当前状态
 
-- 新架构（ThreadContainer / LabelContainer / ListenerContainer）已落地，`NodeType` 174 变体，JSON v2.0。
+- 新架构（ThreadContainer / LabelContainer / ListenerContainer）已落地，`NodeType` 181 变体，JSON v2.0。
 - i18n 三语（zh/en/ja）已接入；`zh.json` 节点描述已升级为 `docs/node_details.md` 提取的详细版。
 - 节点库按场景分类（`catalog.rs`）；CreateCondition 组合编辑器、id 数据流输入、For+Range 直连已实现。
 - P0 语法缺口：事件监听器/停止音频/全局变量/性高潮/elseif 折叠/复合赋值/多分支 If 已全部补齐；动态端口基础设施已完成（P0.7），为后续 Format 可变参数、CallFunction 可变参数等奠基。
@@ -78,7 +78,8 @@
   - 实现：为 `Log` 节点增加 `level` 枚举参数（`Info` / `Warning` / `Error`，默认 `Info`），代码生成器 A 类特判：`Info` → `Log(output)`，`Warning` → `Warning(output)`，`Error` → `Error(output)`；旧图无 `level` 时回退 `Log`；更新 `docs/node_types.md` 日志子系统说明；补充 zh/en i18n 与生成器测试 |
 - [x] **P1.2 Translate 节点**：`Translate(Key[, Param1][, Param2]...)`（kb part_003:156），本地化高频函数 ✅ 2026-07-17
   - 实现：新增 `NodeType::Translate`（175 变体）；`General Functions` 分类；`key` 必填 + `params` 可选 List；代码生成器 A 类生成 `Translate(key)` 或 `Translate(key, args...)`（列表字面量展开）；输出 `out_value` String；节点库归入 `scene.data_process.string`；补充 zh/en i18n；更新 `docs/node_types.md` 与 AGENTS.md 计数；新增 `test_generate_translate` |
-- [ ] **P1.3 List 六方法节点**：Insert / Remove / Count / Contains / IndexOf / Keys（kb part_004:50-100），List 是核心集合类型，目前全靠 CallMethod 手输
+- [x] **P1.3 List 六方法节点**：Insert / Remove / Count / Contains / IndexOf / Keys（kb part_004:50-100），List 是核心集合类型，目前全靠 CallMethod 手输 ✅ 2026-07-17
+  - 实现：新增 `NodeType::{ListInsert, ListRemove, ListCount, ListContains, ListIndexOf, ListKeys}`（181 变体）；`Objects` 分类；节点库归入 `scene.data_process.list`；`ListInsert`/`ListRemove` 为 Flow 节点，`ListCount`/`ListContains`/`ListIndexOf`/`ListKeys` 为 Data 节点；代码生成器 A 类生成 `list.Insert(...)` / `list.Remove(...)`，Data 节点在 `evaluate_data_output` 中生成 `list.Count()` / `list.Contains(...)` / `list.IndexOf(...)` / `list.Keys()`；补充 zh/en i18n 与生成器测试；更新 `docs/node_types.md` 与 AGENTS.md 计数 |
 - [ ] **P1.4 NPC 高频方法节点**：Warp / AddWaypoint / IsAlive / SeesPlayer / SeesFlashing（kb part_004:822-1017，共 22 个方法，先做 5 个）
 - [ ] **P1.5 FunctionExists / GetModVersion**：跨 mod 防御性调用与依赖检查
 

@@ -251,6 +251,51 @@ impl<'a> CodeGenerator<'a> {
                     .write_line(&format!("var_{node_id}_out_value = {line}"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
+            NodeType::ListInsert => {
+                let list = self.require_param(label, node, "list")?;
+                let list = list.trim_matches('"');
+                let index = self
+                    .resolve_param_opt(label, node, "index")
+                    .filter(|s| s != "null" && !s.is_empty());
+                let values = self.require_param(label, node, "values")?;
+                let mut args = Vec::new();
+                if let Some(idx) = index {
+                    args.push(idx);
+                }
+                if values != "null" && values != "[]" && !values.is_empty() {
+                    let inner = values
+                        .strip_prefix('[')
+                        .and_then(|s| s.strip_suffix(']'))
+                        .unwrap_or(&values)
+                        .trim();
+                    if !inner.is_empty() {
+                        args.push(inner.to_string());
+                    }
+                }
+                let args = args.join(", ");
+                self.formatter.write_line(&format!("{list}.Insert({args})"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
+            NodeType::ListRemove => {
+                let list = self.require_param(label, node, "list")?;
+                let list = list.trim_matches('"');
+                let index = self
+                    .resolve_param_opt(label, node, "index")
+                    .filter(|s| s != "null" && !s.is_empty());
+                let count = self
+                    .resolve_param_opt(label, node, "count")
+                    .filter(|s| s != "null" && !s.is_empty());
+                let mut args = Vec::new();
+                if let Some(idx) = index {
+                    args.push(idx);
+                }
+                if let Some(c) = count {
+                    args.push(c);
+                }
+                let args = args.join(", ");
+                self.formatter.write_line(&format!("{list}.Remove({args})"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
             NodeType::SetVariable => {
                 let name = self.require_param(label, node, "name")?;
                 let name = name.trim_matches('"');
@@ -798,6 +843,32 @@ impl<'a> CodeGenerator<'a> {
                 let name = self.resolve_param_opt(label, node, "labelName")?;
                 Some(name.trim_matches('"').to_string())
             }
+            NodeType::ListCount => {
+                let list = self.resolve_param_opt(label, node, "list")?;
+                let list = list.trim_matches('"');
+                Some(format!("{list}.Count()"))
+            }
+            NodeType::ListContains => {
+                let list = self.resolve_param_opt(label, node, "list")?;
+                let list = list.trim_matches('"');
+                let value = self.resolve_param_opt(label, node, "value")?;
+                Some(format!("{list}.Contains({value})"))
+            }
+            NodeType::ListIndexOf => {
+                let list = self.resolve_param_opt(label, node, "list")?;
+                let list = list.trim_matches('"');
+                let value = self.resolve_param_opt(label, node, "value")?;
+                Some(format!("{list}.IndexOf({value})"))
+            }
+            NodeType::ListKeys => {
+                let list = self.resolve_param_opt(label, node, "list")?;
+                let list = list.trim_matches('"');
+                let include_all = self.resolve_param_opt(label, node, "includeAll");
+                match include_all {
+                    Some(v) if v != "null" && !v.is_empty() => Some(format!("{list}.Keys({v})")),
+                    _ => Some(format!("{list}.Keys()")),
+                }
+            }
             _ => Some(format!("var_{node_id}_{port_name}")),
         }
     }
@@ -1050,6 +1121,8 @@ mod tests {
             NodeType::ForeachNode => "Foreach",
             NodeType::SetVariable => "testVar =",
             NodeType::Meta | NodeType::Comment | NodeType::Group => "",
+            NodeType::ListInsert => "Insert(",
+            NodeType::ListRemove => "Remove(",
             _ => {
                 let name = format!("{:?}", node_type);
                 // leak a static string for the test lifetime
@@ -1329,6 +1402,59 @@ mod tests {
         graph.threads[0].labels[0].nodes.insert("t1".to_string(), node);
         let code = generate_code(&graph)?;
         assert!(code.contains(r#"Translate("fmt", "a", 1)"#), "got:\n{code}");
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_list_methods() -> Result<()> {
+        // Flow: ListInsert with index + values expansion
+        let mut graph = make_graph();
+        let mut insert = make_node("insert1", NodeType::ListInsert);
+        insert.set_param("list", ParamValue::Literal(serde_json::json!("myList")));
+        insert.set_param("index", ParamValue::Literal(serde_json::json!(0)));
+        insert.set_param("values", ParamValue::Literal(serde_json::json!(["a", 1])));
+        graph.threads[0].labels[0].nodes.insert("insert1".to_string(), insert);
+        let code = generate_code(&graph)?;
+        assert!(code.contains(r#"myList.Insert(0, "a", 1)"#), "got:\n{code}");
+
+        // Flow: ListRemove with index and count
+        let mut graph2 = make_graph();
+        let mut remove = make_node("remove1", NodeType::ListRemove);
+        remove.set_param("list", ParamValue::Literal(serde_json::json!("myList")));
+        remove.set_param("index", ParamValue::Literal(serde_json::json!(2)));
+        remove.set_param("count", ParamValue::Literal(serde_json::json!(3)));
+        graph2.threads[0].labels[0].nodes.insert("remove1".to_string(), remove);
+        let code2 = generate_code(&graph2)?;
+        assert!(code2.contains("myList.Remove(2, 3)"), "got:\n{code2}");
+
+        // Data: ListCount
+        assert_data_node_generates(NodeType::ListCount, "out_value", [
+            ("list".to_string(), ParamValue::Literal(serde_json::json!("myList"))),
+        ].into())?;
+
+        // Data: ListContains
+        assert_data_node_generates(NodeType::ListContains, "out_value", [
+            ("list".to_string(), ParamValue::Literal(serde_json::json!("myList"))),
+            ("value".to_string(), ParamValue::Literal(serde_json::json!("needle"))),
+        ].into())?;
+
+        // Data: ListIndexOf
+        assert_data_node_generates(NodeType::ListIndexOf, "out_value", [
+            ("list".to_string(), ParamValue::Literal(serde_json::json!("myList"))),
+            ("value".to_string(), ParamValue::Literal(serde_json::json!("needle"))),
+        ].into())?;
+
+        // Data: ListKeys default
+        assert_data_node_generates(NodeType::ListKeys, "out_value", [
+            ("list".to_string(), ParamValue::Literal(serde_json::json!("myList"))),
+        ].into())?;
+
+        // Data: ListKeys includeAll
+        assert_data_node_generates(NodeType::ListKeys, "out_value", [
+            ("list".to_string(), ParamValue::Literal(serde_json::json!("myList"))),
+            ("includeAll".to_string(), ParamValue::Literal(serde_json::json!(true))),
+        ].into())?;
+
         Ok(())
     }
 

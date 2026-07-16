@@ -337,7 +337,7 @@ MyMission/
 
 每个节点类型必须有以下元数据。完整节点清单见 [docs/node_types.md](docs/node_types.md)。
 
-> **NodeType 计数规则**：当前 `NodeType` 枚举包含 **175 个变体**。新架构下按 `.code` 语言概念重新分类：Threading & Concurrency、Control Flow、Variables & Globals、Literals、Math & Logic、Conditions & Queries、String/File/List、Game API、Objects、Editor-only。`Start` 和 `Label` 已弃用，保留反序列化兼容。
+> **NodeType 计数规则**：当前 `NodeType` 枚举包含 **181 个变体**。新架构下按 `.code` 语言概念重新分类：Threading & Concurrency、Control Flow、Variables & Globals、Literals、Math & Logic、Conditions & Queries、String/File/List、Game API、Objects、Editor-only。`Start` 和 `Label` 已弃用，保留反序列化兼容。
 
 ```rust
 pub struct NodeDefinition {
