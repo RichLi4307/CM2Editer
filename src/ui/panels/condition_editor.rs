@@ -31,6 +31,10 @@ pub struct ConditionEditorState {
     /// insert operators at the caret or wrap the current selection when the user
     /// clicks toolbar buttons.
     pub cursor_range: Option<(usize, usize)>,
+    /// The actual egui id of the expression [`TextEdit`], so we can re-load its
+    /// stored state (including the caret position) on the same frame even after
+    /// toolbar buttons steal focus.
+    pub text_edit_id: Option<egui::Id>,
 }
 
 impl ConditionEditorState {
@@ -44,6 +48,7 @@ impl ConditionEditorState {
             flash: None,
             flash_frames: 0,
             cursor_range: None,
+            text_edit_id: None,
         }
     }
 
@@ -166,13 +171,14 @@ impl ConditionEditor {
                     .desired_width(f32::INFINITY)
                     .font(egui::TextStyle::Monospace)
                     .show(ui);
+                state.text_edit_id = Some(output.response.id);
                 state.cursor_range = output.cursor_range.map(|r| {
                     let range = r.as_sorted_char_range();
                     (range.start, range.end)
                 });
 
                 // Toolbar
-                let cursor = state.cursor_range;
+                let cursor = load_cursor_range(ctx, state.text_edit_id).or(state.cursor_range);
                 ui.horizontal(|ui| {
                     if ui
                         .button(i18n.text("condition_editor.and"))
@@ -260,7 +266,9 @@ impl ConditionEditor {
                                     ui.horizontal_wrapped(|ui| {
                                         for item in filtered {
                                             if condition_token_button(ui, item).clicked() {
-                                                insert_token(&mut state.value, item, state.cursor_range);
+                                                let cursor = load_cursor_range(ctx, state.text_edit_id)
+                                                    .or(state.cursor_range);
+                                                insert_token(&mut state.value, item, cursor);
                                                 state.set_flash(i18n.format(
                                                     "condition_editor.inserted",
                                                     &[item],
@@ -281,7 +289,9 @@ impl ConditionEditor {
                                     if (query.is_empty() || token.to_lowercase().contains(&query))
                                         && condition_token_button(ui, &token).clicked()
                                     {
-                                        insert_token(&mut state.value, &token, state.cursor_range);
+                                        let cursor = load_cursor_range(ctx, state.text_edit_id)
+                                            .or(state.cursor_range);
+                                        insert_token(&mut state.value, &token, cursor);
                                         state.set_flash(i18n.format(
                                             "condition_editor.inserted",
                                             &[&token],
@@ -391,6 +401,20 @@ fn enclosing_bracket(expression: &str, char_idx: usize) -> Option<char> {
     }
     // Caret is past the last character.
     stack.last().copied()
+}
+
+/// Load the current caret / selection range from egui's stored TextEdit state.
+///
+/// This is needed because toolbar buttons steal focus from the TextEdit, making
+/// `TextEditOutput::cursor_range` from the previous frame unreliable. The stored
+/// state keeps the last caret position even after focus is lost.
+fn load_cursor_range(ctx: &egui::Context, id: Option<egui::Id>) -> Option<(usize, usize)> {
+    let id = id?;
+    let te_state = egui::widgets::text_edit::TextEditState::load(ctx, id)?;
+    let range = te_state.cursor.char_range()?;
+    let start = range.primary.index.min(range.secondary.index);
+    let end = range.primary.index.max(range.secondary.index);
+    Some((start, end))
 }
 
 /// Insert an AND group at the caret, or wrap the current selection.

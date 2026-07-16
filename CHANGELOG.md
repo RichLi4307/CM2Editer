@@ -33,6 +33,7 @@
 - 将 `CreateCondition` 的 `condition` 参数从枚举下拉框改为字符串类型，支持 `.code` 官方组合语法：`[A, B]`（AND）、`(A, B)`（OR）、`!A`（NOT）与 `SubCondition_<id>`（复用已有条件）。
 - 新增 `src/ui/panels/condition_editor.rs`：弹出式条件组合编辑器，提供可编辑表达式框、AND/OR/NOT 插入按钮、按分类折叠的基础条件列表、当前标签内已有条件 ID 复用列表，以及实时预览。
 - 插入逻辑支持光标位置：工具按钮在文本框当前光标处插入；若有文本选区，AND/OR/NOT 会包裹选区；若光标已在 `[...]` 或 `(...)` 内，按条件 token 会在逗号后追加，按 AND/OR 则直接追加逗号（实现“与内再与只加一个逗号”）。
+- 修复光标丢失问题：工具按钮点击会抢焦点导致上一帧 `cursor_range` 不可靠，现保存 `TextEdit` 的响应 id，按钮点击时通过 `TextEditState::load_state` 从 egui 内存中重新读取最新的 caret/selection 位置。
 - 在 `src/ui/panels/properties.rs` 中为 `CreateCondition` 的 `condition` 参数添加 **编辑条件...** 按钮，为 `id` 参数添加中文/英文说明，解释 ID 用于 `SubCondition_<id>` 复用。
 - 在 `app.rs` 中管理 `condition_editor` 窗口状态，确认后通过 `Command::SetParam` 更新节点参数。
 - 在 `assets/i18n/zh.json`、`en.json`、`ja.json` 中添加 `condition_editor.*` 与 `button.edit_condition` 翻译键。

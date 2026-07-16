@@ -144,6 +144,7 @@
 | 2026-07-16 | 修复-Condition 代码生成 | 修正 `CreateCondition` 输出为官方位置参数语法，空 `id` 时省略；`CreateItemCondition` 同样跳过空 `id`；更新 fixture；新增 3 个生成器测试；`cargo test` 114 项通过 | 已完成 |
 | 2026-07-16 | 新增-UI | 实现 `CreateCondition` 弹出式条件组合编辑器：`condition` 参数支持 AND `[A,B]` / OR `(A,B)` / NOT `!A` / `SubCondition_<id>` 复用；属性面板为 `id` 参数添加说明；补充中/英/日 i18n 键；`cargo test` 118 项通过 | 已完成 |
 | 2026-07-16 | 优化-UI | 条件组合编辑器支持基于光标位置/选区的智能插入：选中文本被 AND/OR/NOT 包裹；光标在 `[...]` 或 `(...)` 内时按条件追加逗号，按 AND/OR 直接追加逗号；新增 9 个单元测试；`cargo test` 127 项通过 | 已完成 |
+| 2026-07-16 | 修复-UI | 修复条件组合编辑器按钮点击后文本框失去焦点导致光标位置失效的问题：保存 `TextEdit` 响应 id，点击时从 `TextEditState::load_state` 重新读取 caret/selection；`cargo test` 127 项通过 | 已完成 |
 | 2026-07-16 | 文档-节点 | 更新 `docs/node_types.md`：新增 `CreateCondition.condition` 组合语法与 `id` 复用说明 | 已完成 |
 
 ---
