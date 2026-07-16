@@ -177,17 +177,19 @@ impl ConditionEditor {
                     .font(egui::TextStyle::Monospace)
                     .show(ui);
                 state.text_edit_id = Some(output.response.id);
-                state.cursor_range = output.cursor_range.map(|r| {
+                if let Some(r) = output.cursor_range {
+                    // Only update our own buffer when the TextEdit actually reports a
+                    // cursor/selection. This preserves the last known caret even when
+                    // buttons steal focus on the same frame.
                     let range = r.as_sorted_char_range();
-                    (range.start, range.end)
-                });
+                    state.cursor_range = Some((range.start, range.end));
+                }
 
                 // Toolbar
-                let cursor = if output.response.has_focus() {
-                    load_cursor_range(ctx, state.text_edit_id).or(state.cursor_range)
-                } else {
-                    Some((state.last_insert_pos, state.last_insert_pos))
-                };
+                // Use our own state buffer. The stored cursor/selection survives focus
+                // changes and button clicks, so selecting text then clicking AND/OR
+                // will still wrap the selection.
+                let cursor = state.cursor_range.or(Some((state.last_insert_pos, state.last_insert_pos)));
                 ui.horizontal(|ui| {
                     if ui
                         .button(i18n.text("condition_editor.and"))
@@ -195,6 +197,7 @@ impl ConditionEditor {
                         .clicked()
                     {
                         state.last_insert_pos = insert_and(&mut state.value, cursor);
+                        state.cursor_range = Some((state.last_insert_pos, state.last_insert_pos));
                     }
                     if ui
                         .button(i18n.text("condition_editor.or"))
@@ -202,6 +205,7 @@ impl ConditionEditor {
                         .clicked()
                     {
                         state.last_insert_pos = insert_or(&mut state.value, cursor);
+                        state.cursor_range = Some((state.last_insert_pos, state.last_insert_pos));
                     }
                     if ui
                         .button(i18n.text("condition_editor.not"))
@@ -209,10 +213,12 @@ impl ConditionEditor {
                         .clicked()
                     {
                         state.last_insert_pos = insert_not(&mut state.value, cursor);
+                        state.cursor_range = Some((state.last_insert_pos, state.last_insert_pos));
                     }
                     if ui.button(i18n.text("condition_editor.clear")).clicked() {
                         state.value.clear();
                         state.last_insert_pos = 0;
+                        state.cursor_range = Some((0, 0));
                     }
                 });
 
@@ -276,13 +282,9 @@ impl ConditionEditor {
                                     ui.horizontal_wrapped(|ui| {
                                         for item in filtered {
                                             if condition_token_button(ui, item, i18n).clicked() {
-                                                let cursor = if output.response.has_focus() {
-                                                    load_cursor_range(ctx, state.text_edit_id)
-                                                        .or(state.cursor_range)
-                                                } else {
-                                                    Some((state.last_insert_pos, state.last_insert_pos))
-                                                };
+                                                let cursor = state.cursor_range.or(Some((state.last_insert_pos, state.last_insert_pos)));
                                                 state.last_insert_pos = insert_token(&mut state.value, item, cursor);
+                                                state.cursor_range = Some((state.last_insert_pos, state.last_insert_pos));
                                                 state.set_flash(i18n.format(
                                                     "condition_editor.inserted",
                                                     &[item],
@@ -303,13 +305,9 @@ impl ConditionEditor {
                                     if (query.is_empty() || token.to_lowercase().contains(&query))
                                         && condition_token_button(ui, &token, i18n).clicked()
                                     {
-                                        let cursor = if output.response.has_focus() {
-                                            load_cursor_range(ctx, state.text_edit_id)
-                                                .or(state.cursor_range)
-                                        } else {
-                                            Some((state.last_insert_pos, state.last_insert_pos))
-                                        };
+                                        let cursor = state.cursor_range.or(Some((state.last_insert_pos, state.last_insert_pos)));
                                         state.last_insert_pos = insert_token(&mut state.value, &token, cursor);
+                                        state.cursor_range = Some((state.last_insert_pos, state.last_insert_pos));
                                         state.set_flash(i18n.format(
                                             "condition_editor.inserted",
                                             &[&token],
@@ -450,19 +448,6 @@ fn enclosing_bracket(expression: &str, char_idx: usize) -> Option<char> {
     stack.last().copied()
 }
 
-/// Load the current caret / selection range from egui's stored TextEdit state.
-///
-/// This is needed because toolbar buttons steal focus from the TextEdit, making
-/// `TextEditOutput::cursor_range` from the previous frame unreliable. The stored
-/// state keeps the last caret position even after focus is lost.
-fn load_cursor_range(ctx: &egui::Context, id: Option<egui::Id>) -> Option<(usize, usize)> {
-    let id = id?;
-    let te_state = egui::widgets::text_edit::TextEditState::load(ctx, id)?;
-    let range = te_state.cursor.char_range()?;
-    let start = range.primary.index.min(range.secondary.index);
-    let end = range.primary.index.max(range.secondary.index);
-    Some((start, end))
-}
 
 /// Insert an AND group at the caret, or wrap the current selection.
 /// Returns the new caret position as a character index.

@@ -33,8 +33,8 @@
 - 将 `CreateCondition` 的 `condition` 参数从枚举下拉框改为字符串类型，支持 `.code` 官方组合语法：`[A, B]`（AND）、`(A, B)`（OR）、`!A`（NOT）与 `SubCondition_<id>`（复用已有条件）。
 - 新增 `src/ui/panels/condition_editor.rs`：弹出式条件组合编辑器，提供可编辑表达式框、AND/OR/NOT 插入按钮、按分类折叠的基础条件列表、当前标签内已有条件 ID 复用列表，以及实时预览。
 - 插入逻辑支持光标位置：工具按钮在文本框当前光标处插入；若有文本选区，AND/OR/NOT 会包裹选区；若光标已在 `[...]` 或 `(...)` 内，按条件 token 会在逗号后追加，按 AND/OR 则直接追加逗号（实现“与内再与只加一个逗号”）。
-- 修复光标丢失问题：工具按钮点击会抢焦点导致上一帧 `cursor_range` 不可靠，现保存 `TextEdit` 的响应 id，按钮点击时通过 `TextEditState::load_state` 从 egui 内存中重新读取最新的 caret/selection 位置；若文本框确实没有焦点，则使用自行维护的 `last_insert_pos`，避免在无焦点连续点击时误用旧选区替换已有内容。
-- 修复“无焦点连续点击条件 A 后再点条件 B，A 被替换为 `,B`”的 bug：引入 `last_insert_pos` 字段，无焦点时始终按 caret 点插入，不按任何选区替换。
+- 修复光标丢失问题：工具按钮点击会抢焦点导致上一帧 `cursor_range` 不可靠，改为把最后有效的光标/选区保存在 `state.cursor_range` 这个我们自己的缓冲区中，且只在 `TextEdit` 实际报告光标时才更新。按钮点击时直接使用 `state.cursor_range`，这样即使按钮点击使文本框失去焦点，选区仍然被保留并用于包裹。
+- 修复“无焦点连续点击条件 A 后再点条件 B，A 被替换为 `,B`”的 bug：引入 `last_insert_pos` 字段，并在每次插入后同步更新 `state.cursor_range` 为新的光标位置，避免后续点击误用旧选区替换已有内容。
 - 优化条件按钮美术：按钮改为 `min_size(90, 40)`，主文本显示条件译名，副文本显示原始 token；在 `zh.json` 中为全部 49 个基础条件补充 `condition.{token}` 中文翻译键，英文环境下仍回退显示原始 token。
 - 在 `src/ui/panels/properties.rs` 中为 `CreateCondition` 的 `condition` 参数添加 **编辑条件...** 按钮，为 `id` 参数添加中文/英文说明，解释 ID 用于 `SubCondition_<id>` 复用。
 - 在 `app.rs` 中管理 `condition_editor` 窗口状态，确认后通过 `Command::SetParam` 更新节点参数。
