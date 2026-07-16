@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 新增（停止音频节点，P0.2）
+
+- 新增 `StopAudio` 节点（`NodeType` 170 → 171）：官方 `StopAudio(AudioInstanceID[, FadeOutTime])` 全局函数，用于停止 `Audio.Play()` 启动的音频实例；此前该函数不是对象方法，无法用 `CallMethod` 表达。
+- 代码生成：A 类显式处理，`audioInstanceID` 走位置参数，`fadeOutTime` 非空时追加为第二个位置参数，生成 `StopAudio(42)` 或 `StopAudio(42, 1.5)`。
+- API 分类 `Game API`，场景分类归入 `scene.visual_ui.audio_screen`；补充 zh/en i18n 键；同步更新 `docs/node_types.md` 与 AGENTS.md 计数。
+- 测试：新增 `test_stop_audio_positional_args_and_optional_fade` 专项生成器测试；计数断言更新至 171；`cargo test` 134 项通过。
+
 ### 新增（事件监听器节点，P0.1）
 
 - 新增 `CreateEventListener` / `CreateEventListenerLocal` 节点（`NodeType` 168 → 170）：官方 `CreateEventListener(LabelName, EventName[, params...])` 的事件驱动监听器，仅在 `SetEvent` 触发时立即执行，标签内可用局部变量 `__eventdata_` / `__eventname_`，此前完全无法用节点表达（轮询 Listener 语义不等价）。

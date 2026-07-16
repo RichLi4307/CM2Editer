@@ -349,6 +349,7 @@ impl SceneCatalog {
                         id: "scene.visual_ui.audio_screen",
                         nodes: vec![
                             NodeType::CreateAudio,
+                            NodeType::StopAudio,
                             NodeType::PlaySoundEffect,
                             NodeType::ShowBlackscreen,
                         ],

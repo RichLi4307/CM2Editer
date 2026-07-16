@@ -33,6 +33,7 @@
 | `Meta` / `Comment` / `Group` | 不产生代码，贯通 Flow 链 |
 
 **规则**：向 A 类节点新增 Data 输出端口，必须：
+
 1. 在 match 臂中手动写 `var_{id}_{port} = ...`。
 2. 在 `evaluate_data_output` 中添加分支，将端口名映射到实际参数值。
 
@@ -151,7 +152,7 @@
 | `Length`, `Lower`, `Upper`, `Find`, `SubString`, `Format`, `ToNumber` | C | 字符串处理 |
 | `FileExists`, `GetFiles`, `GetFileExtension` | C | 文件操作 |
 | `CreateList`, `Copy`, `CreateListFromJson` | C | 列表构造 |
-| `ForeachNode` | A | 遍历列表（特殊函数调用） | `var = Foreach(list, thread)` |
+| `ForeachNode` | A | 遍历列表（特殊函数调用）`var = Foreach(list, thread)` |
 
 ### 2.8 Game API（游戏功能）
 
@@ -164,6 +165,7 @@
 | 数值统计 | `AddCurrentEarnRP`, `SetCurrentEarnRP`, `GetCurrentEarnRP`, `AddCurrentRP`, `SetCurrentRP`, `GetCurrentRP`, `SetEcstasy`, `AddEcstasy`, `GetEcstasy`, `SetStamina`, `AddStamina`, `GetStamina`, `SetMoisture`, `AddMoisture`, `GetMoisture`, `SetItemCount`, `AddItemCount`, `GetItemCount` |
 | 游戏控制 | `CanGameOver`, `TriggerGameOver`, `PlaySoundEffect`, `SetStageRankLimit`, `GetStageRankLimit`, `SetPortalEnabled`, `GetAllWaypoints`, `SetSexPosition`, `DeactivateSex`, `SetSexMenu` |
 | 图形与杂项 | `ShowBlackscreen`, `GetSnapshotData`, `GetAllSnapshots`, `DeleteSnapshot`, `GetImageReference`, `SetGraphicsOption`, `GetGraphicsOption` |
+| 音频 | `StopAudio` |
 | 日志 | `Log` |
 
 ### 2.9 Objects（对象构造与方法）
@@ -206,12 +208,12 @@
 
 | 概念 | 说明 |
 |------|------|
-| `_this` | 当前线程引用。在新架构中，应自然绑定到当前 `ThreadContainer`。
-| `_result` | 标签返回值。由 `Return` 节点显式设置；容器结束时默认 `null`。
-| 线程变量 | `CreateThread` 等返回值应绑定到 `ThreadContainer.variable_name`。
-| 监听器变量 | 同线程变量，但属于 `ListenerContainer`。
-| 全局变量 | `Global` / `GetSave` / `GetSettings` / `GetMod` / `GetMods` 等跨作用域访问。
-| 局部变量 | `Local` 节点仅在当前线程作用域内有效；新架构将用 `Set Variable` / `Variable` 替代。
+| `_this` | 当前线程引用。在新架构中，应自然绑定到当前 `ThreadContainer` |
+| `_result` | 标签返回值。由 `Return` 节点显式设置；容器结束时默认 `null` |
+| 线程变量 | `CreateThread` 等返回值应绑定到 `ThreadContainer.variable_name` |
+| 监听器变量 | 同线程变量，但属于 `ListenerContainer` |
+| 全局变量 | `Global` / `GetSave` / `GetSettings` / `GetMod` / `GetMods` 等跨作用域访问 |
+| 局部变量 | `Local` 节点仅在当前线程作用域内有效；新架构将用 `Set Variable` / `Variable` 替代 |
 
 ---
 
@@ -238,6 +240,7 @@
 | `SubCondition_<id>` | 复用本标签中已注册的子条件 | `SubCondition_main` |
 
 在编辑器属性面板中点击 **编辑条件...** 即可打开弹窗：
+
 - 文本框可直接编辑组合表达式；
 - `AND [ ]` / `OR ( )` / `NOT !` 按钮一键插入逻辑模板；
 - 点击下方基础条件标签自动追加到表达式；

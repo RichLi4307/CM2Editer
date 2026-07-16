@@ -2075,6 +2075,19 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         ])
         .with_params(vec![p_req("filePath", "文件路径", ParamType::String)]),
         NodeDefinition::new(
+            NodeType::StopAudio,
+            "Game API",
+            "停止音频",
+            "停止由 Audio.Play() 启动的音频实例（全局函数）",
+            GAME_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()])
+        .with_params(vec![
+            p_req("audioInstanceID", "音频实例 ID", ParamType::Number),
+            p_opt("fadeOutTime", "淡出时间", ParamType::Number),
+        ]),
+        NodeDefinition::new(
             NodeType::CreateGallery,
             "Objects",
             "创建图库",
@@ -2336,7 +2349,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 170);
+        assert_eq!(all.len(), 171);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2345,7 +2358,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 170);
+        assert_eq!(seen.len(), 171);
     }
 
 

@@ -327,6 +327,8 @@ pub enum NodeType {
     CreateMessengerChat,
     /// 创建音频源
     CreateAudio,
+    /// 停止音频实例（全局函数）
+    StopAudio,
     /// 创建一个 gallery
     CreateGallery,
     /// 创建 snapshot 相机
@@ -598,6 +600,7 @@ mod tests {
             NodeType::CreateText,
             NodeType::CreateMessengerChat,
             NodeType::CreateAudio,
+            NodeType::StopAudio,
             NodeType::CreateGallery,
             NodeType::CreateSnapshot,
             NodeType::CreateNPC,
@@ -636,6 +639,6 @@ mod tests {
             NodeType::SetVariable,
         ]
         .to_vec();
-        assert_eq!(variants.len(), 170);
+        assert_eq!(variants.len(), 171);
     }
 }

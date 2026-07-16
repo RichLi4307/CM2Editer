@@ -203,6 +203,18 @@ impl<'a> CodeGenerator<'a> {
                     .write_line(&format!("{thread}.WaitForFinish()"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
+            NodeType::StopAudio => {
+                let id = self.require_param(label, node, "audioInstanceID")?;
+                let fade = self.resolve_param_opt(label, node, "fadeOutTime");
+                let mut line = format!("StopAudio({id})");
+                if let Some(f) = fade {
+                    if f != "null" && !f.is_empty() {
+                        line = format!("StopAudio({id}, {f})");
+                    }
+                }
+                self.formatter.write_line(&line);
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
             NodeType::SetVariable => {
                 let name = self.require_param(label, node, "name")?;
                 let name = name.trim_matches('"');
@@ -1568,6 +1580,42 @@ mod tests {
             "function".to_string(),
             ParamValue::Literal(serde_json::json!("myFunc")),
         )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_stop_audio_positional_args_and_optional_fade() -> Result<()> {
+        let mut graph = make_graph();
+        let params: HashMap<String, ParamValue> = [(
+            "audioInstanceID".to_string(),
+            ParamValue::Literal(serde_json::json!(42)),
+        )]
+        .into();
+        add_flow_node(&mut graph, "n1", NodeType::StopAudio, params);
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("StopAudio(42)"),
+            "Expected StopAudio with positional id, got:\n{code}"
+        );
+
+        let mut graph2 = make_graph();
+        let params2: HashMap<String, ParamValue> = [
+            (
+                "audioInstanceID".to_string(),
+                ParamValue::Literal(serde_json::json!(42)),
+            ),
+            (
+                "fadeOutTime".to_string(),
+                ParamValue::Literal(serde_json::json!(1.5)),
+            ),
+        ]
+        .into();
+        add_flow_node(&mut graph2, "n1", NodeType::StopAudio, params2);
+        let code2 = generate_code(&graph2)?;
+        assert!(
+            code2.contains("StopAudio(42, 1.5)"),
+            "Expected StopAudio with positional id and fade, got:\n{code2}"
+        );
         Ok(())
     }
 
