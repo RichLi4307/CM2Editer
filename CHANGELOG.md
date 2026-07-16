@@ -20,6 +20,7 @@
 - `NodeLibraryPanel` 与 `ProjectTreePanel` 的 `ScrollArea` 均添加 `max_height` 与 `auto_shrink([false, true])`，保证在侧边栏高度不足时两者都独立出现滚动条，而不是整体被挤出屏幕。
 - 工程文件树现在根据剩余可用空间自动计算滚动区域高度，避免上下文过长时底部按钮不可见。
 - 将 `.code 文件` 分类标签也移入工程文件树的 `ScrollArea` 内，滚动时分类提示始终跟随列表。
+- 左栏分隔条视觉风格对齐底栏分隔条：默认灰色、悬停/拖拽时高亮蓝色，并显示 `ResizeVertical` 光标。
 
 ### 新增（P1 低难度节点）
 

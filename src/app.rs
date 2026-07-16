@@ -1103,6 +1103,7 @@ impl eframe::App for App {
                         }
 
                         // 可拖拽分隔条：调整节点库与工程树的高度分配。
+                        // 视觉风格与底栏竖直分隔条保持一致。
                         let handle_rect = {
                             let available = ui.available_rect_before_wrap();
                             egui::Rect::from_min_size(
@@ -1110,18 +1111,20 @@ impl eframe::App for App {
                                 egui::vec2(available.width(), handle_height),
                             )
                         };
-                        let handle_id = ui.id().with("node_library_splitter");
-                        let handle_response = ui.interact(handle_rect, handle_id, egui::Sense::drag());
+                        let handle_response = ui.allocate_rect(handle_rect, egui::Sense::drag());
+                        let handle_color = if handle_response.hovered() || handle_response.dragged() {
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
+                            egui::Color32::from_rgb(100, 180, 255)
+                        } else {
+                            egui::Color32::from_gray(70)
+                        };
+                        ui.painter().line_segment(
+                            [handle_rect.left_center(), handle_rect.right_center()],
+                            egui::Stroke::new(2.0, handle_color),
+                        );
                         if handle_response.dragged() {
                             self.node_library_height += handle_response.drag_delta().y;
                         }
-                        let handle_color = if handle_response.hovered() || handle_response.dragged() {
-                            ui.visuals().widgets.active.bg_fill
-                        } else {
-                            ui.visuals().widgets.noninteractive.bg_fill
-                        };
-                        ui.painter().rect_filled(handle_rect, 0.0, handle_color);
-                        ui.add_space(handle_height);
 
                         // 工程文件树（下半部分，填满剩余空间）
                         let active_code = self.active_code_name();
