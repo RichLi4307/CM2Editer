@@ -65,6 +65,13 @@
 - 该文档比官方 HTML 文档更结构化、更本地化，并作为属性面板未来改进的描述来源。
 - 在 `docs/node_types.md` 中新增 5.3 节引用该文档。
 
+### 文档（i18n 节点描述更新）
+
+- 启动子代理从 `docs/node_details.md` 提取全部 168 个节点的"作用"段落，更新 `assets/i18n/zh.json` 中 `node.{Type}.description` 键（共 169 个 description 键，其中 `Boolean` 原描述也一并精炼）。
+- 描述统一精炼为 1-2 句话（约 120 字以内），去除代码示例与冗余说明，适合属性面板直接显示；属性面板无需改动即自动生效。
+- 15 个格式特殊的节点（Meta、Comment、Group、GetTime、GetSettings、Variable、SetVariable 等）在自动提取后人工精炼，去除要点符号。
+- 验证 168 个 NodeType 变体全部拥有 description，无缺失；`cargo test --lib` 131 项通过（含 `test_bundled_zh_translations_load`）。
+
 ### 新增（P1 低难度节点）
 
 - **DestroyListener**：销毁当前监听器，生成 `listener = null`。

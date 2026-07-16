@@ -148,7 +148,7 @@
 | 2026-07-16 | 优化-UI | 优化条件组合编辑器条件按钮美术：增加按钮高度、显示条件译名与原始 token；在 `zh.json` 补充 49 个 `condition.{token}` 翻译键；新增 2 个测试；`cargo test` 129 项通过 | 已完成 |
 | 2026-07-16 | 修复-UI | 修复条件组合编辑器选择文本后点击 AND/OR 仍追加到末尾的问题：改为只在 `TextEdit` 报告有效光标/选区时更新 `state.cursor_range`，按钮点击只使用 `state.cursor_range`（不再依赖 `has_focus()` 或 `TextEditState`），并同步更新插入后的光标位置；`cargo test` 129 项通过 | 已完成 |
 | 2026-07-16 | 重构-节点库 | 根据 6 个子代理对 API 节点实际使用场景的研究，重构 `src/ui/panels/node_library/catalog.rs`：将 `CreateCondition`/`CreateItemCondition` 移入 `scene.conditions.state_check`，`Log` 移入 `scene.editor.editor`，`SetCamera`/`GetAllSnapshots`/`DeleteSnapshot`/`GetImageReference`/`GetGraphicsOption` 移入 `scene.visual_ui.visual`，`TriggerGameOver` 移入 `scene.mission_flow.control`，`GetItemCount` 移入 `scene.data_get.items_equipment`，`CreateInteractArea` 移入 `scene.visual_ui.input_interact`，`CanGameOver` 同时归入 `scene.conditions.state_check`，新增 `scene.data_process.file` 子分类并将 `FileExists`/`GetFiles` 移入；同步更新中/英/日 i18n 与 `docs/node_types.md`；`cargo test` 131 项通过 | 已完成 |
-| 2026-07-16 | 文档-节点 | 启动 9 个子代理（含试点和补充）为全部 168 个节点生成中文详细介绍，合并为 `docs/node_details.md`；为文档添加按字母索引的目录，方便快速跳转；更新 `docs/node_types.md` 引用；`cargo test` 131 项通过 | 已完成 |
+| 2026-07-16 | 优化-i18n | 启动子代理从 `docs/node_details.md` 提取全部 168 个节点的“作用”描述，更新 `assets/i18n/zh.json` 中 `node.{Type}.description` 键；属性面板无需改动即显示更详细中文说明；`cargo test` 131 项通过 | 已完成 |
 
 ---
 
