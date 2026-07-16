@@ -170,7 +170,7 @@
 | 游戏控制 | `CanGameOver`, `TriggerGameOver`, `PlaySoundEffect`, `SetStageRankLimit`, `GetStageRankLimit`, `SetPortalEnabled`, `GetAllWaypoints`, `SetSexPosition`, `DeactivateSex`, `SetSexMenu` |
 | 图形与杂项 | `ShowBlackscreen`, `GetSnapshotData`, `GetAllSnapshots`, `DeleteSnapshot`, `GetImageReference`, `SetGraphicsOption`, `GetGraphicsOption` |
 | 音频 | `StopAudio` |
-| 日志 | `Log` |
+| 日志 | `Log`（支持 `Warning` / `Error` 级别） |
 
 ### 2.9 Objects（对象构造与方法）
 

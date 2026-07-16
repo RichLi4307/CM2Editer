@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 新增（Log 级别枚举，P1.1）
+
+- 为 `Log` 节点新增 `level` 枚举参数：`Info` / `Warning` / `Error`，默认 `Info`。
+- 代码生成器对 `Log` 改为 A 类特判：`Info` → `Log(output)`，`Warning` → `Warning(output)`，`Error` → `Error(output)`，覆盖官方 `Warning` / `Error` 全局函数。
+- 旧图无 `level` 参数时回退到 `Log(...)`，保持兼容。
+- 更新 `docs/node_types.md` 日志子系统说明；补充 zh/en i18n 键 `node.Log.param.level`；更新并扩展 `test_generate_log` 测试覆盖三种级别；`cargo test` 143 项通过。
+
 ### 新增（多分支 If 节点，P0.8）
 
 - 升级 `If` 节点支持多分支 `elseif`：在节点定义中增加 `elseif_branches` 动态端口组，每个逻辑分支包含一个 Flow 输出端口 `elseif_N_branch` 与一个 Boolean 条件参数 `elseif_N_condition`。

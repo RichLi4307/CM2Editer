@@ -757,6 +757,7 @@
     "node.LockHandcuffs.port.out_flow": "out_flow",
     "node.Log.description": "Output to the console/log",
     "node.Log.name": "Log",
+    "node.Log.param.level": "level",
     "node.Log.param.output": "output",
     "node.Log.port.in_flow": "in_flow",
     "node.Log.port.out_flow": "out_flow",

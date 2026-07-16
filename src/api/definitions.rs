@@ -426,7 +426,10 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         )
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow()])
-        .with_params(vec![p_req("output", "输出", ParamType::String)]),
+        .with_params(vec![
+            p_req("output", "输出", ParamType::String),
+            e("level", "级别", &["Info", "Warning", "Error"]),
+        ]),
         NodeDefinition::new(
             NodeType::Global, "Variables & Globals",
             "全局变量",

@@ -215,6 +215,21 @@ impl<'a> CodeGenerator<'a> {
                 self.formatter.write_line(&line);
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
+            NodeType::Log => {
+                let output = self.require_param(label, node, "output")?;
+                let level = self
+                    .resolve_param_opt(label, node, "level")
+                    .unwrap_or_else(|| "Info".to_string())
+                    .trim_matches('"')
+                    .to_string();
+                let func = match level.as_str() {
+                    "Warning" => "Warning",
+                    "Error" => "Error",
+                    _ => "Log",
+                };
+                self.formatter.write_line(&format!("{func}({output})"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
             NodeType::SetVariable => {
                 let name = self.require_param(label, node, "name")?;
                 let name = name.trim_matches('"');
@@ -908,7 +923,20 @@ mod tests {
         graph.threads[0].labels[0].nodes.insert("log1".to_string(), node);
         // log1 没有入 Flow 边，会作为入口节点
         let code = generate_code(&graph)?;
-        assert!(code.contains("Log(output=\"hello\")"));
+        assert!(code.contains("Log(\"hello\")"), "default Info level should generate Log:\n{code}");
+
+        for (level, expected) in [("Warning", "Warning(\"warn\")"), ("Error", "Error(\"err\")")] {
+            let mut graph2 = make_graph();
+            let mut node2 = make_node("log1", NodeType::Log);
+            node2.set_param("output", ParamValue::Literal(serde_json::json!(if level == "Warning" { "warn" } else { "err" })));
+            node2.set_param("level", ParamValue::Literal(serde_json::json!(level)));
+            graph2.threads[0].labels[0].nodes.insert("log1".to_string(), node2);
+            let code2 = generate_code(&graph2)?;
+            assert!(
+                code2.contains(expected),
+                "level {level} should generate {expected}, got:\n{code2}"
+            );
+        }
         Ok(())
     }
 

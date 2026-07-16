@@ -804,6 +804,7 @@
     "node.LockHandcuffs.port.out_flow": "下一步",
     "node.Log.description": "向游戏控制台输出一条消息，用于调试和日志记录。是开发和调试任务时最常用的工具之一。",
     "node.Log.name": "日志",
+    "node.Log.param.level": "级别",
     "node.Log.param.output": "输出",
     "node.Log.port.in_flow": "执行",
     "node.Log.port.out_flow": "下一步",
