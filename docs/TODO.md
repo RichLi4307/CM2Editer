@@ -1,89 +1,76 @@
-# CM2Editer 项目 TODO（新架构）
+# CM2Editer 项目 TODO
 
-> **版本**: 0.3.0-architecture  
-> **日期**: 2026-07-13  
-> **目标**: 以 `.code` DSL 语法结构为中心重构编辑器核心图模型：Thread / Label / Listener 容器化，`Flow` 边仅限容器内部，节点按语言概念分类。  
-> **旧版已归档**: `docs/archive/TODO_20260713_v8.md`
+> **版本**: 0.3.0
+> **日期**: 2026-07-16
+> **目标**: 补齐 `.code` 语法硬缺口（P0），逐步覆盖高频 API（P1），持续打磨使用体验（P2）。
+> **旧版已归档**: `docs/archive/TODO_20260716_v9.md`
+> **缺口依据**: `docs/syntax_coverage.md`（2026-07-16 全量审计：168 节点覆盖约 90% 语法要素，无法绕行的硬缺口仅 EventListener 与 StopAudio）
 
 ---
 
 ## 当前状态
 
-| 文档/模块 | 旧版 | 新版 | 状态 |
-|----------|------|------|------|
-| TODO 清单 | `docs/archive/TODO_20260713_v8.md` | 本文档 | 已更新 |
-| 节点手册 | `docs/archive/node_types_20260713_v1.md` | `docs/node_types.md` | 已完成 |
-| JSON Schema | `docs/json_schema.md` | `docs/json_schema.md` | 已完成 |
-| 系统提示词 | `docs/agent_prompt.md` | `AGENTS.md`（项目根目录） | 已完成 |
-| 实战教程 | `docs/tutorial_make_code.md` | `docs/tutorial_make_code.md` | 已完成 |
-| 迁移指南 | 无 | `docs/migration_guide.md` | 已完成 |
-| 架构评估 | 无 | `docs/architecture_evaluation.md` | 已完成 ✅ |
+- 新架构（ThreadContainer / LabelContainer / ListenerContainer）已落地，`NodeType` 168 变体，JSON v2.0。
+- i18n 三语（zh/en/ja）已接入；`zh.json` 节点描述已升级为 `docs/node_details.md` 提取的详细版。
+- 节点库按场景分类（`catalog.rs`）；CreateCondition 组合编辑器、id 数据流输入、For+Range 直连已实现。
+- `cargo test` 131 项 lib tests + 9 项 integration tests 通过；版本号 v0.3.0（欢迎页从 Cargo.toml 注入）。
 
 ---
 
-## 待办队列（新架构阶段）
+## 待办队列
 
-### P0 — 核心图模型重构
+### P0 — 语法硬缺口修复（来自 syntax_coverage.md）
 
-- [x] 设计并实现 `ThreadContainer` / `LabelContainer` / `ListenerContainer` 数据结构。
-- [x] 重写 JSON 序列化，版本升级为 `2.0`，顶层结构改为 `threads: [...]`；不再兼容 v1.0。
-- [x] 重写 `src/code_gen/generator.rs`：基于容器生成 `.code`，不再依赖 BFS 推断子标签。
-- [x] 从 `NodeType` 中移除 `Start` / `Label`；`NodeType` 变体数从 168 调整为 166。
-- [x] 限制 `Flow` 边仅在 `LabelContainer` / `ListenerContainer` 内部表示顺序；禁止跨容器 `Flow` 边。
-- [x] 重写 `src/graph/validation.rs`：移除 `Flow` DAG 约束和菱形警告，新增标签名唯一性、容器内边检查。
-- [x] 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器，而不是 `Start` 节点。
+> 目标：解除"无法表达/无法绕行"的缺口，保证常见脚本都能用节点拼出合法 `.code`。
 
-### P1 — 节点分类与语义修正
+- [ ] **CreateEventListener / CreateEventListenerLocal 节点**
+  - 官方：`CreateEventListener(LabelName, EventName[, params...])`（kb part_004:204）
+  - 事件驱动监听器，`SetEvent` 触发时执行，注入 `__eventdata_` / `__eventname_` 局部变量；轮询 Listener 语义无法替代
+  - 设计：新增 NodeType，`eventName` 参数 + `__eventdata_` / `__eventname_` 数据输出端口；生成 `{var} = CreateEventListener("label", "event")`
+- [ ] **StopAudio 节点**
+  - 官方：`StopAudio(InstanceID[, FadeOutTime])`（kb part_003:1764）
+  - 全局函数（非对象方法），CallMethod 无法表达；停止 `Audio.Play()` 返回的实例
+  - 设计：Flow 节点，参数 `instanceID`（数据输入优先）+ 可选 `fadeOutTime`
+- [ ] **_stagechanged / _name 全局变量节点**
+  - 官方：kb part_002:118 / :140
+  - `_stagechanged`（Boolean，本帧是否发生场景切换）是监听器中做一次性初始化逻辑的常用手段；`_name` 为当前工程文件夹名
+  - 设计：C 类纯数据节点 GetStageChanged（Boolean 输出）/ GetProjectName（String 输出），生成 `_stagechanged` / `_name`
+- [ ] **TriggerSexOrgasm 节点**
+  - 官方：`TriggerSexOrgasm()`（kb part_003:1687）
+  - 原子语义（隐含 ecstasy=1），组合 SetEcstasy(1)+SetAction 只是近似
+  - 设计：B 类 Flow 节点，无参数
+- [ ] **生成器 elseif 折叠**
+  - 官方：`elseif` 关键字（kb part_003:66）
+  - False 分支首节点为 If 且无其他入度时，生成 `elseif` 而非嵌套 `else { if ... }`；提升生成代码可读性
+  - 位置：`src/code_gen/generator.rs::generate_if`
+- [ ] **SetVariable 复合赋值**
+  - 官方：`i += 1` 等（kb part_002:166）
+  - 参数增加 `op` 枚举（`=` / `+=` / `-=` / `*=` / `/=`），默认 `=`；避免 `i = i + 1` 的多节点拼凑
+  - 位置：`src/api/definitions.rs`（SetVariable 定义）+ `generator.rs`（赋值生成）
 
-- [x] 按 `.code` 语言概念重新分类全部 168 个节点：
-  - Threading & Concurrency
-  - Control Flow
-  - Variables & Globals
-  - Literals
-  - Math & Logic
-  - Conditions & Queries
-  - Game API（按子系统分组）
-  - Objects
-  - String / File / List
-  - Editor-only
-- [x] 修正代码生成：
-  - `Goto` 必须显式指定目标线程或默认 `_this`。
-  - `CreateThread` 不再为每个标签自动生成顶层线程；只生成用户明确创建的线程。
-  - 移除 `Return` 自动追加 `_result = null` 的噪音，仅在显式 Return 时生成 `_result`。
-- [x] 引入通用变量节点（`Set Variable` / `Variable`）以支持自定义作用域变量。
-- [x] 验证所有现有节点在新模型下生成正确 `.code`。
+> 节点变更必须同步更新 `docs/node_types.md`（A/B/C 分类与计数），并补充生成器测试。
 
-### P2 — UI 与编辑器重构
+### P1 — 高频 API 补节点
 
-- [x] 左侧工程树显示 `ThreadContainer` / `LabelContainer` 层级。
-- [x] 画布切换为“当前选中标签的内部流图”。
-- [x] 提供线程概览图（状态机视图），显示标签间 `Goto` / `CreateThread` / `CreateListener` 关系。
-- [x] 移除画布上的 `Start` / `Label` 节点；用容器入口钉替代。
+- [ ] **Log 增加 level 枚举**（Info/Warning/Error），覆盖官方 `Warning` / `Error`（kb part_003:13-23）；一个参数覆盖两个缺失 API
+- [ ] **Translate 节点**：`Translate(Key[, Param1][, Param2]...)`（kb part_003:156），本地化高频函数
+- [ ] **List 六方法节点**：Insert / Remove / Count / Contains / IndexOf / Keys（kb part_004:50-100），List 是核心集合类型，目前全靠 CallMethod 手输
+- [ ] **NPC 高频方法节点**：Warp / AddWaypoint / IsAlive / SeesPlayer / SeesFlashing（kb part_004:822-1017，共 22 个方法，先做 5 个）
+- [ ] **FunctionExists / GetModVersion**：跨 mod 防御性调用与依赖检查
 
-### P3 — 测试与预览版发布
+### P2 — 体验轮子（ backlog ）
 
-#### P3.1 全量回归测试与 clippy
+- [ ] **_state 探针选择器**：`_state.Position.x`、`_state.Camera.pitch`、`_state.Handcuffs.Type` 等嵌套路径树形选择，类型安全输出（复用命名空间选择器模式）
+- [ ] **CallMethod 方法下拉**：选中对象类型后弹出方法下拉 + 参数模板，替代手输大小写敏感方法名（覆盖 50+ 对象方法的低成本方案）
+- [ ] **For 自带 start/stop/step**：无 iterable 连线时自动包装 `Range()`
+- [ ] **CreateArea cuboid 参数集**：官方支持 sphere/cylinder/cuboid 三种，当前缺 cuboid（x1..z2, w, h）
+- [ ] **条件表达式实时校验**：括号配平、token 合法性提示（条件组合编辑器增强）
 
-- [x] 跑全量 `cargo test` / `cargo clippy`，修复 P2 回归。
+### P3 — 发布准备（延续旧版未完成项）
 
-#### P3.2 补充 UI 回归测试
-
-- [x] 容器切换：验证 `SelectedContainer` 在不同线程/标签/监听器间切换后定位正确。
-- [x] 入口钉：验证无 Flow 入边节点的最左上入口规则。
-- [x] 概览图：验证多标签/监听器、Goto 关系能正确构建布局。
-- [x] 工程保存/导出：验证项目创建、重命名、保存、导出 `.code` 完整流程。
-
-#### P3.3 手动冒烟测试
-
-- [ ] 手动验证一个示例任务从新建到导出 `.code` 的完整流程。
-
-#### P3.4 构建与打包
-
-- [ ] 构建 Release 版本并打包字体、命名空间、README、AGENTS.md、LICENSE。
-
-#### P3.5 发布预览版
-
-- [ ] 发布 GitHub Release `v0.3.0-alpha`，附已知限制说明。
+- [ ] **P3.3 手动冒烟测试**：按 `docs/test_checklist.md`（v0.3.0 版）跑一遍新建 → 编辑 → 导出完整流程
+- [ ] **P3.4 构建与打包**：Release 构建，打包字体、命名空间、README、AGENTS.md、LICENSE
+- [ ] **P3.5 发布预览版**：GitHub Release `v0.3.0-alpha`，附已知限制说明
 
 ---
 
@@ -91,20 +78,19 @@
 
 1. **更新 `CHANGELOG.md`** — 每次功能交付后追加条目。
 2. **更新 `docs/TODO.md`** — 标记已完成任务 ✅，追加工作日志条目。
-3. **`cargo test` 全过再 commit** — 129 项全部通过为提交门槛。
+3. **`cargo test` 全过再 commit** — 131 项全部通过为提交门槛。
 4. **任何任务完成后必须提交一次 commit** — 不要留下未提交改动。
-5. **commit message 用中文前缀** — 格式 `<类型>: <简要描述>`，例如：`重构: 容器化图模型`、`文档: 更新节点分类`。
+5. **commit message 用中文前缀** — 格式 `<类型>: <简要描述>`，例如：`新增: EventListener 节点`。
 6. **重大文档变更需归档** — 将旧版按 `{文件名}_{YYYYMMDD}_v{序号}.md` 放入 `docs/archive/`。
 
 ---
 
 ## 用户备注区
 
-- 新架构的核心原则是：编辑器为 `.code` 语法结构服务，而不是让 `.code` 迁就流程图直觉。
-- `main` 只是一个约定俗成的顶层线程标签，不是特殊入口。
-- Listener 是每帧/每秒调用标签的循环；局部监听器捕获创建处作用域。
-- 标签间关系应通过名称引用或 Data 端口表达，不能画 `Flow` 边。
-- `app` 和 `ui` 模块已重新在 `src/lib.rs` 中启用，并迁移到容器化模型。
+- P0 的判定标准是"无法绕行"：EventListener 与 StopAudio 是仅有的两个语义上无法替代的缺口；其余 P0 项（elseif、复合赋值）是生成质量问题。
+- 对象方法生态不追求 100% 节点化：冷门 API 走 CallMethod，高频的才做专用节点（P1），更通用的解法是 CallMethod 方法下拉（P2）。
+- 新增节点前先读 `docs/node_types.md` 与 `AGENTS.md` 的节点修改强制规则（A/B/C 类）。
+- `docs/syntax_coverage.md` 是本轮 P0–P2 的来源文档，缺口细节（官方签名、kb 行号）以它为准。
 
 ---
 
@@ -112,103 +98,4 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
-| 2026-07-13 | 文档-归档 | 将旧版 `TODO.md` / `node_types.md` 归档到 `docs/archive/` | 已完成 |
-| 2026-07-13 | 文档-新架构 | 完成新架构核心文档：TODO.md、node_types.md、json_schema.md、agent_prompt.md、tutorial_make_code.md、migration_guide.md | 已完成 ✅ |
-| 2026-07-13 | 实现-P2 | 完成 UI 与编辑器重构：`src/app.rs` 迁移到 `ContainerGraph`；工程树显示 Thread/Label/Listener 层级；画布切换为当前容器内部流图；新增入口钉渲染；新增线程概览图面板 | 已完成 ✅ |
-| 2026-07-13 | 修复-P2 | 统一入口节点判定：`LabelContainer::entry_node_id()` 按最左上的无 Flow 入边节点稳定选择入口；入口钉渲染与代码生成器共用同一逻辑；修复 `main.rs` 启动 UI | 已完成 |
-| 2026-07-13 | 文档-教程 | 重写 `docs/tutorial_make_code.md`，对齐当前 UI 工作流程，注明多容器创建暂不支持 | 已完成 |
-| 2026-07-13 | 文档-教程 | 在实战教程中新增多条件判断（Exposed_All + Cosplay + Ecstasy）、RP 奖励、只执行一次守卫等进阶示例 | 已完成 |
-| 2026-07-13 | 测试 | 新增 `graph::container::tests::test_entry_node_id_prefers_top_left_no_incoming_flow` | 已完成 |
-| 2026-07-13 | 修复-节点 | 修复 `GetSave` 节点：新增 `key` 参数，输出改为 `Any`，生成器输出 `_save.key`，与文档一致 | 已完成 |
-| 2026-07-13 | 文档-教程 | 将实战教程第五步改为 `GetStateNumber(Rank)`，区分 RP、`_state` 状态与 `_save` 存档读取；补充 RP 与角色经验键名说明 | 已完成 |
-| 2026-07-13 | 架构-评估 | 完成 `docs/architecture_evaluation.md` | 已完成 ✅ |
-| 2026-07-13 | 文档-重构 | 合并 `docs/agent_prompt.md` 为项目根目录 `AGENTS.md`，按 Kilo 约定添加文档置信上下级与查阅指南 | 已完成 |
-| 2026-07-13 | 规划-P3 | 将 P3 重新定义为「测试与预览版发布」，并拆分为 P3.1–P3.5 | 已完成 |
-| 2026-07-13 | 测试-P3.1 | `cargo test` 103 项通过，`cargo clippy` 18 个 pre-existing 警告、0 个 error | 已完成 |
-| 2026-07-13 | 测试-P3.2 | 补充 UI 回归测试：容器切换、入口钉、概览图 CreateListener、工程保存/导出 | 已完成 |
-| 2026-07-13 | 修复-P3.1 | 修复 `src/graph/validation.rs` 与 `src/ui/panels/properties.rs` 中的 `unwrap()`，使 clippy 通过 | 已完成 |
-| 2026-07-14 | 修复-UI | 服装命名空间选择器 (`cosplay`) 属性页弹窗分类视图改为多选 checkbox 列表并加窗口标题提示；左栏资产管理面板新增“多选”开关支持批量勾选复制；`CheckCosplay` 参数改为 `cosplayKeys` (List) 并生成 `(Cosplay_A && Cosplay_B)` 便于与 LogicAnd/LogicOr 组合；新增对应生成器测试 | 已完成 |
-| 2026-07-15 | 实现-i18n-P0 | 创建 `src/ui/i18n.rs`、`assets/i18n/{zh,en,ja}.json`，在 `App` 中集成语言切换，修复语言选择器显示、命名空间卡片语言参数等 P0 问题 | 已完成 ✅ |
-| 2026-07-15 | 实现-i18n-P1 | 完成阶段二 UI 面板文本迁移：工具栏、状态栏、对话框、工程树、属性面板、命名空间/坐标选择器、代码编辑器、数据菜单、右键菜单、入口钉等 | 已完成 ✅ |
-| 2026-07-15 | 清理-i18n | 清理测试数据与坐标默认条目中的 hardcoded 中文；`api/definitions.rs` 节点元数据保留至阶段三 | 已完成 |
-| 2026-07-15 | 实现-i18n-P2 | 完成阶段三节点元数据 i18n 化：`I18n` 新增节点/端口/参数辅助函数；节点库、属性面板、节点渲染器、数据菜单均使用 i18n；`assets/i18n/zh.json` 和 `en.json` 补充全部 168 个节点元数据键 | 已完成 ✅ |
-| 2026-07-15 | 修复-i18n | 修复语言切换无反应：根因为 `ja.json` 双逗号导致整目录加载中断；修复 `ja.json` 语法错误并增强 `load_from_dir` 跳过损坏文件；修正 `zh.json` 中 `status_bar.world`/`zoom` 英文值 | 已完成 |
-| 2026-07-15 | 文档-i18n | 创建 `docs/i18n.md`，设计编辑器国际化方案：首批中英、日语预留、键命名规范、迁移阶段、与节点面板场景分类的关系 | 待审阅 |
-| 2026-07-15 | 修复-i18n | 完成 i18n 初审：修复语言选择器显示代码、命名空间卡片硬编码 zh、`label.position` 占位符拼写错误；迁移属性面板部分文本；`cargo test` 117 项通过 | 已完成 |
-| 2026-07-15 | 实现-i18n-P3 | 将 If/While 条件模板硬编码中文改为 i18n `template.*` 键，并补充 zh/en 翻译 | 已完成 |
-| 2026-07-15 | 文档-i18n | 精翻 `assets/i18n/en.json` 全部 169 条节点描述，英文界面不再使用占位文本 | 已完成 |
-| 2026-07-16 | 实现-节点库场景分类 | 实现 `src/ui/panels/node_library/catalog.rs` 场景分类注册表，将 `NodeLibraryPanel` 从 API 分类改为场景分类（二级折叠 + 搜索），同步更新 i18n 与 theme；`cargo test` 111 项 lib tests 通过 | 已完成 |
-| 2026-07-16 | 修复-左栏滚动条 | 在 Project 标签页新增可拖拽分隔条，节点库与工程文件树各自独立滚动并支持手动调整高度；`ScrollArea` 增加 max_height 与 auto_shrink，避免工程树被挤出屏幕；`cargo test` 111 项通过 | 已完成 |
-| 2026-07-16 | 优化-工程树滚动 | 将 `.code 文件` 分类标签移入工程文件树 `ScrollArea` 内，使分类提示随列表滚动；`cargo test` 111 项通过 | 已完成 |
-| 2026-07-16 | 优化-左栏分隔条视觉 | 左栏节点库/工程树分隔条视觉对齐底栏：灰色默认、悬停拖拽蓝色高亮、显示 ResizeVertical 光标；`cargo test` 111 项通过 | 已完成 |
-| 2026-07-16 | 修复-Condition 代码生成 | 修正 `CreateCondition` 输出为官方位置参数语法，空 `id` 时省略；`CreateItemCondition` 同样跳过空 `id`；更新 fixture；新增 3 个生成器测试；`cargo test` 114 项通过 | 已完成 |
-| 2026-07-16 | 新增-UI | 实现 `CreateCondition` 弹出式条件组合编辑器：`condition` 参数支持 AND `[A,B]` / OR `(A,B)` / NOT `!A` / `SubCondition_<id>` 复用；属性面板为 `id` 参数添加说明；补充中/英/日 i18n 键；`cargo test` 118 项通过 | 已完成 |
-| 2026-07-16 | 优化-UI | 条件组合编辑器支持基于光标位置/选区的智能插入：选中文本被 AND/OR/NOT 包裹；光标在 `[...]` 或 `(...)` 内时按条件追加逗号，按 AND/OR 直接追加逗号；新增 9 个单元测试；`cargo test` 127 项通过 | 已完成 |
-| 2026-07-16 | 修复-UI | 修复条件组合编辑器按钮点击后文本框失去焦点导致光标位置失效的问题：保存 `TextEdit` 响应 id，点击时从 `TextEditState::load_state` 重新读取 caret/selection；无焦点时使用 `last_insert_pos` 避免误替换；`cargo test` 129 项通过 | 已完成 |
-| 2026-07-16 | 优化-UI | 优化条件组合编辑器条件按钮美术：增加按钮高度、显示条件译名与原始 token；在 `zh.json` 补充 49 个 `condition.{token}` 翻译键；新增 2 个测试；`cargo test` 129 项通过 | 已完成 |
-| 2026-07-16 | 修复-UI | 修复条件组合编辑器选择文本后点击 AND/OR 仍追加到末尾的问题：改为只在 `TextEdit` 报告有效光标/选区时更新 `state.cursor_range`，按钮点击只使用 `state.cursor_range`（不再依赖 `has_focus()` 或 `TextEditState`），并同步更新插入后的光标位置；`cargo test` 129 项通过 | 已完成 |
-| 2026-07-16 | 重构-节点库 | 根据 6 个子代理对 API 节点实际使用场景的研究，重构 `src/ui/panels/node_library/catalog.rs`：将 `CreateCondition`/`CreateItemCondition` 移入 `scene.conditions.state_check`，`Log` 移入 `scene.editor.editor`，`SetCamera`/`GetAllSnapshots`/`DeleteSnapshot`/`GetImageReference`/`GetGraphicsOption` 移入 `scene.visual_ui.visual`，`TriggerGameOver` 移入 `scene.mission_flow.control`，`GetItemCount` 移入 `scene.data_get.items_equipment`，`CreateInteractArea` 移入 `scene.visual_ui.input_interact`，`CanGameOver` 同时归入 `scene.conditions.state_check`，新增 `scene.data_process.file` 子分类并将 `FileExists`/`GetFiles` 移入；同步更新中/英/日 i18n 与 `docs/node_types.md`；`cargo test` 131 项通过 | 已完成 |
-| 2026-07-16 | 优化-i18n | 启动子代理从 `docs/node_details.md` 提取全部 168 个节点的“作用”描述，更新 `assets/i18n/zh.json` 中 `node.{Type}.description` 键；属性面板无需改动即显示更详细中文说明；`cargo test` 131 项通过 | 已完成 |
-
----
-
-## 创意与待实现（Backlog）
-
-### 按使用场景分类的节点面板（已完成）
-
-**目标**：节点库不再按 API 分类（如 `Game API`、`Objects`、`Control Flow`）组织，而是按开发者实际使用场景分类，例如：
-
-- 任务 / 流程
-  - 线程与监听器
-  - 流程控制
-  - 任务面板
-  - 事件通信
-- 条件判定
-  - 比较运算
-  - 逻辑运算
-  - 状态检查
-- 数据获取
-  - 玩家信息
-  - 物品 / 装备
-  - 全局变量
-  - 常量与字面量
-- 数据修改
-  - 玩家状态
-  - 服装操作
-  - 成人玩具
-  - 物品操作
-  - 变量与事件
-- 数据处理
-  - 数学
-  - 字符串
-  - 列表
-  - 向量 / 颜色
-- 视觉 / UI
-  - 视觉元素
-  - 音效与屏幕
-  - 输入与交互
-- 编辑器专用
-
-**关键设计**：
-
-- 节点注册层（`src/api/definitions.rs`）保持 API 分类不变，一个节点只在一个 API 分类中。
-- 节点面板层新增独立的分类注册表（`src/ui/panels/node_library/catalog.rs`），一个节点可出现在多个场景分类中。
-- 支持二级分类：一级分类折叠 → 二级分类折叠 → 节点列表。
-- 预留鼠标悬停节点介绍接口。
-- 搜索窗口同时支持按节点名和场景分类关键字搜索。
-
-**状态**：已实现并集成到 `NodeLibraryPanel`，`cargo test` 111 项 lib tests 通过。
-
-### UI 多语言接口（i18n）
-
-**现状**：`src/ui/i18n.rs` 已提供 `I18n` 结构体与 `text(key)` / `format(key, args)` 接口；`assets/i18n/zh.json` 和 `assets/i18n/en.json` 已包含节点名、节点描述、端口名、参数名、面板文本等键。当前节点描述主要来源于 `NodeDefinition::description` 的简短一句话，信息密度不足。
-
-**目标**：保持 i18n 基础设施稳定运行，逐步把 `node.{Type}.description` 替换为更丰富的中文说明，让属性面板真正"讲清楚"每个节点。
-
-**建议下一步**：
-
-1. 从 `docs/node_details.md` 中每个节点的"作用"段落提取 1-2 句话的精炼描述。
-2. 更新 `assets/i18n/zh.json` 中的 `node.{Type}.description` 键（英文 `en.json` 可保留简短 fallback）。
-3. 属性面板 `properties.rs` 无需改动，`I18n::node_description` 会自动读取新的描述。
-
-**状态**：i18n 基础设施已实现；`assets/i18n/zh.json` 已包含全部 168 个节点的简短描述，待升级为详细描述。
+| 2026-07-16 | 文档-归档 | 归档旧版 TODO 为 `docs/archive/TODO_20260716_v9.md`；新建本 TODO，纳入 `docs/syntax_coverage.md` 的 P0 六项 + P1 高频节点 + P2 体验轮子，保留旧版未完成的 P3.3–P3.5 发布准备项 | 已完成 |
