@@ -6,7 +6,7 @@ use crate::api::enums::{
     VIBRATOR_STRENGTHS,
 };
 use crate::graph::node::ParamValue;
-use crate::graph::types::{DynamicPortGroup, NodeType, PortType};
+use crate::graph::types::{DynamicPortGroup, DynamicPortKind, DynamicPortMember, DynamicPortTemplate, NodeType, PortType};
 
 /// Logical parameter type used in node definitions.
 ///
@@ -343,7 +343,32 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         NodeDefinition::new(NodeType::If, "Control Flow", "如果", "条件分支", CONTROL_COLOR)
             .with_inputs(vec![in_flow()])
             .with_outputs(vec![out_true(), out_false()])
-            .with_params(vec![p_req("condition", "条件", ParamType::Boolean)]),
+            .with_params(vec![p_req("condition", "条件", ParamType::Boolean)])
+            .with_dynamic_ports(vec![DynamicPortGroup::with_members(
+                "elseif_branches",
+                "ElseIf 分支",
+                "elseif",
+                vec![
+                    DynamicPortMember::new(
+                        "branch",
+                        DynamicPortKind::Output,
+                        DynamicPortTemplate::Port(PortDefinition::new(
+                            "elseif",
+                            PortType::Flow,
+                            "ElseIf",
+                        )),
+                    ),
+                    DynamicPortMember::new(
+                        "condition",
+                        DynamicPortKind::Param,
+                        DynamicPortTemplate::Param(ParamDefinition::new(
+                            "elseif_condition",
+                            "条件",
+                            ParamType::Boolean,
+                        )),
+                    ),
+                ],
+            )]),
         NodeDefinition::new(
             NodeType::While, "Control Flow",
             "循环",

@@ -399,7 +399,8 @@ impl PropertiesPanel {
         ui.separator();
         ui.label(egui::RichText::new(i18n.text("label.dynamic_ports")).strong());
         for group in &def.dynamic_ports {
-            let count = node.dynamic_port_count(&group.id);
+            let members_per_group = group.members.len().max(1);
+            let count = node.dynamic_port_count(&group.id, members_per_group);
             let can_add = group.max_count.is_none_or(|max| count < max);
             let can_remove = count > group.min_count;
             ui.horizontal(|ui| {
@@ -409,27 +410,42 @@ impl PropertiesPanel {
                         group_id: group.id.clone(),
                     });
                 }
-            if ui.button("-").on_hover_text(i18n.text("tooltip.remove_dynamic_port")).clicked() && can_remove {
-                // 删除该组最后一个成员
-                let ids = node.dynamic_port_ids(&group.id);
-                if let Some(last_id) = ids.get(ids.len().saturating_sub(1)) {
-                    actions.push(PropertiesPanelAction::RemoveDynamicPort {
-                        group_id: group.id.clone(),
-                        port_id: last_id.clone(),
-                    });
+                if ui.button("-").on_hover_text(i18n.text("tooltip.remove_dynamic_port")).clicked() && can_remove {
+                    // 删除该组最后一个成员（flat list 中的最后一个 ID 即可触发整组删除）
+                    let ids = node.dynamic_port_ids(&group.id);
+                    if let Some(last_id) = ids.get(ids.len().saturating_sub(1)) {
+                        actions.push(PropertiesPanelAction::RemoveDynamicPort {
+                            group_id: group.id.clone(),
+                            port_id: last_id.clone(),
+                        });
+                    }
                 }
-            }
             });
-            // 列出当前成员
-            for id in node.dynamic_port_ids(&group.id) {
-                let label = match &group.template {
-                    DynamicPortTemplate::Port(def) => format!("{}: {}", id, def.label),
-                    DynamicPortTemplate::Param(def) => format!("{}: {}", id, def.display_name),
-                };
-                ui.label(egui::RichText::new(label).size(11.0));
+            // 列出当前成员。单成员组按 flat ID 显示；多成员组按逻辑成员分组显示。
+            let ids = node.dynamic_port_ids(&group.id);
+            if members_per_group == 1 {
+                for id in ids {
+                    let label = match &group.members[0].template {
+                        DynamicPortTemplate::Port(def) => format!("{}: {}", id, def.label),
+                        DynamicPortTemplate::Param(def) => format!("{}: {}", id, def.display_name),
+                    };
+                    ui.label(egui::RichText::new(label).size(11.0));
+                }
+            } else {
+                for (logical_index, chunk) in ids.chunks(members_per_group).enumerate() {
+                    ui.label(egui::RichText::new(format!("{} {}", group.label, logical_index)).size(11.0).strong());
+                    for (id, member) in chunk.iter().zip(group.members.iter()) {
+                        let detail = match &member.template {
+                            DynamicPortTemplate::Port(def) => format!("  {}: {}", id, def.label),
+                            DynamicPortTemplate::Param(def) => format!("  {}: {}", id, def.display_name),
+                        };
+                        ui.label(egui::RichText::new(detail).size(11.0));
+                    }
+                }
             }
         }
     }
+
 
     /// 多字段向量编辑器（Vector / Position / Quaternion / Color）。
     fn vector_editor(

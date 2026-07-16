@@ -262,9 +262,38 @@ impl<'a> CodeGenerator<'a> {
         let true_target = self.flow_target(label, node_id, "out_true")?;
         let false_target = self.flow_target(label, node_id, "out_false")?;
 
-        let join = match (&true_target, &false_target) {
-            (Some(a), Some(b)) => find_join_node(label, a, b),
-            _ => None,
+        // 收集本节点动态 elseif 分支（P0.8 多分支 If）
+        let mut local_branches: Vec<(String, Option<String>)> = Vec::new();
+        if let Some(ids) = node.dynamic_ports.get("elseif_branches") {
+            for chunk in ids.chunks(2) {
+                if chunk.len() == 2 {
+                    let port_id = &chunk[0];
+                    let cond_param = &chunk[1];
+                    let cond = self
+                        .resolve_param_opt(label, node, cond_param)
+                        .unwrap_or_else(|| "true".to_string());
+                    let target = self.flow_target(label, node_id, port_id)?;
+                    local_branches.push((cond, target));
+                }
+            }
+        }
+
+        let mut join_starts: Vec<&str> = Vec::new();
+        if let Some(t) = &true_target {
+            join_starts.push(t);
+        }
+        for (_, target) in &local_branches {
+            if let Some(t) = target {
+                join_starts.push(t);
+            }
+        }
+        if let Some(t) = &false_target {
+            join_starts.push(t);
+        }
+        let join = if join_starts.len() >= 2 {
+            find_join_node_many(label, &join_starts)
+        } else {
+            None
         };
 
         self.formatter.write_line(&format!("if {condition}"));
@@ -273,6 +302,16 @@ impl<'a> CodeGenerator<'a> {
             self.generate_sequence(label, target, join.as_deref())?;
         }
         self.formatter.dedent();
+
+        // 本节点的动态 elseif 分支
+        for (cond, target) in &local_branches {
+            self.formatter.write_line(&format!("elseif {cond}"));
+            self.formatter.indent();
+            if let Some(t) = target {
+                self.generate_sequence(label, t, join.as_deref())?;
+            }
+            self.formatter.dedent();
+        }
 
         // 尝试折叠 elseif 链：false -> If -> If -> ... -> else
         let mut prev_if_id = node_id.to_string();
@@ -787,46 +826,40 @@ fn parse_string_list(s: &str) -> Result<Vec<String>> {
 }
 
 /// 寻找两个分支的汇合节点，用于 if 生成
-fn find_join_node(label: &LabelContainer, a: &str, b: &str) -> Option<String> {
-    let mut queue_a: VecDeque<String> = VecDeque::new();
-    let mut queue_b: VecDeque<String> = VecDeque::new();
-    let mut visited_a: HashSet<String> = HashSet::new();
-    let mut visited_b: HashSet<String> = HashSet::new();
-
-    queue_a.push_back(a.to_string());
-    queue_b.push_back(b.to_string());
-    visited_a.insert(a.to_string());
-    visited_b.insert(b.to_string());
-
-    while !queue_a.is_empty() || !queue_b.is_empty() {
-        if let Some(id) = queue_a.pop_front() {
-            if visited_b.contains(&id) {
-                return Some(id);
-            }
-            for edge in label.edges.values() {
-                if edge.edge_type == PortType::Flow && edge.from.node_id == id {
-                    let next = edge.to.node_id.clone();
-                    if visited_a.insert(next.clone()) {
-                        queue_a.push_back(next);
-                    }
-                }
-            }
-        }
-        if let Some(id) = queue_b.pop_front() {
-            if visited_a.contains(&id) {
-                return Some(id);
-            }
-            for edge in label.edges.values() {
-                if edge.edge_type == PortType::Flow && edge.from.node_id == id {
-                    let next = edge.to.node_id.clone();
-                    if visited_b.insert(next.clone()) {
-                        queue_b.push_back(next);
-                    }
-                }
-            }
-        }
+fn find_join_node_many(label: &LabelContainer, starts: &[&str]) -> Option<String> {
+    if starts.len() < 2 {
+        return None;
     }
-    None
+    let mut all_reachable: Vec<HashSet<String>> = Vec::new();
+    for start in starts {
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
+        queue.push_back(start.to_string());
+        visited.insert(start.to_string());
+        while let Some(id) = queue.pop_front() {
+            for edge in label.edges.values() {
+                if edge.edge_type == PortType::Flow && edge.from.node_id == id {
+                    let next = edge.to.node_id.clone();
+                    if visited.insert(next.clone()) {
+                        queue.push_back(next);
+                    }
+                }
+            }
+        }
+        all_reachable.push(visited);
+    }
+    let first = all_reachable[0].clone();
+    let common: HashSet<String> = all_reachable
+        .iter()
+        .skip(1)
+        .fold(first, |acc, set| acc.intersection(set).cloned().collect());
+    // 排除起点本身，返回第一个公共汇合节点
+    common.into_iter().find(|id| !starts.contains(&id.as_str()))
+}
+
+#[allow(dead_code)]
+fn find_join_node(label: &LabelContainer, a: &str, b: &str) -> Option<String> {
+    find_join_node_many(label, &[a, b])
 }
 
 #[cfg(test)]
@@ -1168,6 +1201,67 @@ mod tests {
             !code.contains("else\n\tif"),
             "should not have nested else {{ if:\n{code}"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_multi_branch_if_node() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut if_node = make_node("if1", NodeType::If);
+        if_node.set_param("condition", ParamValue::Literal(serde_json::json!("a")));
+        if_node.set_param("elseif_0_condition", ParamValue::Literal(serde_json::json!("b")));
+        if_node.set_param("elseif_1_condition", ParamValue::Literal(serde_json::json!("c")));
+        if_node.outputs.retain(|p| p.port_type != PortType::Flow);
+        if_node.outputs.push(Port::new("out_true", PortType::Flow, "True"));
+        if_node.outputs.push(Port::new("elseif_0_branch", PortType::Flow, "ElseIf 0"));
+        if_node.outputs.push(Port::new("elseif_1_branch", PortType::Flow, "ElseIf 1"));
+        if_node.outputs.push(Port::new("out_false", PortType::Flow, "False"));
+        if_node.dynamic_ports.insert(
+            "elseif_branches".to_string(),
+            vec![
+                "elseif_0_branch".to_string(),
+                "elseif_0_condition".to_string(),
+                "elseif_1_branch".to_string(),
+                "elseif_1_condition".to_string(),
+            ],
+        );
+        graph.threads[0].labels[0].nodes.insert("if1".to_string(), if_node);
+
+        for (id, output) in [("logA", "A"), ("logB", "B"), ("logC", "C"), ("logD", "D")] {
+            let mut log = make_node(id, NodeType::Log);
+            log.set_param("output", ParamValue::Literal(serde_json::json!(output)));
+            graph.threads[0].labels[0].nodes.insert(id.to_string(), log);
+        }
+
+        let mut ret = make_node("ret", NodeType::Return);
+        ret.set_param("value", ParamValue::Null);
+        graph.threads[0].labels[0].nodes.insert("ret".to_string(), ret);
+
+        let label = &mut graph.threads[0].labels[0];
+        for (from, from_port, to) in [
+            ("if1", "out_true", "logA"),
+            ("if1", "elseif_0_branch", "logB"),
+            ("if1", "elseif_1_branch", "logC"),
+            ("if1", "out_false", "logD"),
+            ("logA", "out_flow", "ret"),
+            ("logB", "out_flow", "ret"),
+            ("logC", "out_flow", "ret"),
+            ("logD", "out_flow", "ret"),
+        ] {
+            let edge = Edge::new(
+                EdgeEndpoint::new(from, from_port),
+                EdgeEndpoint::new(to, "in_flow"),
+                PortType::Flow,
+            );
+            label.edges.insert(edge.id.clone(), edge);
+        }
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("if \"a\""), "missing if:\n{code}");
+        assert!(code.contains("elseif \"b\""), "missing first elseif:\n{code}");
+        assert!(code.contains("elseif \"c\""), "missing second elseif:\n{code}");
+        assert!(code.contains("else"), "missing else:\n{code}");
         Ok(())
     }
 

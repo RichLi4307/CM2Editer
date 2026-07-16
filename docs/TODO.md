@@ -13,7 +13,7 @@
 - 新架构（ThreadContainer / LabelContainer / ListenerContainer）已落地，`NodeType` 174 变体，JSON v2.0。
 - i18n 三语（zh/en/ja）已接入；`zh.json` 节点描述已升级为 `docs/node_details.md` 提取的详细版。
 - 节点库按场景分类（`catalog.rs`）；CreateCondition 组合编辑器、id 数据流输入、For+Range 直连已实现。
-- P0 语法缺口：事件监听器/停止音频/全局变量/性高潮/elseif 折叠/复合赋值已全部补齐；动态端口基础设施已完成（P0.7），为 P0.8 多分支 If 奠基。
+- P0 语法缺口：事件监听器/停止音频/全局变量/性高潮/elseif 折叠/复合赋值/多分支 If 已全部补齐；动态端口基础设施已完成（P0.7），为后续 Format 可变参数、CallFunction 可变参数等奠基。
 - `cargo test` 142 项 lib tests 通过；版本号 v0.3.0（欢迎页从 Cargo.toml 注入）。
 
 ---
@@ -59,14 +59,16 @@
     - 属性面板返回 `PropertiesPanelAction`，统一处理参数修改与动态端口增删；对每个动态组渲染 `+`/`-` 按钮与成员列表
     - 验证器识别动态端口：检查 ID 在节点内唯一且恰好存在于 `inputs`/`outputs`/`params` 之一
     - 新增单元测试：Node 动态输出/参数增删、序列化往返、验证器重复 ID 与孤儿 ID 检测；`cargo test` 142 项 lib tests 通过 |
-- [ ] **P0.8 多分支 If 节点（elseif 单节点化）**
+- [x] **P0.8 多分支 If 节点（elseif 单节点化）** ✅ 2026-07-16
   - 依赖 P0.7 动态输出端口
   - 目标：一个 `If` 节点支持多个 `elseif` 分支 + 一个 `else` 分支，不再需要手动串多个 `If` 节点
-  - 设计方向：
-    - 升级 `If` 节点本身，使其 `out_true` 固定为第一个分支，后续分支通过动态端口添加；向后兼容通过旧图反序列化时自动迁移（旧 `out_true`/`out_false` 转换为 2 分支结构）
-    - 属性面板显示每个分支的 `condition` 编辑框 + "添加 elseif 分支" + "删除本分支" 按钮
-    - 代码生成器按分支顺序输出 `if / elseif / elseif / ... / else`，复用 P0.5 折叠逻辑
-    - 所有分支最终汇合到同一个后续节点（join 自动查找），结构与多个 `If` 链等效
+  - 实现：
+    - 扩展 `DynamicPortGroup` 支持多成员组，一个逻辑成员可同时包含 Flow 输出端口与条件参数（P0.7 基础设施完善）
+    - `If` 节点定义增加 `elseif_branches` 动态组：每个分支包含 `elseif_N_branch` 输出端口与 `elseif_N_condition` Boolean 参数
+    - 代码生成器 `generate_if` 读取本节点动态分支，按顺序输出 `if ... elseif ... elseif ... else`；复用 P0.5 的折叠逻辑处理旧图链式 If
+    - 属性面板与 i18n 自动支持动态分支的条件编辑；动态参数显示名回退到模板定义
+    - 旧图反序列化兼容：无 `elseif_branches` 的 `If` 节点按传统 2 分支处理
+    - 更新 `docs/node_types.md` 对 `If` 的 `.code` 示例；新增 `test_multi_branch_if_node` 生成器测试；`cargo test` 143 项 lib tests 通过 |
 
 > 节点变更必须同步更新 `docs/node_types.md`（A/B/C 分类与计数），并补充生成器测试。动态基础设施变更需同步更新 `docs/json_schema.md` 与序列化相关测试。
 

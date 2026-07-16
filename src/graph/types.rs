@@ -2,6 +2,27 @@ use serde::{Deserialize, Serialize};
 
 use crate::api::definitions::{ParamDefinition, PortDefinition};
 
+/// 动态端口/参数分组中的一个成员定义。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DynamicPortMember {
+    /// 该成员在组内的标识，用于生成 ID 后缀。
+    pub id: String,
+    /// 动态端口/参数的种类。
+    pub kind: DynamicPortKind,
+    /// 每个新增成员的模板。
+    pub template: DynamicPortTemplate,
+}
+
+impl DynamicPortMember {
+    pub fn new(id: &str, kind: DynamicPortKind, template: DynamicPortTemplate) -> Self {
+        Self {
+            id: id.to_string(),
+            kind,
+            template,
+        }
+    }
+}
+
 /// 动态端口/参数分组模板。
 ///
 /// 某些节点（如多分支 If、Format、CallFunction）需要运行时扩展输入、输出或参数。
@@ -12,19 +33,18 @@ pub struct DynamicPortGroup {
     pub id: String,
     /// 在 UI 上显示的分组标题。
     pub label: String,
-    /// 动态端口/参数的种类。
-    pub kind: DynamicPortKind,
-    /// 端口/参数 ID 前缀。实际 ID 格式为 `{prefix}_{index}`。
+    /// 组 ID 前缀。实际成员 ID 格式为 `{prefix}_{index}`（单成员）或 `{prefix}_{index}_{member_id}`（多成员）。
     pub prefix: String,
-    /// 该组最少保留的成员数量。
+    /// 该组最少保留的逻辑成员数量。
     pub min_count: usize,
-    /// 该组最多允许的成员数量，`None` 表示无限制。
+    /// 该组最多允许的逻辑成员数量，`None` 表示无限制。
     pub max_count: Option<usize>,
-    /// 每个新增成员的模板。
-    pub template: DynamicPortTemplate,
+    /// 每个逻辑成员包含的子成员列表。
+    pub members: Vec<DynamicPortMember>,
 }
 
 impl DynamicPortGroup {
+    /// 创建只有一个成员的动态组（兼容 P0.7 单成员用法）。
     pub fn new(
         id: &str,
         label: &str,
@@ -35,24 +55,48 @@ impl DynamicPortGroup {
         Self {
             id: id.to_string(),
             label: label.to_string(),
-            kind,
             prefix: prefix.to_string(),
             min_count: 0,
             max_count: None,
-            template,
+            members: vec![DynamicPortMember::new(
+                "member",
+                kind,
+                template,
+            )],
         }
     }
 
-    /// 设置最小数量。
+    /// 创建多成员动态组（例如 If 的 elseif 分支需要同时输出端口 + 条件参数）。
+    pub fn with_members(id: &str, label: &str, prefix: &str, members: Vec<DynamicPortMember>) -> Self {
+        Self {
+            id: id.to_string(),
+            label: label.to_string(),
+            prefix: prefix.to_string(),
+            min_count: 0,
+            max_count: None,
+            members,
+        }
+    }
+
+    /// 设置最小逻辑成员数量。
     pub fn min_count(mut self, n: usize) -> Self {
         self.min_count = n;
         self
     }
 
-    /// 设置最大数量。
+    /// 设置最大逻辑成员数量。
     pub fn max_count(mut self, n: usize) -> Self {
         self.max_count = Some(n);
         self
+    }
+
+    /// 计算给定逻辑成员索引下某个子成员的 ID。
+    pub(crate) fn member_id(&self, member: &DynamicPortMember, index: usize) -> String {
+        if self.members.len() == 1 {
+            format!("{}_{}", self.prefix, index)
+        } else {
+            format!("{}_{}_{}", self.prefix, index, member.id)
+        }
     }
 }
 

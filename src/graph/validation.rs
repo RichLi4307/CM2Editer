@@ -107,7 +107,8 @@ impl GraphValidator {
 
     /// 检查动态端口/参数状态是否合法。
     ///
-    /// 验证：动态端口 ID 在节点内唯一，且每个 ID 恰好存在于 inputs、outputs 或 params 之一。
+    /// 验证：动态端口 ID 在节点内唯一；每个 ID 恰好存在于 inputs、outputs 或 params 之一；
+    /// 每组 flat ID 数量是其成员数量的整数倍。
     fn check_dynamic_ports(label: &LabelContainer) -> Result<()> {
         for node in label.nodes.values() {
             let mut seen_ids = HashSet::new();
@@ -355,8 +356,6 @@ mod tests {
 
     #[test]
     fn test_dynamic_port_id_must_be_unique_and_exist() {
-        use crate::api::definitions::{ParamDefinition, ParamType, PortDefinition};
-        use crate::graph::types::{DynamicPortGroup, DynamicPortKind, DynamicPortTemplate};
 
         let mut graph = ContainerGraph::default_main();
         let mut node = make_node("a", NodeType::Log);

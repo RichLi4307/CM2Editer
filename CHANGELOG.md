@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+### 新增（多分支 If 节点，P0.8）
+
+- 升级 `If` 节点支持多分支 `elseif`：在节点定义中增加 `elseif_branches` 动态端口组，每个逻辑分支包含一个 Flow 输出端口 `elseif_N_branch` 与一个 Boolean 条件参数 `elseif_N_condition`。
+- 扩展 `DynamicPortGroup` 支持多成员（一个逻辑成员同时生成端口和参数），是 P0.7 基础设施的自然完善。
+- 重写代码生成器 `generate_if`：先读取本节点动态分支，按顺序生成 `if ... elseif ... elseif ... else`；继续复用 P0.5 的链式 `If` 折叠逻辑处理旧图。
+- 多分支汇合点通过 `find_join_node_many` 自动计算所有分支的公共后续节点。
+- 属性面板自动渲染动态分支管理 UI（`+`/`-` 按钮）和每个分支的 `condition` 参数编辑；`i18n::param_display_name` 新增动态参数显示名回退。
+- 旧图 `If` 节点无 `elseif_branches` 时保持兼容，按传统 `if / else` 生成。
+- 更新 `docs/node_types.md` 中 `If` 的 `.code` 示例；新增 `test_multi_branch_if_node` 专项生成器测试；`cargo test` 143 项 lib tests 通过，`cargo clippy --lib` 22 warnings（无新增）。
+
 ### 新增（动态端口基础设施，P0.7）
 
 - 在 `graph::types` 中引入 `DynamicPortGroup` / `DynamicPortKind` / `DynamicPortTemplate`，支持 Input / Output / Param 三种动态端口/参数组。

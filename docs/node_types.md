@@ -18,7 +18,7 @@
 | 节点 | 代码生成 |
 |------|---------|
 | `Goto` | `thread.Goto("label")` |
-| `If` | `if {condition}` / `else` |
+| `If` | `if {condition}` / `elseif {condition}` / `else` |
 | `While` | `while {condition}` |
 | `For` | `for i in {iterable}` |
 | `Break` | `break` |
@@ -75,7 +75,7 @@
 | 节点 | 类别 | 说明 | `.code` 示例 |
 |------|------|------|--------------|
 | `Goto` | A | 跳转到同一线程的另一个标签 | `thread.Goto("step2")` |
-| `If` | A | 条件分支 | `if {cond} ... else ...` |
+| `If` | A | 条件分支（支持 `if` / `elseif` / `else`） | `if {cond} ... elseif {cond} ... else ...` |
 | `While` | A | 循环 | `while {cond} ...` |
 | `For` | A | 遍历列表/范围 | `for i in Range(0, 10) ...` |
 | `Break` | A | 跳出循环 | `break` |

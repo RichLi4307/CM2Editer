@@ -173,7 +173,7 @@ impl I18n {
     }
 
     /// Translate a parameter display name for a specific node type. Falls back to
-    /// the parameter definition in `NodeDefinition`.
+    /// the parameter definition in `NodeDefinition`, then to dynamic parameter templates.
     pub fn param_display_name(&self, node_type: NodeType, param_name: &str) -> String {
         let key = format!("node.{:?}.param.{}", node_type, param_name);
         self.text_opt(&key).unwrap_or_else(|| {
@@ -183,10 +183,30 @@ impl I18n {
                         .iter()
                         .find(|p| p.name == param_name)
                         .map(|p| p.display_name.clone())
+                        .or_else(|| dynamic_param_display_name(d, param_name))
                 })
                 .unwrap_or_else(|| param_name.to_string())
         })
     }
+}
+
+/// Try to find a display name for a dynamic parameter instance.
+fn dynamic_param_display_name(def: &crate::api::definitions::NodeDefinition, param_id: &str) -> Option<String> {
+    use crate::graph::types::{DynamicPortKind, DynamicPortTemplate};
+
+    for group in &def.dynamic_ports {
+        for member in &group.members {
+            if member.kind == DynamicPortKind::Param {
+                if let DynamicPortTemplate::Param(p) = &member.template {
+                    let suffix = format!("_{}", member.id);
+                    if param_id.starts_with(&group.prefix) && param_id.ends_with(&suffix) {
+                        return Some(p.display_name.clone());
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 /// Generate initial translation templates for all registered nodes.

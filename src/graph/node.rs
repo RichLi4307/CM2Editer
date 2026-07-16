@@ -119,59 +119,70 @@ impl Node {
         self.dynamic_ports.get(group_id).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
-    /// 添加一个动态端口/参数到指定组，返回新成员的 ID。
+    /// 添加一个动态端口/参数到指定组，返回第一个新增成员的 ID。
     ///
-    /// 如果该组在 `dynamic_ports` 中不存在则自动创建。
+    /// 如果该组在 `dynamic_ports` 中不存在则自动创建。多成员组会同时添加所有子成员。
     pub fn add_dynamic_port(&mut self, group: &DynamicPortGroup) -> String {
         let existing = self.dynamic_ports.entry(group.id.clone()).or_default();
-        let index = existing.len();
-        let id = format!("{}_{}", group.prefix, index);
-        match &group.template {
-            DynamicPortTemplate::Port(def) => {
-                let port = Port::new(&id, def.port_type.clone(), &def.label);
-                if group.kind == DynamicPortKind::Input {
-                    self.inputs.push(port);
-                } else {
-                    self.outputs.push(port);
+        let index = existing.len() / group.members.len();
+        let mut added_ids = Vec::new();
+        for member in &group.members {
+            let id = group.member_id(member, index);
+            match &member.template {
+                DynamicPortTemplate::Port(def) => {
+                    let port = Port::new(&id, def.port_type.clone(), &def.label);
+                    if member.kind == DynamicPortKind::Input {
+                        self.inputs.push(port);
+                    } else {
+                        self.outputs.push(port);
+                    }
+                }
+                DynamicPortTemplate::Param(def) => {
+                    self.params.insert(id.clone(), def.default_value());
                 }
             }
-            DynamicPortTemplate::Param(def) => {
-                self.params.insert(id.clone(), def.default_value());
-            }
+            added_ids.push(id);
         }
-        existing.push(id.clone());
-        id
+        existing.extend(added_ids.clone());
+        added_ids.into_iter().next().unwrap_or_default()
     }
 
-    /// 从指定组删除一个动态端口/参数，并返回是否删除成功。
+    /// 从指定组删除一个逻辑成员，并返回是否删除成功。
     ///
     /// 删除后不会重排其余成员的 ID，以保持连接稳定。
     pub fn remove_dynamic_port(&mut self, group: &DynamicPortGroup, port_id: &str) -> bool {
-        let Some(existing) = self.dynamic_ports.get_mut(&group.id) else {
+        let existing = match self.dynamic_ports.get_mut(&group.id) {
+            Some(v) => v,
+            None => return false,
+        };
+        // 找到该 port_id 所在的逻辑成员索引
+        let member_index = existing.iter().position(|id| id == port_id);
+        let Some(member_index) = member_index else {
             return false;
         };
-        if !existing.contains(&port_id.to_string()) {
+        let members_per_group = group.members.len();
+        let logical_index = member_index / members_per_group;
+        let start = logical_index * members_per_group;
+        let end = start + members_per_group;
+        if end > existing.len() {
             return false;
         }
-        existing.retain(|id| id != port_id);
-        match &group.template {
-            DynamicPortTemplate::Port(_) => {
-                if group.kind == DynamicPortKind::Input {
-                    self.inputs.retain(|p| p.id != port_id);
-                } else {
-                    self.outputs.retain(|p| p.id != port_id);
-                }
-            }
-            DynamicPortTemplate::Param(_) => {
-                self.params.remove(port_id);
-            }
+        let ids_to_remove: Vec<String> = existing.drain(start..end).collect();
+        for id in ids_to_remove {
+            // 根据该 ID 在 inputs/outputs/params 中实际存在的位置删除
+            self.inputs.retain(|p| p.id != id);
+            self.outputs.retain(|p| p.id != id);
+            self.params.remove(&id);
         }
         true
     }
 
-    /// 返回某个动态端口组的当前成员数量。
-    pub fn dynamic_port_count(&self, group_id: &str) -> usize {
-        self.dynamic_ports.get(group_id).map(|v| v.len()).unwrap_or(0)
+    /// 返回某个动态端口组的当前逻辑成员数量。
+    pub fn dynamic_port_count(&self, group_id: &str, members_per_group: usize) -> usize {
+        self.dynamic_ports
+            .get(group_id)
+            .map(|v| v.len() / members_per_group.max(1))
+            .unwrap_or(0)
     }
 
     /// 批量设置节点的输入和输出端口
@@ -332,7 +343,7 @@ mod tests {
         );
         let id1 = node.add_dynamic_port(&group);
         let id2 = node.add_dynamic_port(&group);
-        assert_eq!(node.dynamic_port_count("extras"), 2);
+        assert_eq!(node.dynamic_port_count("extras", 1), 2);
         assert!(node.get_port(&id1, false).is_some());
         assert!(node.get_port(&id2, false).is_some());
         assert!(node.remove_dynamic_port(&group, &id1));
@@ -384,8 +395,8 @@ mod tests {
 
         let json = serde_json::to_string(&node).expect("serialize");
         let back: Node = serde_json::from_str(&json).expect("deserialize");
-        assert_eq!(back.dynamic_port_count("outs"), 1);
-        assert_eq!(back.dynamic_port_count("args"), 1);
+        assert_eq!(back.dynamic_port_count("outs", 1), 1);
+        assert_eq!(back.dynamic_port_count("args", 1), 1);
         assert_eq!(back.outputs.len(), 1);
         assert_eq!(back.params.len(), 1);
     }
