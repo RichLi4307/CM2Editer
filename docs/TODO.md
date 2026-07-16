@@ -76,7 +76,8 @@
 
 - [x] **P1.1 Log 增加 level 枚举**（Info/Warning/Error），覆盖官方 `Warning` / `Error`（kb part_003:13-23）；一个参数覆盖两个缺失 API ✅ 2026-07-17
   - 实现：为 `Log` 节点增加 `level` 枚举参数（`Info` / `Warning` / `Error`，默认 `Info`），代码生成器 A 类特判：`Info` → `Log(output)`，`Warning` → `Warning(output)`，`Error` → `Error(output)`；旧图无 `level` 时回退 `Log`；更新 `docs/node_types.md` 日志子系统说明；补充 zh/en i18n 与生成器测试 |
-- [ ] **P1.2 Translate 节点**：`Translate(Key[, Param1][, Param2]...)`（kb part_003:156），本地化高频函数
+- [x] **P1.2 Translate 节点**：`Translate(Key[, Param1][, Param2]...)`（kb part_003:156），本地化高频函数 ✅ 2026-07-17
+  - 实现：新增 `NodeType::Translate`（175 变体）；`General Functions` 分类；`key` 必填 + `params` 可选 List；代码生成器 A 类生成 `Translate(key)` 或 `Translate(key, args...)`（列表字面量展开）；输出 `out_value` String；节点库归入 `scene.data_process.string`；补充 zh/en i18n；更新 `docs/node_types.md` 与 AGENTS.md 计数；新增 `test_generate_translate` |
 - [ ] **P1.3 List 六方法节点**：Insert / Remove / Count / Contains / IndexOf / Keys（kb part_004:50-100），List 是核心集合类型，目前全靠 CallMethod 手输
 - [ ] **P1.4 NPC 高频方法节点**：Warp / AddWaypoint / IsAlive / SeesPlayer / SeesFlashing（kb part_004:822-1017，共 22 个方法，先做 5 个）
 - [ ] **P1.5 FunctionExists / GetModVersion**：跨 mod 防御性调用与依赖检查

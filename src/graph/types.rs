@@ -166,6 +166,8 @@ pub enum NodeType {
     GetType,
     /// 获取当前游戏语言
     GetLanguage,
+    /// 本地化字符串
+    Translate,
     /// 导出所有变量
     DumpVariables,
     /// 导出单个变量

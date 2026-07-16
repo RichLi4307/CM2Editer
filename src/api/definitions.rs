@@ -431,6 +431,18 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             e("level", "级别", &["Info", "Warning", "Error"]),
         ]),
         NodeDefinition::new(
+            NodeType::Translate, "General Functions",
+            "翻译",
+            "本地化字符串",
+            GENERAL_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow(), out_data("out_value", PortType::String, "文本")])
+        .with_params(vec![
+            p_req("key", "键", ParamType::String),
+            p_opt("params", "参数", ParamType::List),
+        ]),
+        NodeDefinition::new(
             NodeType::Global, "Variables & Globals",
             "全局变量",
             "读写全局变量",
@@ -2412,7 +2424,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 174);
+        assert_eq!(all.len(), 175);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2421,7 +2433,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 174);
+        assert_eq!(seen.len(), 175);
     }
 
 

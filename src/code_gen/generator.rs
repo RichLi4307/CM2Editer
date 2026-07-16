@@ -230,6 +230,27 @@ impl<'a> CodeGenerator<'a> {
                 self.formatter.write_line(&format!("{func}({output})"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
+            NodeType::Translate => {
+                let key = self.require_param(label, node, "key")?;
+                let args = self.resolve_param_opt(label, node, "params").unwrap_or_default();
+                let mut line = format!("Translate({key}");
+                let args = args.trim();
+                if args != "null" && args != "[]" && !args.is_empty() {
+                    let inner = args
+                        .strip_prefix('[')
+                        .and_then(|s| s.strip_suffix(']'))
+                        .unwrap_or(args);
+                    let inner = inner.trim();
+                    if !inner.is_empty() {
+                        line.push_str(&format!(", {inner}"));
+                    }
+                }
+                line.push(')');
+                self.formatter.write_line(&line);
+                self.formatter
+                    .write_line(&format!("var_{node_id}_out_value = {line}"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
             NodeType::SetVariable => {
                 let name = self.require_param(label, node, "name")?;
                 let name = name.trim_matches('"');
@@ -1290,6 +1311,24 @@ mod tests {
         assert!(code.contains("elseif \"b\""), "missing first elseif:\n{code}");
         assert!(code.contains("elseif \"c\""), "missing second elseif:\n{code}");
         assert!(code.contains("else"), "missing else:\n{code}");
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_translate() -> Result<()> {
+        // 无参数：Translate("hello")
+        assert_flow_node_generates(NodeType::Translate, [
+            ("key".to_string(), ParamValue::Literal(serde_json::json!("hello"))),
+        ].into())?;
+
+        // 列表参数展开：Translate("fmt", "a", 1)
+        let mut graph = make_graph();
+        let mut node = make_node("t1", NodeType::Translate);
+        node.set_param("key", ParamValue::Literal(serde_json::json!("fmt")));
+        node.set_param("params", ParamValue::Literal(serde_json::json!(["a", 1])));
+        graph.threads[0].labels[0].nodes.insert("t1".to_string(), node);
+        let code = generate_code(&graph)?;
+        assert!(code.contains(r#"Translate("fmt", "a", 1)"#), "got:\n{code}");
         Ok(())
     }
 

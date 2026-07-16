@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 新增（Translate 节点，P1.2）
+
+- 新增 `NodeType::Translate`（175 变体）：`General Functions` 分类，`key` 必填参数 + `params` 可选 List 参数，输出 `out_value`（String）。
+- 代码生成器 A 类生成：`Translate(key)` 或 `Translate(key, arg1, arg2, ...)`（列表字面量展开为位置参数）。
+- 节点库归入 `scene.data_process.string`；补充 zh/en i18n 键；更新 `docs/node_types.md` 与 AGENTS.md 计数（174→175）。
+- 测试：新增 `test_generate_translate` 覆盖无参数与参数展开；`cargo test` 144 项通过。
+
 ### 新增（Log 级别枚举，P1.1）
 
 - 为 `Log` 节点新增 `level` 枚举参数：`Info` / `Warning` / `Error`，默认 `Info`。

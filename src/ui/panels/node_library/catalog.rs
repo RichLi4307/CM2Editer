@@ -286,6 +286,7 @@ impl SceneCatalog {
                             NodeType::Find,
                             NodeType::SubString,
                             NodeType::Format,
+                            NodeType::Translate,
                             NodeType::ToNumber,
                             NodeType::GetFileExtension,
                             NodeType::StringConstant,

@@ -154,6 +154,7 @@
 | 节点 | 类别 | 说明 |
 |------|------|------|
 | `Length`, `Lower`, `Upper`, `Find`, `SubString`, `Format`, `ToNumber` | C | 字符串处理 |
+| `Translate` | A | 本地化字符串：`Translate(key[, args...])` 返回 String |
 | `FileExists`, `GetFiles`, `GetFileExtension` | C | 文件操作 |
 | `CreateList`, `Copy`, `CreateListFromJson` | C | 列表构造 |
 | `ForeachNode` | A | 遍历列表（特殊函数调用）`var = Foreach(list, thread)` |
