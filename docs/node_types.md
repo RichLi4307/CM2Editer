@@ -242,3 +242,23 @@
 - 已有条件 ID 列表显示当前标签内所有 `CreateCondition` / `CreateItemCondition` 节点的非空 `id`，点击生成 `SubCondition_<id>` 复用。
 
 `CreateCondition.id` 与 `CreateItemCondition.id` 同时支持属性面板输入和数据流输入。当左侧 `id` 数据端口有连接时，代码生成器优先使用连接的变量值；无连接时使用属性面板中的常量值。留空表示不注册子条件。
+
+### 5.2 节点库场景分类
+
+节点库的左侧分类不再按 `NodeDefinition::category`（API 原始分类）组织，而是按开发者实际使用场景分类。分类依据：
+
+1. 节点在 `.code` 中的实际生成结果（`src/code_gen/generator.rs`）。
+2. 官方 API 文档（`docs/kb/documentation_part_*.md` / `docs/documentation.html`）。
+3. 节点在游戏流程中的实际作用（控制流、条件判断、数据查询、状态修改、视觉/UI、数据处理）。
+
+因此，部分节点可能同时出现在多个场景中；少数节点会根据实际语义从错误场景中移出。例如：
+
+- `CreateCondition` / `CreateItemCondition` 是条件对象构造器，归入 **条件判定 > 状态检查**，而非视觉/UI。
+- `Log` 是调试日志，归入 **编辑器专用**，而非音效与屏幕。
+- `SetCamera` / `GetImageReference` / `GetAllSnapshots` / `DeleteSnapshot` 是视觉资产/显示控制，归入 **视觉 / UI > 视觉元素**。
+- `TriggerGameOver` 是流程控制，归入 **任务 / 流程 > 流程控制**。
+- `GetItemCount` 是库存查询，归入 **数据获取 > 物品 / 装备**。
+- `CreateInteractArea` 是交互检测，归入 **视觉 / UI > 输入与交互**。
+- `FileExists` / `GetFiles` 是文件系统操作，归入 **数据处理 > 文件**，而非字符串处理。
+
+具体分类见 `src/ui/panels/node_library/catalog.rs`。

@@ -42,7 +42,22 @@
 - 为 `CreateCondition` 与 `CreateItemCondition` 增加 `id` 数据输入端口：ID 现在可通过数据流从其他节点（如 `StringConstant`）传入；代码生成器优先使用数据端口连接，无连接时仍回退到属性面板中的常量值。检查了所有创建条件/物品的节点，仅有这两个节点使用 `id` 字符串参数用于子条件复用，因此只在此处普及该功能。新增 2 个生成器测试验证数据流 ID 行为。
 - 更新 `docs/node_types.md`：说明 `CreateCondition.id` / `CreateItemCondition.id` 同时支持常量输入与数据流输入。
 
-### 新增（P1 低难度节点）
+### 重构（节点库场景分类）
+
+- 启动 6 个子代理按实际 API 使用场景审查全部 168 个节点的分类，避免望文生义。
+- 根据子代理建议重构 `src/ui/panels/node_library/catalog.rs`：
+  - `CreateCondition` / `CreateItemCondition`：从 `scene.visual_ui.visual` 移入 `scene.conditions.state_check`（它们是条件对象构造器，不是视觉/UI）。
+  - `Log`：从 `scene.visual_ui.audio_screen` 移入 `scene.editor.editor`（控制台日志是调试工具，不是音频/屏幕效果）。
+  - `SetCamera` / `GetAllSnapshots` / `DeleteSnapshot` / `GetImageReference` / `GetGraphicsOption`：移入 `scene.visual_ui.visual`（相机、快照、图像引用都是视觉资产/显示控制）。
+  - `TriggerGameOver`：从 `scene.data_set.player_state` 移入 `scene.mission_flow.control`（强制结束游戏是流程控制）。
+  - `GetItemCount`：从 `scene.data_get.player_info` 移入 `scene.data_get.items_equipment`（库存查询，不是生理属性）。
+  - `CreateInteractArea`：从 `scene.visual_ui.visual` 移入 `scene.visual_ui.input_interact`（交互区域属于输入/交互机制）。
+  - `CanGameOver`：同时归入 `scene.conditions.state_check`（有布尔输出，可作条件使用）。
+  - 新增 `scene.data_process.file` 子分类，将 `FileExists` / `GetFiles` 从 `scene.data_process.string` 移入（文件系统操作不是字符串处理）。
+- 同步更新 `assets/i18n/zh.json`、`en.json`、`ja.json`，新增 `scene.data_process.file` 翻译键。
+- 更新 `docs/node_types.md` 中关于场景分类的说明。
+
+
 
 - **DestroyListener**：销毁当前监听器，生成 `listener = null`。
 - **GetCurrentThread**：纯数据节点，输出当前线程引用 `_this`。

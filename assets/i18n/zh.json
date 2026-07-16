@@ -1347,6 +1347,7 @@
     "scene.data_process.math": "数学",
     "scene.data_process.string": "字符串",
     "scene.data_process.list": "列表",
+    "scene.data_process.file": "文件",
     "scene.data_process.vector_color": "向量 / 颜色",
     "scene.visual_ui": "视觉 / UI",
     "scene.visual_ui.visual": "视觉元素",

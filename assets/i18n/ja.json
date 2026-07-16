@@ -241,6 +241,7 @@
     "scene.data_process.math": "Math",
     "scene.data_process.string": "String",
     "scene.data_process.list": "List",
+    "scene.data_process.file": "File",
     "scene.data_process.vector_color": "Vector / Color",
     "scene.visual_ui": "Visual / UI",
     "scene.visual_ui.visual": "Visual Elements",
