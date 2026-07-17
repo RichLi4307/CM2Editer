@@ -77,7 +77,7 @@ impl PropertiesPanel {
 
         const COMMON_PARAM_COUNT: usize = 4;
         let common = &ordered_keys[..ordered_keys.len().min(COMMON_PARAM_COUNT)];
-        let advanced = &ordered_keys[COMMON_PARAM_COUNT..];
+        let advanced = &ordered_keys[COMMON_PARAM_COUNT.min(ordered_keys.len())..];
 
         for key in common {
             if let Some(action) = Self::render_param_entry(
