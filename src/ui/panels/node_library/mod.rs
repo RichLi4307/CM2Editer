@@ -51,11 +51,14 @@ impl NodeLibraryPanel {
             .show(ui, |ui| {
                 ui.heading(i18n.text("node_library.title"));
 
-                // 搜索框 + 场景分类过滤
+                // 搜索框独占一行，避免与过滤下拉框挤在同一行导致左栏宽度异常。
+                ui.text_edit_singleline(&mut filter.query);
+                // 过滤下拉框：标签 + 下拉框，下拉框占满剩余宽度。
                 ui.horizontal(|ui| {
-                    ui.text_edit_singleline(&mut filter.query);
+                    ui.label(i18n.text("node_library.filter_label"));
+                    let combo_width = ui.available_width().clamp(80.0, 160.0);
                     egui::ComboBox::from_id_salt("node_library_scene_filter")
-                        .width(120.0)
+                        .width(combo_width)
                         .selected_text(selected_filter_label(i18n, &filter.scene_filter))
                         .show_ui(ui, |ui| {
                             if ui

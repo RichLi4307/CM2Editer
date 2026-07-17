@@ -1821,6 +1821,18 @@ impl eframe::App for App {
                 let mut split1 = data.0;
                 let mut split2 = data.1;
 
+                // 保证两条分隔线不交叉、不超出边界。先归一化再计算列宽。
+                const MIN_SPLIT: f32 = 0.15;
+                const MAX_SPLIT: f32 = 0.85;
+                const GAP: f32 = 0.15;
+                if split2 < split1 + GAP {
+                    let mid = (split1 + split2).clamp(MIN_SPLIT + GAP / 2.0, MAX_SPLIT - GAP / 2.0);
+                    split1 = mid - GAP / 2.0;
+                    split2 = mid + GAP / 2.0;
+                }
+                split1 = split1.clamp(MIN_SPLIT, MAX_SPLIT - GAP);
+                split2 = split2.clamp(MIN_SPLIT + GAP, MAX_SPLIT);
+
                 // 三列计算
                 let w1 = (panel_w * split1).round() as f32;
                 let w2 = (panel_w * split2).round() as f32;
@@ -1855,7 +1867,7 @@ impl eframe::App for App {
                     egui::Stroke::new(2.0, sep_color),
                 );
                 if r1.dragged() {
-                    split1 = (split1 + r1.drag_delta().x / panel_w).clamp(0.15, split2 - 0.1);
+                    split1 = (split1 + r1.drag_delta().x / panel_w).clamp(MIN_SPLIT, split2 - GAP / 2.0);
                     ui.ctx().data_mut(|d| d.insert_temp(s1_id, split1));
                 }
 
@@ -1885,7 +1897,7 @@ impl eframe::App for App {
                     egui::Stroke::new(2.0, sep2_color),
                 );
                 if r2.dragged() {
-                    split2 = (split2 + r2.drag_delta().x / panel_w).clamp(split1 + 0.1, 0.85);
+                    split2 = (split2 + r2.drag_delta().x / panel_w).clamp(split1 + GAP / 2.0, MAX_SPLIT);
                     ui.ctx().data_mut(|d| d.insert_temp(s2_id, split2));
                 }
 
