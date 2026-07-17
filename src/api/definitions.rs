@@ -2222,6 +2222,65 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("id", "ID", ParamType::Number),
         ]),
         NodeDefinition::new(
+            NodeType::NPCWarp,
+            "Objects",
+            "NPC 传送",
+            "立即改变 NPC 的位置",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()])
+        .with_params(vec![
+            p_req("npc", "NPC", ParamType::Object),
+            p_opt("position", "位置", ParamType::Vector),
+            p_opt("rotation", "旋转", ParamType::Quaternion),
+        ]),
+        NodeDefinition::new(
+            NodeType::NPCAddWaypoint,
+            "Objects",
+            "NPC 添加路径点",
+            "让 NPC 按顺序移动到路径点",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![in_flow()])
+        .with_outputs(vec![out_flow()])
+        .with_params(vec![
+            p_req("npc", "NPC", ParamType::Object),
+            p_req("position", "位置", ParamType::Vector),
+            p_opt("rotation", "旋转", ParamType::Quaternion),
+            p_opt("last", "是否终点", ParamType::Boolean),
+        ]),
+        NodeDefinition::new(
+            NodeType::NPCIsAlive,
+            "Objects",
+            "NPC 存活",
+            "判断 NPC 是否仍然存在",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![PortDefinition::new("npc", PortType::Object, "NPC")])
+        .with_outputs(vec![out_data("out_value", PortType::Boolean, "是否存活")])
+        .with_params(vec![p_req("npc", "NPC", ParamType::Object)]),
+        NodeDefinition::new(
+            NodeType::NPCSeesPlayer,
+            "Objects",
+            "NPC 看到玩家",
+            "判断 NPC 是否看到玩家",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![PortDefinition::new("npc", PortType::Object, "NPC")])
+        .with_outputs(vec![out_data("out_value", PortType::Boolean, "是否看到玩家")])
+        .with_params(vec![p_req("npc", "NPC", ParamType::Object)]),
+        NodeDefinition::new(
+            NodeType::NPCSeesFlashing,
+            "Objects",
+            "NPC 看到裸露",
+            "判断 NPC 是否看到玩家裸露",
+            OBJECT_COLOR,
+        )
+        .with_inputs(vec![PortDefinition::new("npc", PortType::Object, "NPC")])
+        .with_outputs(vec![out_data("out_value", PortType::Boolean, "是否看到裸露")])
+        .with_params(vec![p_req("npc", "NPC", ParamType::Object)]),
+        NodeDefinition::new(
             NodeType::CreateInput,
             "Objects",
             "创建输入",
@@ -2507,7 +2566,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 181);
+        assert_eq!(all.len(), 186);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2516,7 +2575,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 181);
+        assert_eq!(seen.len(), 186);
     }
 
 

@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+### 新增（NPC 高频方法节点，P1.4）
+
+- 新增 5 个 NPC 对象方法节点（`NodeType` 181 → 186）：
+  - Flow 节点：`NPCWarp`、`NPCAddWaypoint`
+  - Data 节点：`NPCIsAlive`、`NPCSeesPlayer`、`NPCSeesFlashing`
+- 代码生成器 A 类生成：`npc.Warp(position?, rotation?)` / `npc.AddWaypoint(position, rotation?, last?)` / `npc.IsAlive()` / `npc.SeesPlayer()` / `npc.SeesFlashing()`。
+- `Objects` 分类；节点库归入 `scene.visual_ui.visual`；补充 zh/en i18n；更新 `docs/node_types.md` 与 AGENTS.md 计数（181→186）。
+- 测试：新增 `test_generate_npc_methods` 覆盖全部 5 个方法；`cargo test` 146 项通过。
+
 ### 新增（List 六方法节点，P1.3）
 
 - 新增 6 个 List 对象方法节点（`NodeType` 175 → 181）：

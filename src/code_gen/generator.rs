@@ -296,6 +296,39 @@ impl<'a> CodeGenerator<'a> {
                 self.formatter.write_line(&format!("{list}.Remove({args})"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
+            NodeType::NPCWarp => {
+                let npc = self.require_param(label, node, "npc")?;
+                let npc = npc.trim_matches('"');
+                let position = self.resolve_param_opt(label, node, "position");
+                let rotation = self.resolve_param_opt(label, node, "rotation");
+                let mut args = Vec::new();
+                if let Some(p) = position.filter(|s| s != "null" && !s.is_empty()) {
+                    args.push(p);
+                }
+                if let Some(r) = rotation.filter(|s| s != "null" && !s.is_empty()) {
+                    args.push(r);
+                }
+                let args = args.join(", ");
+                self.formatter.write_line(&format!("{npc}.Warp({args})"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
+            NodeType::NPCAddWaypoint => {
+                let npc = self.require_param(label, node, "npc")?;
+                let npc = npc.trim_matches('"');
+                let position = self.require_param(label, node, "position")?;
+                let rotation = self.resolve_param_opt(label, node, "rotation");
+                let last = self.resolve_param_opt(label, node, "last");
+                let mut args = vec![position];
+                if let Some(r) = rotation.filter(|s| s != "null" && !s.is_empty()) {
+                    args.push(r);
+                }
+                if let Some(l) = last.filter(|s| s != "null" && !s.is_empty()) {
+                    args.push(l);
+                }
+                let args = args.join(", ");
+                self.formatter.write_line(&format!("{npc}.AddWaypoint({args})"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
             NodeType::SetVariable => {
                 let name = self.require_param(label, node, "name")?;
                 let name = name.trim_matches('"');
@@ -869,6 +902,21 @@ impl<'a> CodeGenerator<'a> {
                     _ => Some(format!("{list}.Keys()")),
                 }
             }
+            NodeType::NPCIsAlive => {
+                let npc = self.resolve_param_opt(label, node, "npc")?;
+                let npc = npc.trim_matches('"');
+                Some(format!("{npc}.IsAlive()"))
+            }
+            NodeType::NPCSeesPlayer => {
+                let npc = self.resolve_param_opt(label, node, "npc")?;
+                let npc = npc.trim_matches('"');
+                Some(format!("{npc}.SeesPlayer()"))
+            }
+            NodeType::NPCSeesFlashing => {
+                let npc = self.resolve_param_opt(label, node, "npc")?;
+                let npc = npc.trim_matches('"');
+                Some(format!("{npc}.SeesFlashing()"))
+            }
             _ => Some(format!("var_{node_id}_{port_name}")),
         }
     }
@@ -1123,6 +1171,8 @@ mod tests {
             NodeType::Meta | NodeType::Comment | NodeType::Group => "",
             NodeType::ListInsert => "Insert(",
             NodeType::ListRemove => "Remove(",
+            NodeType::NPCWarp => "Warp(",
+            NodeType::NPCAddWaypoint => "AddWaypoint(",
             _ => {
                 let name = format!("{:?}", node_type);
                 // leak a static string for the test lifetime
@@ -1453,6 +1503,46 @@ mod tests {
         assert_data_node_generates(NodeType::ListKeys, "out_value", [
             ("list".to_string(), ParamValue::Literal(serde_json::json!("myList"))),
             ("includeAll".to_string(), ParamValue::Literal(serde_json::json!(true))),
+        ].into())?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_npc_methods() -> Result<()> {
+        // Flow: NPCWarp with position and rotation
+        let mut graph = make_graph();
+        let mut warp = make_node("warp1", NodeType::NPCWarp);
+        warp.set_param("npc", ParamValue::Literal(serde_json::json!("npc1")));
+        warp.set_param("position", ParamValue::Literal(serde_json::json!([1, 2, 3])));
+        warp.set_param("rotation", ParamValue::Literal(serde_json::json!([0, 0, 0, 1])));
+        graph.threads[0].labels[0].nodes.insert("warp1".to_string(), warp);
+        let code = generate_code(&graph)?;
+        assert!(code.contains("npc1.Warp([1, 2, 3], [0, 0, 0, 1])"), "got:\n{code}");
+
+        // Flow: NPCAddWaypoint
+        let mut graph2 = make_graph();
+        let mut wp = make_node("wp1", NodeType::NPCAddWaypoint);
+        wp.set_param("npc", ParamValue::Literal(serde_json::json!("npc1")));
+        wp.set_param("position", ParamValue::Literal(serde_json::json!([4, 5, 6])));
+        wp.set_param("last", ParamValue::Literal(serde_json::json!(true)));
+        graph2.threads[0].labels[0].nodes.insert("wp1".to_string(), wp);
+        let code2 = generate_code(&graph2)?;
+        assert!(code2.contains("npc1.AddWaypoint([4, 5, 6], true)"), "got:\n{code2}");
+
+        // Data: NPCIsAlive
+        assert_data_node_generates(NodeType::NPCIsAlive, "out_value", [
+            ("npc".to_string(), ParamValue::Literal(serde_json::json!("npc1"))),
+        ].into())?;
+
+        // Data: NPCSeesPlayer
+        assert_data_node_generates(NodeType::NPCSeesPlayer, "out_value", [
+            ("npc".to_string(), ParamValue::Literal(serde_json::json!("npc1"))),
+        ].into())?;
+
+        // Data: NPCSeesFlashing
+        assert_data_node_generates(NodeType::NPCSeesFlashing, "out_value", [
+            ("npc".to_string(), ParamValue::Literal(serde_json::json!("npc1"))),
         ].into())?;
 
         Ok(())

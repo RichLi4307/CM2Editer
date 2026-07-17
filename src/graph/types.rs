@@ -473,6 +473,16 @@ pub enum NodeType {
     CreateSnapshot,
     /// 创建或连接一个 NPC
     CreateNPC,
+    /// 将 NPC 传送到指定位置
+    NPCWarp,
+    /// 为 NPC 添加路径点
+    NPCAddWaypoint,
+    /// 判断 NPC 是否存活
+    NPCIsAlive,
+    /// 判断 NPC 是否看到玩家
+    NPCSeesPlayer,
+    /// 判断 NPC 是否看到玩家裸露
+    NPCSeesFlashing,
     /// 创建一个输入检测器
     CreateInput,
     /// 在 List 中插入元素

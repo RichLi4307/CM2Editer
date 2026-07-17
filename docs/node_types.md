@@ -195,6 +195,8 @@
 | `CreateSnapshot` | B | 创建 snapshot 对象 |
 | `CreateNPC` | B | 创建 NPC 对象 |
 | `CreateInput` | B | 创建输入对象 |
+| `NPCWarp`, `NPCAddWaypoint` | A | NPC 方法：传送 / 添加路径点 |
+| `NPCIsAlive`, `NPCSeesPlayer`, `NPCSeesFlashing` | C | NPC 方法：存活 / 看到玩家 / 看到裸露 |
 | `CallFunction` | A | 动态调用函数 |
 | `CallMethod` | A | 动态调用对象方法 |
 | `GetCurrentThread` | C | 获取当前线程对象（也归类在 Threading） |
