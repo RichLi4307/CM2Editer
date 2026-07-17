@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 优化（P2.1 节点库搜索增强）
+
+- 节点库面板新增场景分类过滤下拉框，支持按 `scene.*` 一级分类快速筛选。
+- 搜索匹配升级为字符级模糊匹配，同时匹配节点显示名、NodeType 名、API 分类及场景分类标签。
+- 新增“最近使用”区域，记录用户最近创建的 10 个节点，去重置顶，持久化到 `%APPDATA%/CM2Editer/settings.json`。
+- 位置：`src/ui/panels/node_library/mod.rs`、`src/app.rs`、`src/settings.rs`；新增 zh/en/ja i18n 键 `node_library.recent` / `filter_all` / `filter_label`。
+- 测试：新增 `test_fuzzy_match`、`test_record_recent_dedup_and_limit`；`cargo test` 149 项 lib tests + 9 项 integration tests 通过。
+
 ### 新增（FunctionExists / GetModVersion，P1.5）
 
 - 新增 `NodeType::FunctionExists`（C 类，Boolean 输出）与 `GetModVersion`（C 类，List 输出）。

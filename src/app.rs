@@ -33,7 +33,7 @@ use crate::ui::panels::{
     json_preview::JsonPreviewPanel,
     meta_editor::MetaEditorPanel,
     namespace_picker::{NamespacePicker, NamespacePickerState},
-    node_library::{NodeLibraryAction, NodeLibraryPanel},
+    node_library::{record_recent, NodeLibraryAction, NodeLibraryFilter, NodeLibraryPanel},
     overview::{OverviewAction, OverviewContainerKind, OverviewPanel},
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::{PropertiesPanel, PropertiesPanelAction},
@@ -289,7 +289,8 @@ pub struct App {
     pub validation_errors: Vec<FlowError>,
     pub error_nodes: HashSet<String>,
     pub search_window_open: bool,
-    pub search_query: String,
+    pub node_library_filter: NodeLibraryFilter,
+    pub recent_node_types: Vec<NodeType>,
     pub status_message: String,
     /// 是否显示空画布欢迎提示
     pub show_welcome_hint: bool,
@@ -402,7 +403,17 @@ impl App {
             show_meta_editor: false,
             validation_errors: Vec::new(),
             search_window_open: false,
-            search_query: String::new(),
+            node_library_filter: NodeLibraryFilter::default(),
+            recent_node_types: {
+                let settings = AppSettings::load();
+                settings
+                    .recent_node_types
+                    .iter()
+                    .filter_map(|name| {
+                        serde_json::from_value(serde_json::Value::String(name.clone())).ok()
+                    })
+                    .collect()
+            },
             status_message: String::new(),
             show_welcome_hint: true,
             cached_json: String::new(),
@@ -532,6 +543,17 @@ impl App {
         self.show_meta_editor = false;
         self.push_command(Command::AddNode { node });
         self.status_message = self.i18n.format("status.added_node", &[&def.display_name]);
+    }
+
+    /// 将最近使用的节点类型持久化到设置文件。
+    fn save_recent_node_types(&self) -> Result<()> {
+        let mut settings = AppSettings::load();
+        settings.recent_node_types = self
+            .recent_node_types
+            .iter()
+            .map(|n| format!("{:?}", n))
+            .collect();
+        settings.save()
     }
 
     /// 删除选中的项。
@@ -1171,13 +1193,16 @@ impl eframe::App for App {
                         match NodeLibraryPanel::show(
                             ui,
                             &self.i18n,
-                            &mut self.search_query,
+                            &mut self.node_library_filter,
                             &mut self.search_window_open,
+                            &self.recent_node_types,
                             self.node_library_height,
                         ) {
                             NodeLibraryAction::Create(node_type) => {
                                 let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
                                 self.add_node_at(node_type, pos);
+                                record_recent(&mut self.recent_node_types, node_type);
+                                let _ = self.save_recent_node_types();
                             }
                             NodeLibraryAction::DragStart(node_type) => {
                                 self.dragged_node = Some(node_type);
@@ -1907,10 +1932,17 @@ impl eframe::App for App {
                         .hover_world_pos(ctx, self.canvas_rect(ctx))
                         .map(|p| Vec2::new(p.x, p.y));
                     if let Some(node_type) =
-                        NodeLibraryPanel::show_search(ui, &self.i18n, &mut self.search_query)
+                        NodeLibraryPanel::show_search(
+                            ui,
+                            &self.i18n,
+                            &mut self.node_library_filter,
+                            &self.recent_node_types,
+                        )
                     {
                         let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
                         self.add_node_at(node_type, pos);
+                        record_recent(&mut self.recent_node_types, node_type);
+                        let _ = self.save_recent_node_types();
                         self.search_window_open = false;
                     }
                 });

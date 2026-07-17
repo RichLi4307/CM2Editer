@@ -12,6 +12,9 @@ use crate::error::{FlowError, Result};
 pub struct AppSettings {
     #[serde(default)]
     pub language: String,
+    /// 最近使用的节点类型，以 NodeType 的 PascalCase 名称存储。
+    #[serde(default)]
+    pub recent_node_types: Vec<String>,
 }
 
 impl AppSettings {
@@ -67,12 +70,14 @@ mod tests {
     fn test_settings_roundtrip() {
         let settings = AppSettings {
             language: "zh".to_string(),
+            recent_node_types: vec!["Log".to_string(), "If".to_string()],
         };
         // We can't easily write to the real config dir in tests, so just verify
         // serialization/deserialization.
         let json = serde_json::to_string(&settings).unwrap();
         let loaded: AppSettings = serde_json::from_str(&json).unwrap();
         assert_eq!(loaded.language, "zh");
+        assert_eq!(loaded.recent_node_types, vec!["Log", "If"]);
     }
 
     #[test]

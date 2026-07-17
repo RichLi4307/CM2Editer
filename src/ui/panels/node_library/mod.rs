@@ -14,6 +14,22 @@ pub enum NodeLibraryAction {
     None,
 }
 
+/// 节点库当前过滤/搜索状态。
+#[derive(Debug, Clone, Default)]
+pub struct NodeLibraryFilter {
+    /// 搜索关键词。
+    pub query: String,
+    /// 选中的场景分类 ID；空字符串表示“全部分类”。
+    pub scene_filter: String,
+}
+
+/// 将节点类型记录到最近使用列表（去重、置顶、最多保留 10 项）。
+pub fn record_recent(recent: &mut Vec<NodeType>, node_type: NodeType) {
+    recent.retain(|&n| n != node_type);
+    recent.insert(0, node_type);
+    recent.truncate(10);
+}
+
 /// 节点库面板。
 pub struct NodeLibraryPanel;
 
@@ -21,36 +37,75 @@ impl NodeLibraryPanel {
     pub fn show(
         ui: &mut egui::Ui,
         i18n: &I18n,
-        search_query: &mut String,
+        filter: &mut NodeLibraryFilter,
         search_window_open: &mut bool,
+        recent_node_types: &[NodeType],
         max_height: f32,
     ) -> NodeLibraryAction {
-        ui.heading(i18n.text("node_library.title"));
-        ui.text_edit_singleline(search_query);
-        ui.separator();
-
         let categories = SceneCatalog::categories();
         let mut action = NodeLibraryAction::None;
-        let query_lower = search_query.to_lowercase();
         egui::ScrollArea::vertical()
             .id_salt("node_library_scroll")
             .max_height(max_height)
             .auto_shrink([false, true])
             .show(ui, |ui| {
-                for category in categories {
+                ui.heading(i18n.text("node_library.title"));
+
+                // 搜索框 + 场景分类过滤
+                ui.horizontal(|ui| {
+                    ui.text_edit_singleline(&mut filter.query);
+                    egui::ComboBox::from_id_salt("node_library_scene_filter")
+                        .width(120.0)
+                        .selected_text(selected_filter_label(i18n, &filter.scene_filter))
+                        .show_ui(ui, |ui| {
+                            if ui
+                                .selectable_label(
+                                    filter.scene_filter.is_empty(),
+                                    i18n.text("node_library.filter_all"),
+                                )
+                                .clicked()
+                            {
+                                filter.scene_filter.clear();
+                            }
+                            for category in &categories {
+                                if ui
+                                    .selectable_label(
+                                        filter.scene_filter == category.id,
+                                        i18n.text(category.id),
+                                    )
+                                    .clicked()
+                                {
+                                    filter.scene_filter = category.id.to_string();
+                                }
+                            }
+                        });
+                });
+                ui.separator();
+
+                // 最近使用
+                if !recent_node_types.is_empty() {
+                    ui.label(egui::RichText::new(i18n.text("node_library.recent")).strong());
+                    ui.horizontal_wrapped(|ui| {
+                        for &node_type in recent_node_types {
+                            if ui.button(i18n.node_display_name(node_type)).clicked() {
+                                action = NodeLibraryAction::Create(node_type);
+                            }
+                        }
+                    });
+                    ui.separator();
+                }
+
+                for category in &categories {
+                    if !filter.scene_filter.is_empty() && filter.scene_filter != category.id {
+                        continue;
+                    }
                     let mut visible_subs = Vec::new();
                     for sub in &category.subcategories {
                         let filtered: Vec<_> = sub
                             .nodes
                             .iter()
                             .filter(|node_type| {
-                                let name = i18n.node_display_name(**node_type);
-                                let name_lower = name.to_lowercase();
-                                query_lower.is_empty()
-                                    || name_lower.contains(&query_lower)
-                                    || format!("{:?}", node_type)
-                                        .to_lowercase()
-                                        .contains(&query_lower)
+                                matches_filter(i18n, **node_type, &filter.query)
                             })
                             .copied()
                             .collect();
@@ -112,61 +167,85 @@ impl NodeLibraryPanel {
     pub fn show_search(
         ui: &mut egui::Ui,
         i18n: &I18n,
-        search_query: &mut String,
+        filter: &mut NodeLibraryFilter,
+        recent_node_types: &[NodeType],
     ) -> Option<NodeType> {
-        ui.text_edit_singleline(search_query);
+        ui.text_edit_singleline(&mut filter.query);
+
+        let categories = SceneCatalog::categories();
+        ui.horizontal(|ui| {
+            ui.label(i18n.text("node_library.filter_label"));
+            egui::ComboBox::from_id_salt("node_search_scene_filter")
+                .width(160.0)
+                .selected_text(selected_filter_label(i18n, &filter.scene_filter))
+                .show_ui(ui, |ui| {
+                    if ui
+                        .selectable_label(
+                            filter.scene_filter.is_empty(),
+                            i18n.text("node_library.filter_all"),
+                        )
+                        .clicked()
+                    {
+                        filter.scene_filter.clear();
+                    }
+                    for category in &categories {
+                        if ui
+                            .selectable_label(
+                                filter.scene_filter == category.id,
+                                i18n.text(category.id),
+                            )
+                            .clicked()
+                        {
+                            filter.scene_filter = category.id.to_string();
+                        }
+                    }
+                });
+        });
         ui.separator();
 
-        let query = search_query.to_lowercase();
-        let defs = all_node_definitions();
-        let categories = SceneCatalog::categories();
+        let mut created = None;
         let mut matched = Vec::new();
-        for def in defs {
-            let name = i18n.node_display_name(def.node_type);
-            if query.is_empty()
-                || name.to_lowercase().contains(&query)
-                || format!("{:?}", def.node_type).to_lowercase().contains(&query)
-                || def.category.to_lowercase().contains(&query)
-            {
-                matched.push(def);
-                continue;
-            }
-            // Also match against scene category / subcategory labels.
-            let mut found = false;
-            for category in &categories {
-                if i18n.text(category.id).to_lowercase().contains(&query) {
+        for def in all_node_definitions() {
+            if !filter.scene_filter.is_empty() {
+                let mut in_category = false;
+                for category in &categories {
+                    if category.id != filter.scene_filter {
+                        continue;
+                    }
                     for sub in &category.subcategories {
                         if sub.nodes.contains(&def.node_type) {
-                            found = true;
+                            in_category = true;
                             break;
                         }
                     }
-                }
-                if found {
-                    break;
-                }
-                for sub in &category.subcategories {
-                    if i18n.text(sub.id).to_lowercase().contains(&query)
-                        && sub.nodes.contains(&def.node_type)
-                    {
-                        found = true;
+                    if in_category {
                         break;
                     }
                 }
-                if found {
-                    break;
+                if !in_category {
+                    continue;
                 }
             }
-            if found {
+            if matches_filter(i18n, def.node_type, &filter.query) {
                 matched.push(def);
             }
         }
 
-        let mut created = None;
         egui::ScrollArea::vertical()
             .id_salt("node_search_scroll")
             .max_height(300.0)
             .show(ui, |ui| {
+                // 最近使用
+                if !recent_node_types.is_empty() {
+                    ui.label(egui::RichText::new(i18n.text("node_library.recent")).strong());
+                    for &node_type in recent_node_types {
+                        if ui.button(i18n.node_display_name(node_type)).clicked() {
+                            created = Some(node_type);
+                        }
+                    }
+                    ui.separator();
+                }
+
                 for def in matched {
                     let display_name = i18n.node_display_name(def.node_type);
                     if ui
@@ -178,5 +257,108 @@ impl NodeLibraryPanel {
                 }
             });
         created
+    }
+}
+
+fn selected_filter_label(i18n: &I18n, scene_filter: &str) -> String {
+    if scene_filter.is_empty() {
+        i18n.text("node_library.filter_all")
+    } else {
+        i18n.text(scene_filter)
+    }
+}
+
+/// 模糊匹配节点名称、NodeType 名、API 分类名和所属场景分类名。
+fn matches_filter(i18n: &I18n, node_type: NodeType, query: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+    let name = i18n.node_display_name(node_type).to_lowercase();
+    let debug = format!("{:?}", node_type).to_lowercase();
+    if fuzzy_match(query, &name) || fuzzy_match(query, &debug) {
+        return true;
+    }
+    let def = match crate::api::registry::get_definition(node_type) {
+        Some(d) => d,
+        None => return false,
+    };
+    if fuzzy_match(query, &def.category.to_lowercase()) {
+        return true;
+    }
+    // 同时匹配场景分类/子分类标签
+    for category in SceneCatalog::categories() {
+        for sub in &category.subcategories {
+            if sub.nodes.contains(&node_type) {
+                if fuzzy_match(query, &i18n.text(category.id).to_lowercase())
+                    || fuzzy_match(query, &i18n.text(sub.id).to_lowercase())
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// 简单字符级模糊匹配：query 中的字符按顺序在 target 中出现即匹配。
+/// 若 query 是 target 的连续子串则优先命中。
+fn fuzzy_match(query: &str, target: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+    if target.contains(query) {
+        return true;
+    }
+    let mut qi = query.chars();
+    let mut current = qi.next();
+    for c in target.chars() {
+        if let Some(qc) = current {
+            if c == qc {
+                current = qi.next();
+            }
+        }
+    }
+    current.is_none()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_fuzzy_match() {
+        assert!(fuzzy_match("", "hello"));
+        assert!(fuzzy_match("set", "setplayerposition"));
+        assert!(fuzzy_match("stp", "setplayerposition"));
+        assert!(fuzzy_match("setplayer", "setplayerposition"));
+        assert!(!fuzzy_match("xyz", "setplayerposition"));
+    }
+
+    #[test]
+    fn test_record_recent_dedup_and_limit() {
+        let mut recent = vec![NodeType::Log, NodeType::If];
+        record_recent(&mut recent, NodeType::Log);
+        assert_eq!(recent.len(), 2);
+        assert_eq!(recent[0], NodeType::Log);
+        record_recent(&mut recent, NodeType::While);
+        assert_eq!(recent[0], NodeType::While);
+        // 15 次插入相同节点只会保留 1 个
+        for _ in 0..15 {
+            record_recent(&mut recent, NodeType::For);
+        }
+        assert_eq!(recent.len(), 4);
+        // 用不同节点测试上限
+        for &nt in &[
+            NodeType::Break,
+            NodeType::Return,
+            NodeType::Wait,
+            NodeType::WaitForEvent,
+            NodeType::CallFunction,
+            NodeType::CallMethod,
+            NodeType::TriggerGameOver,
+        ] {
+            record_recent(&mut recent, nt);
+        }
+        assert_eq!(recent.len(), 10);
     }
 }
