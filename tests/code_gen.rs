@@ -15,6 +15,7 @@ fn make_node(id: &str, node_type: NodeType) -> Node {
         params: HashMap::new(),
         inputs: vec![Port::new("in_flow", PortType::Flow, "执行")],
         outputs: vec![Port::new("out_flow", PortType::Flow, "下一步")],
+        dynamic_ports: HashMap::new(),
         category: "Control".to_string(),
     }
 }
@@ -28,7 +29,7 @@ fn generate_code_from_container_graph() -> Result<()> {
 
     let code = generate_code(&graph)?;
     assert!(code.contains("main:"));
-    assert!(code.contains("Log(output=\"init\")"));
+    assert!(code.contains("Log(\"init\")"));
     assert!(!code.contains("_result = null"));
     Ok(())
 }
