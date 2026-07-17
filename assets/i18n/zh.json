@@ -161,6 +161,7 @@
     "label.category": "分类:",
     "label.category_other": "其他",
     "label.check_assets_namespaces": "请检查 assets/namespaces/",
+    "label.advanced_params": "高级参数",
     "label.coord_name": "名:",
     "label.copied": "已复制: {}",
     "label.destination": "目标: {}",

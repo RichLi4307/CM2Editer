@@ -118,6 +118,7 @@
     "label.items": "{} items",
     "label.items_count": "{}  ({} items)",
     "label.category_other": "Other",
+    "label.advanced_params": "Advanced",
     "search.placeholder": "Search...",
     "search.title": "Add Node",
     "search.close": "X Close",

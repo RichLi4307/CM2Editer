@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### 优化（P2.2 属性面板参数折叠）
+
+- 属性面板参数数量超过 4 个时，前 4 个保持展开，剩余参数默认折叠到“高级参数”区域。
+- 参数按 `NodeDefinition` 声明顺序排列，避免 `HashMap` 无序带来的跳动。
+- 新增 i18n 键 `label.advanced_params`（zh/en/ja）。
+- 位置：`src/ui/panels/properties.rs`。
+- `cargo test` 149 项 lib tests + 9 项 integration tests 通过。
+
 ### 优化（P2.1 节点库搜索增强）
 
 - 节点库面板新增场景分类过滤下拉框，支持按 `scene.*` 一级分类快速筛选。

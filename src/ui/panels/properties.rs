@@ -60,33 +60,63 @@ impl PropertiesPanel {
         }
         ui.separator();
 
-        for (key, value) in &node.params {
-            let type_hint = param_type_label(node, key);
-            let param_label = i18n.param_display_name(node.node_type, key);
-            // 纵向布局：标签在上，编辑器在下
-            ui.vertical(|ui| {
-                ui.label(format!("{} {}", param_label, type_hint));
-                if let Some(action) =
-                    Self::param_editor(
-                        ui,
-                        i18n,
-                        node,
-                        label,
-                        registry,
-                        picker,
-                        coord,
-                        coord_picker,
-                        condition_editor,
-                        edit_bufs,
-                        key,
-                        value,
-                    )
-                {
-                    actions.push(action);
-                }
-            });
-            ui.add_space(2.0);
-            ui.separator();
+        // 按定义顺序排列参数；未在定义中的参数（动态参数）排在末尾。
+        let mut ordered_keys: Vec<&str> = node.params.keys().map(|s| s.as_str()).collect();
+        if let Some(def) = get_definition(node.node_type) {
+            let order: std::collections::HashMap<&str, usize> = def
+                .params
+                .iter()
+                .enumerate()
+                .map(|(i, p)| (p.name.as_str(), i))
+                .collect();
+            ordered_keys.sort_by_key(|k| order.get(k).copied().unwrap_or(usize::MAX));
+        }
+
+        const COMMON_PARAM_COUNT: usize = 4;
+        let common = &ordered_keys[..ordered_keys.len().min(COMMON_PARAM_COUNT)];
+        let advanced = &ordered_keys[COMMON_PARAM_COUNT..];
+
+        for key in common {
+            if let Some(action) = Self::render_param_entry(
+                ui,
+                i18n,
+                node,
+                label,
+                registry,
+                picker,
+                coord,
+                coord_picker,
+                condition_editor,
+                edit_bufs,
+                key,
+            ) {
+                actions.push(action);
+            }
+        }
+
+        if !advanced.is_empty() {
+            egui::CollapsingHeader::new(i18n.text("label.advanced_params"))
+                .id_salt(format!("advanced_params_{}", node.id))
+                .default_open(false)
+                .show(ui, |ui| {
+                    for key in advanced {
+                        if let Some(action) = Self::render_param_entry(
+                            ui,
+                            i18n,
+                            node,
+                            label,
+                            registry,
+                            picker,
+                            coord,
+                            coord_picker,
+                            condition_editor,
+                            edit_bufs,
+                            key,
+                        ) {
+                            actions.push(action);
+                        }
+                    }
+                });
         }
 
         if node.params.is_empty() {
@@ -109,6 +139,47 @@ impl PropertiesPanel {
         ));
 
         actions
+    }
+
+    /// 渲染单个参数条目（标签 + 编辑器），返回触发的动作。
+    #[allow(clippy::too_many_arguments)]
+    fn render_param_entry(
+        ui: &mut egui::Ui,
+        i18n: &I18n,
+        node: &Node,
+        label: &LabelContainer,
+        registry: &NamespaceRegistry,
+        picker: &mut Option<NamespacePickerState>,
+        coord: &CoordinateRegistry,
+        coord_picker: &mut Option<CoordinatePickerState>,
+        condition_editor: &mut Option<ConditionEditorState>,
+        edit_bufs: &mut EditBuffers,
+        key: &str,
+    ) -> Option<PropertiesPanelAction> {
+        let value = node.params.get(key)?;
+        let type_hint = param_type_label(node, key);
+        let param_label = i18n.param_display_name(node.node_type, key);
+        let mut action = None;
+        ui.vertical(|ui| {
+            ui.label(format!("{} {}", param_label, type_hint));
+            action = Self::param_editor(
+                ui,
+                i18n,
+                node,
+                label,
+                registry,
+                picker,
+                coord,
+                coord_picker,
+                condition_editor,
+                edit_bufs,
+                key,
+                value,
+            );
+        });
+        ui.add_space(2.0);
+        ui.separator();
+        action
     }
 
     /// 为单个参数绘制合适的编辑控件。

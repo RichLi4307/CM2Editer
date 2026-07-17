@@ -114,6 +114,7 @@
     "label.category": "Category:",
     "label.category_other": "Other",
     "label.check_assets_namespaces": "Check assets/namespaces/",
+    "label.advanced_params": "Advanced",
     "label.coord_name": "Name:",
     "label.copied": "Copied: {}",
     "label.destination": "Destination: {}",
