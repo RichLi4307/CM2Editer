@@ -443,6 +443,22 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             p_opt("params", "参数", ParamType::List),
         ]),
         NodeDefinition::new(
+            NodeType::FunctionExists, "General Functions",
+            "函数存在",
+            "检查指定函数名是否存在",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::Boolean, "是否存在")])
+        .with_params(vec![p_req("functionName", "函数名", ParamType::String)]),
+        NodeDefinition::new(
+            NodeType::GetModVersion, "General Functions",
+            "Mod 版本",
+            "获取指定 Mod 的版本号列表，不传参数返回 Custom Mission 版本",
+            GENERAL_COLOR,
+        )
+        .with_outputs(vec![out_data("out_value", PortType::List, "版本")])
+        .with_params(vec![p_opt("modGUID", "Mod GUID", ParamType::String)]),
+        NodeDefinition::new(
             NodeType::Global, "Variables & Globals",
             "全局变量",
             "读写全局变量",
@@ -2566,7 +2582,7 @@ mod tests {
     #[test]
     fn test_all_variants_have_definition() {
         let all = all_definitions();
-        assert_eq!(all.len(), 186);
+        assert_eq!(all.len(), 188);
         let mut seen = std::collections::HashSet::new();
         for definition in &all {
             assert!(
@@ -2575,7 +2591,7 @@ mod tests {
                 definition.node_type
             );
         }
-        assert_eq!(seen.len(), 186);
+        assert_eq!(seen.len(), 188);
     }
 
 

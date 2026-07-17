@@ -917,6 +917,17 @@ impl<'a> CodeGenerator<'a> {
                 let npc = npc.trim_matches('"');
                 Some(format!("{npc}.SeesFlashing()"))
             }
+            NodeType::FunctionExists => {
+                let name = self.resolve_param_opt(label, node, "functionName")?;
+                Some(format!("FunctionExists({name})"))
+            }
+            NodeType::GetModVersion => {
+                let guid = self.resolve_param_opt(label, node, "modGUID");
+                match guid {
+                    Some(g) if g != "null" && !g.is_empty() => Some(format!("GetModVersion({g})")),
+                    _ => Some("GetModVersion()".to_string()),
+                }
+            }
             _ => Some(format!("var_{node_id}_{port_name}")),
         }
     }
@@ -1545,6 +1556,35 @@ mod tests {
             ("npc".to_string(), ParamValue::Literal(serde_json::json!("npc1"))),
         ].into())?;
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_function_exists_and_mod_version() -> Result<()> {
+        assert_data_node_generates(NodeType::FunctionExists, "out_value", [
+            ("functionName".to_string(), ParamValue::Literal(serde_json::json!("SomeFunction"))),
+        ].into())?;
+
+        assert_data_node_generates(NodeType::GetModVersion, "out_value", HashMap::new())?;
+
+        let mut graph = make_graph();
+        let mut node = make_data_node("mv1", NodeType::GetModVersion, "out_value");
+        node.set_param("modGUID", ParamValue::Literal(serde_json::json!("my-mod")));
+        graph.threads[0].labels[0].nodes.insert("mv1".to_string(), node);
+        let mut setvar = make_node("setvar", NodeType::SetVariable);
+        setvar.inputs.push(Port::new("value", PortType::Any, "Value").required(true));
+        setvar.set_param("name", ParamValue::Literal(serde_json::json!("testVar")));
+        graph.threads[0].labels[0].nodes.insert("setvar".to_string(), setvar);
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "mv1",
+            "out_value",
+            "setvar",
+            "value",
+            PortType::Any,
+        );
+        let code = generate_code(&graph)?;
+        assert!(code.contains(r#"GetModVersion("my-mod")"#), "got:\n{code}");
         Ok(())
     }
 

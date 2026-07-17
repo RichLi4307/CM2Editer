@@ -160,6 +160,8 @@ impl SceneCatalog {
                             NodeType::GetEvent,
                             NodeType::GetType,
                             NodeType::GetLanguage,
+                            NodeType::FunctionExists,
+                            NodeType::GetModVersion,
                         ],
                     },
                     SceneSubcategory {

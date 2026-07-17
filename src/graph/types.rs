@@ -168,6 +168,10 @@ pub enum NodeType {
     GetLanguage,
     /// 本地化字符串
     Translate,
+    /// 检查函数是否存在
+    FunctionExists,
+    /// 获取 Mod 版本
+    GetModVersion,
     /// 导出所有变量
     DumpVariables,
     /// 导出单个变量

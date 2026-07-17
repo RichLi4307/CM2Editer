@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 新增（FunctionExists / GetModVersion，P1.5）
+
+- 新增 `NodeType::FunctionExists`（C 类，Boolean 输出）与 `GetModVersion`（C 类，List 输出）。
+- 代码生成器在 `evaluate_data_output` 中生成 `FunctionExists("name")` 与 `GetModVersion()` / `GetModVersion("guid")`。
+- `General Functions` 分类；节点库归入 `scene.data_get.globals`；补充 zh/en i18n；更新 `docs/node_types.md` 与 AGENTS.md 计数（186→188）。
+- 测试：新增 `test_generate_function_exists_and_mod_version` 覆盖无参数与带 GUID；`cargo test` 147 项通过。
+
 ### 新增（NPC 高频方法节点，P1.4）
 
 - 新增 5 个 NPC 对象方法节点（`NodeType` 181 → 186）：

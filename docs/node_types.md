@@ -107,6 +107,8 @@
 | `DumpVariable` | B | 导出单个变量 | `DumpVariable("name")` |
 | `GetType` | C | 获取值类型名 | `type(value)` |
 | `GetLanguage` | C | 获取当前语言 | `GetLanguage()` |
+| `FunctionExists` | C | 检查函数是否存在 | `FunctionExists("name")` |
+| `GetModVersion` | C | 获取 Mod 版本 | `GetModVersion()` / `GetModVersion("guid")` |
 
 > **说明**：`SetVariable` / `Variable` 是新架构通用变量节点，已替代 `Global` / `Local` 的歧义用法。
 
