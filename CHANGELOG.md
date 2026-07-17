@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-17
+
+### 发布说明
+
+- 版本号与 `Cargo.toml` 对齐至 **0.3.0**。
+- 完整测试套件：**154 项 lib tests + 9 项 integration tests = 163 项全部通过**。
+- Release 构建产物：`target/release/CM2Editer.exe`（需连同 `assets/fonts/`、`assets/namespaces/`、`assets/i18n/`、README、AGENTS.md、LICENSE 一起分发）。
+
 ### 修复（P2 交互回归）
 
 - 修复节点库渲染黑框：P2.1 的搜索框与场景过滤下拉框在同一行，左栏宽度不足时导致水平布局溢出。改为搜索框独占一行，过滤下拉框占满剩余宽度。

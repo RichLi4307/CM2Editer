@@ -14,7 +14,7 @@
 - P0 语法缺口：事件监听器、停止音频、全局变量、性高潮、elseif 折叠、复合赋值、多分支 If、动态端口基础设施已全部完成。
 - P1 高频 API：Log 级别、Translate、List 六方法、NPC 五方法、FunctionExists / GetModVersion 已全部完成。
 - 节点库按场景分类（7 个顶层场景、20+ 子分类）；i18n zh/en/ja 已接入，188 个节点均有 zh/en 名称键。
-- `cargo test --lib`：147 项通过；`cargo clippy --lib`：22 warnings（无新增）。
+- `cargo test --lib`：154 项通过；`cargo clippy --lib`：22 warnings（无新增）。
 
 ---
 
@@ -84,7 +84,7 @@
 ### P3 — 发布准备
 
 - [ ] **P3.1 手动冒烟测试**：按 `docs/test_checklist.md`（v0.3.0 版）跑一遍新建 → 编辑 → 导出完整流程
-- [ ] **P3.2 构建与打包**：Release 构建，打包字体、命名空间、README、AGENTS.md、LICENSE
+- [x] **P3.2 构建与打包**：Release 构建，打包字体、命名空间、README、AGENTS.md、LICENSE
 - [ ] **P3.3 发布预览版**：GitHub Release `v0.3.0-alpha`，附已知限制说明
 
 ---
@@ -93,7 +93,7 @@
 
 1. **更新 `CHANGELOG.md`** — 每次功能交付后追加条目。
 2. **更新 `docs/TODO.md`** — 标记已完成任务 ✅，追加工作日志条目。
-3. **`cargo test` 全过再 commit** — 147 项全部通过为提交门槛。
+3. **`cargo test` 全过再 commit** — 163 项（154 lib + 9 integration）全部通过为提交门槛。
 4. **任何任务完成后必须提交一次 commit** — 不要留下未提交改动。
 5. **commit message 用中文前缀** — 格式 `<类型>: <简要描述>`，例如：`新增: EventListener 节点`。
 6. **重大文档变更需归档** — 将旧版按 `{文件名}_{YYYYMMDD}_v{序号}.md` 放入 `docs/archive/`。
@@ -113,6 +113,7 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
+| 2026-07-17 | P3.2 | Release 打包：版本号核对 0.3.0、README 与 CHANGELOG 同步、`cargo test` 163 项全过 | 已完成 |
 | 2026-07-17 | 文档-TODO | 归档 v10，新 TODO 按优先级整理 P2 使用体验优化与 P3 发布准备 | 已完成 |
 | 2026-07-17 | 修复 | 节点库渲染黑框 + 底栏分割线可互相越过 | 已完成 |
 | 2026-07-17 | P2.3 | CallMethod 方法下拉：方法注册表 + 属性面板下拉 + 参数模板 + 代码生成修复 | 已完成 |

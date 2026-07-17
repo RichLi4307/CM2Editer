@@ -3,8 +3,8 @@
 ![Rust CI](https://github.com/RichLi4307/CM2Editer/actions/workflows/rust.yml/badge.svg)
 ![Rust](https://img.shields.io/badge/rust-2024_dea584?logo=rust&logoColor=white)
 ![egui](https://img.shields.io/badge/egui-0.31-amber)
-![Tests](https://img.shields.io/badge/tests-109%20passed-brightgreen)
-![Version](https://img.shields.io/badge/version-0.2.2-blue)
+![Tests](https://img.shields.io/badge/tests-163%20passed-brightgreen)
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 CM2Editer 是给游戏 **Secret Flasher Manaka** 做自定义任务的一个节点式可视化编辑器。如果你给这个游戏制作 Custom Missions 2 的任务Mod，可以直接在画布上拖节点、连端口、填参数，最后导出成 `.code` 文件，让 Custom Missions 2 加载器读取。
@@ -13,7 +13,7 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
 
 ## 当前版本
 
-**v0.2.2** — 补齐 Data 端口链路（Goto/CreateListener `out_label`/`out_name` 完整可用）、Label 节点支持 Data 边自动获取名称、节点预览显示 🔗 连接状态、CreateCondition 下拉补全 6 个 `Exposed_*` 暴露条件、验证器 BFS 重构消除子标签误报。110 项测试通过。
+**v0.3.0** — 新架构（ThreadContainer / LabelContainer / ListenerContainer）已落地，JSON 格式升级至 v2.0；补齐 P0 语法缺口（事件监听器、全局变量、elseif 折叠、复合赋值、多分支 If、动态端口）与 P1 高频 API（Log 级别、Translate、List/NPC 方法、FunctionExists / GetModVersion）；完成 P2 体验优化（节点库搜索增强、参数折叠、CallMethod 方法下拉）。`cargo test` 154 项 lib tests + 9 项 integration tests 全部通过。
 
 ## 这个工具是什么
 
@@ -26,7 +26,7 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
 ## 当前阶段
 
 - **Phase 1–4**（数据层、序列化/代码生成、UI、集成测试、工程管理）已完成。
-- **Phase 5**（新功能）进行中：
+- **Phase 5**（新功能）已完成：
   - ✅ 5.1.1 DataFlow 重构 — 节点参数自动生成 Data 端口，虚线渲染，属性面板数据源下拉框
   - ✅ 5.1.2 参数类型重构 — `ParamType::Enum`，场景/动作/技能/物品等 20+ 参数改为下拉选择
   - ✅ 5.1.3 命名空间管理 — cosplay/adult_toy/avatar_type 等命名空间 JSON 文件，悬浮选择器窗口
@@ -34,6 +34,15 @@ Custom Missions 2 是 Crisp2002 写的第三方任务加载器，目前版本 2.
   - ✅ 5.2.3 Start 菱形依赖警告
   - ✅ 5.2.4 错误详情面板 — 状态栏错误计数可点击展开详情列表
   - ✅ 5.4.1 旧图档必填参数默认值修复
+- **P0 新架构**（v0.3.0 核心）已完成：
+  - 核心图模型容器化：`ThreadContainer` / `LabelContainer` / `ListenerContainer`
+  - JSON 工程格式从 v1.0 升级至 v2.0
+  - 移除旧 `Start` / `Label` 节点，改用容器入口钉作为 Flow 起点
+  - 保存/加载、代码生成、验证器、工程树、概览图全部迁移到新架构
+- **P2 使用体验优化**（v0.3.0）已完成：
+  - ✅ 2.1 节点库搜索增强：场景分类过滤 + 模糊匹配 + 最近使用记录
+  - ✅ 2.2 属性面板参数折叠：>4 参数自动收进“高级参数”区域
+  - ✅ 2.3 CallMethod 方法下拉：对象方法注册表 + 参数模板自动填充
 - 底部面板重构为三列可拖拽布局（代码 ┃ JSON ┃ DataFlow），DataFlow 方块巧克力板排列，Data 虚线可单独选中删除。
 
 ## 能做什么
@@ -42,16 +51,21 @@ CM2Editer 目前实现了 CM2 API 的核心功能。以下是**确实可用**的
 
 ### ✅ 已实现且可用
 
-- **控制流**：`Start` → `If`/`While`/`For` → `Label` → `Goto` → `Break`/`Return` 完整状态机
-- **线程与监听器**：`CreateThread`、`CreateListener`、`CreateListenerLocal`，每帧轮询 + Goto 状态切换
-- **Boolean 管道**：`GetStateBool`/`GetStateNumber` → `CompareNumbers` → `LogicAnd/Or/Not` → `If` 的 11 节点条件组合
-- **条件对象**：`CreateCondition` + `CheckCondition` → `If`，下拉覆盖 30+ 常用条件关键词
+- **容器化控制流**：`ThreadContainer` / `LabelContainer` / `ListenerContainer` 组织代码，入口钉作为 Flow 起点，支持 `If` / `While` / `For` / `Goto` / `Break` / `Return` 完整状态机
+- **线程与监听器**：`CreateThread`、`CreateListener`、`CreateListenerLocal`、`CreateEventListener`、`CreateEventListenerLocal`，每帧轮询 + 事件驱动 + Goto 状态切换
+- **Boolean 管道**：`GetStateBool`/`GetStateNumber` → `CompareNumbers` → `LogicAnd/Or/Not` → `If` 的完整条件组合
+- **条件对象**：`CreateCondition` + `CheckCondition` → `If`，支持组合语法 `[A,B]` / `(A,B)` / `!A` / `SubCondition_<id>`，覆盖 30+ 常用条件关键词
 - **坐标系统**：`GetPosition` + 16 个默认坐标预设 + `MakeVector`/`BreakVector`
 - **命名空间管理**：cosplay 等 7 个命名空间，188 条 cosplay 条目全部带中文翻译
 - **游戏状态读写**：`SetPlayerPosition`/`SetStage`/`SetAction`/`SetFutanari`/`SetSkill`/`LockHandcuffs`/`SetVibrator`/`SetPiston`/`PlaySoundEffect` 等 20+ 个 API 调用
 - **数值操作**：RP/体力/快感/物品数量的加减、读取
-- **对象创建**：`CreateList`、`CreateMissionPanel`、`CreateArea`、`CreateNPC`、`CreateGallery` 等
+- **对象创建**：`CreateList`、`CreateMissionPanel`、`CreateArea`、`CreateNPC`、`CreateGallery`、`CreateAudio` 等
+- **对象方法**：`CallMethod` 支持 40+ 个对象方法下拉选择，自动填充参数模板（`NPC.Warp`、`Area.Inside`、`List.Insert` 等）
 - **数据流（DataFlow）**：虚线连接 Data 端口传递参数，代码生成优先使用 Data 值
+- **多分支 If**：支持 `if ... elseif ... elseif ... else` 链式生成
+- **动态端口**：`If` 等节点支持运行时增减逻辑分支
+- **全局变量**：`_save`、`_time`、`_timediff`、`_settings`、`_mod`、`_mods`、`_stagechanged`、`_name` 等内置变量读取节点
+- **事件系统**：`SetEvent` / `GetEvent` 跨帧通信，事件监听器自动触发
 
 ### ⚠️ 未实现或受限
 
@@ -59,17 +73,12 @@ CM2Editer 目前实现了 CM2 API 的核心功能。以下是**确实可用**的
 
 | 缺失功能 | 影响 |
 |---------|------|
-| **`list.Insert`/`.Remove`/`.Contains`/`.Count`** 等列表操作 | 无法操作动态列表 |
 | **Gallery API**（`.Show()`/`.Confirmed()`） | 拍照功能不可用 |
 | **MessengerChat API**（`.Add()`/`.SetButtons()`/`.Clicked()`） | 聊天 UI 不可用 |
-| **`_save` / `_settings` / `_time` / `_timediff`** 全局变量 | 无法做存档/计时逻辑 |
-| **`elseif` 多分支** | 仅支持 `if/else`，多条件需嵌套 |
-| **`thread.WaitForFinish`** | 无法等待子线程 |
-| **`listener = null`** 销毁监听器 | 无显式销毁方式 |
-| **`_this` 当前线程引用** | 无法传递线程引用 |
-| **对象方法调用**（`Area.Inside`/`NPC.Warp` 等） | 需通过泛型 `CallMethod` 手写参数 |
+| **函数定义 / 自定义函数** | 不支持在编辑器内定义可复用函数，只能用 `CallFunction` 调用全局函数 |
+| **复杂对象生命周期** | 部分对象创建后的方法调用需手动选择，尚未为每个对象做全量专用节点 |
 
-> 以上 9 项已列入 `docs/TODO.md` 的 P1 优先级。其余未列举的 CM2 API 全部实现。详见 `docs/code_api_reference.md`。
+> 其余未列举的 CM2 API 已基本实现。详见 `docs/code_api_reference.md` 与 `docs/node_types.md`。
 
 ## 怎么运行
 
