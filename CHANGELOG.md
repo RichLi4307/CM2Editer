@@ -256,6 +256,7 @@
   - 从 `NodeType` 枚举中移除 `Start` / `Label`（变体数 168 → 166）。
   - 更新 `src/project.rs`：新建工程默认生成 `main` 线程容器。
   - 重新启用 `src/app.rs` 和 `src/ui` 模块，并迁移到容器化模型。
+
 ### 新增（i18n）
 
 - 创建运行时国际化基础设施：`src/ui/i18n.rs` 提供 `I18n` 结构体，支持从 `assets/i18n/` 加载 JSON 翻译文件、运行时切换语言、缺失时 fallback 到英语。
@@ -323,17 +324,20 @@
 ## [0.2.2] — 2026-07-10
 
 ### 修复（Data 端口链路）
+
 - **Goto `out_label` 端口**完整可用：节点定义 + 代码生成器 + `evaluate_data_output` 三级配合，输出实际 label 值而非变量名 `var_xxx`。
 - **CreateListener/CreateThread `out_name` 端口**同样修复：`evaluate_data_output` 新增映射，`out_name` → `labelName` 参数值。
 - **Label 节点 Data 边自动获取名称**：`collect_labels` 扫描 Label 节点并通过 `resolve_param_opt` 解析 `name` 参数（Data 边值优先于文本框输入）。
 - **节点预览**：连接到 Data 边的参数在画布节点上显示 `🔗` 链接状态，不再顽固显示空默认值。
 
 ### 修复（代码生成与验证器）
+
 - **验证器 BFS 重构**：不可达检查同时从 Start 节点和各子标签入口节点出发，子标签（如 `check_loop`）内的 Flow 链不再误报"未连接 Start"。
 - **CreateCondition.id / CreateItemCondition.id** 从 required 改为 optional，不填时不输出 `id=""`。
 - **CONDITION_TYPES** 下拉补全 6 个 `Exposed_*` 暴露条件（`Exposed_None`, `Front`, `Upper`, `HipCrouch`, `Hip`, `All`）。
 
 ### 改进
+
 - **节点库拖拽**：从左侧面板拖出节点到画布，带蓝色虚影跟随。
 - **全局热键门控**：文本框焦点时所有画布热键（Ctrl+Z/Y/C/V/Delete/Space）全部屏蔽，只对文本框生效。
 - **Ctrl+V 事件双保险**：`consume_key` + `Event::Paste` 两套机制同时门控。
@@ -341,12 +345,14 @@
 - **ParamTextEdit 持久缓冲区**：跨帧保形，回车/失焦才提交，不吞字、不闪烁。
 
 ### 文档
+
 - `agent_prompt.md` 新增 A/B/C 三类节点修改规则 + `evaluate_data_output` 分支要求
 - `node_types.md` 新增代码生成兼容性章节
 - `docs/hotkey_management.md` 热键管理规范
 - `docs/test_checklist.md` 70 项测试清单
 
 ### 测试
+
 - `cargo test --lib` : 93 项通过
 - `cargo clippy` : 仅 4 个 pre-existing 警告
 
@@ -355,6 +361,7 @@
 ## [0.2.1] — 2026-07-10
 
 ### 新增
+
 - `Label` 节点名称变化时自动注册到标签管理器
 - `CreateThread`/`CreateListener`/`CreateListenerLocal` 新增 `out_name` 端口（String 输出标签名）
 - `StringConstant` 节点：输出字面量 String 值
@@ -369,6 +376,7 @@
 - 标签管理面板：删除/重命名按钮（非 main 标签）
 
 ### 修复
+
 - 全局热键门控：文本框焦点时 Ctrl+Z/Y/C/V/Delete/Space 全不对画布生效
 - Ctrl+V 粘贴事件双保险（consume_key + Event::Paste 两套机制）
 - `Object`/`List` 类型参数跳过 ComboBox 直通文本框
@@ -379,6 +387,7 @@
 - 多热键文档 `docs/hotkey_management.md`
 
 ### 文档
+
 - `docs/node_types.md` 重写：159 个实际实现的节点清单
 - `docs/tutorial_make_code.md`：6 步实战教程（Flow/Data/Listener/Goto/CheckCondition 全流程）
 - `docs/if_condition_design.md` 按设计文档验收
@@ -386,6 +395,7 @@
 - `docs/test_flow_diagram.md` 流程设计图
 
 ### 测试
+
 - NodeType 变体：158 → 159
 - `cargo test --lib`：93 项通过
 - `cargo clippy`：仅 4 个 pre-existing 警告
@@ -395,6 +405,7 @@
 ## [0.2.0] — 2026-07-09
 
 ### 新增
+
 - 代码生成重构：`CreateThread` 顶层生成、`_result=null` 标签收尾、`thread.Goto` 语法
 - GoTo/CreateThread 目标标签自动发现与注册
 - If/While 条件模板下拉框（30+ 预设表达式）
@@ -406,6 +417,7 @@
 - If 条件模板下拉
 
 ### 修复
+
 - `.code` 语法对齐：`If(true) [`→`if true`、`While→while`、`For→for in`、`Break→break`
 - Bodypaint 类型 Boolean→Number 修正
 - JSON 加载必填参数默认值补填
@@ -414,6 +426,7 @@
 - 字体 110MB→32MB
 
 ### 文档
+
 - `docs/code_api_reference.md`：基于英文官方文档 + 80+ .code 反推的 DSL 权威参考
 - `docs/code_pseudocode_map.md`：112 个 .code 文件的 Python 伪代码映射表
 
@@ -422,23 +435,27 @@
 ## [0.1.1] — 2026-07-09
 
 ### 新增（Phase 6：Monitor→Condition 管道）
+
 - 7 个纯数据 Boolean/Condition 节点：`Boolean`、`GetStateBool`、`GetStateNumber`、`CompareNumbers`、`LogicAnd`、`LogicOr`、`LogicNot`。无 Flow 端口，通过 DataFlow 连线组合后喂给 If/While。
 - `evaluate_data_output()` 递归解析 Data 边链，生成完整 `.code` 表达式（`(_state.Ecstasy >= 50) && (_state.NearNPC)`）。
 - If/While 属性面板新增 30+ 条条件模板 ComboBox，Data 连线时自动隐藏。
 
 ### 新增（坐标系统）
+
 - 3 个坐标节点：`GetPosition`、`MakeVector`、`BreakVector`。
 - 坐标预设注册表（`src/api/coordinate.rs`）+ 16 个默认坐标（`assets/coordinates/default.json`）。
 - 坐标选择器浮动窗口：按场景分组卡片 + 搜索。
 - Vector 参数属性面板显示 📍 按钮，GetPosition 节点一键填充。
 
 ### 新增（命名空间管理）
+
 - 命名空间面板改为交互式卡片布局：CollapsingHeader 一级分类 + 二级子分类，点击卡片复制 key。
 - cosplay 命名空间 188 条目全部带中文翻译（来源：EMBEDDED_COSPLAY_LIB）。
 - 命名空间选择器窗口支持二级分类展示。
 - Import/Export/Add 按钮（内联表单直接写 JSON）。
 
 ### 新增（UI）
+
 - 启动欢迎页：标题 + 打开工程/新建工程按钮 + Space 快捷键提示。
 - 左栏重构为三标签：工程（合并节点库）、命名空间、坐标。
 - 代码生成语法对齐 CM2 DSL：`If(true) [`→`if true`、`While→while`、`For→for in`、`Break→break`。
@@ -447,6 +464,7 @@
 - 窗口自适应屏幕大小（3000×2000 → OS clamp）。
 
 ### 修复
+
 - 底栏弹回/自缩：三合一面板统一控制。
 - Bodypaint 类型从 Boolean 修正为 Number。
 - Data-only 节点不再误报"不可达"警告。
@@ -456,6 +474,7 @@
 - 命名空间反序列化修复：`category` 字段正确读取。
 
 ### 测试
+
 - NodeType 变体：143 → 153。
 - `cargo test`：109 项全部通过。
 - `cargo clippy`：仅 4 个 pre-existing 警告。
@@ -661,6 +680,3 @@
 - NodeType 变体：143 → 150。
 - `cargo test`：108 项全部通过。
 - `cargo clippy`：仅 4 个 pre-existing 警告。
-
-
-

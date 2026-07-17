@@ -86,8 +86,8 @@ main:
 ```
 
 > 注意：
-> - `output` 是 String 类型，直接写 `hello`，不需要加引号，编辑器会生成正确引号。
-> - **入口钉不是节点，不能从它拖线**。只要 Log 是当前唯一“没有 Flow 入边”的节点，入口钉会自动指向它。
+> `output` 是 String 类型，直接写 `hello`，不需要加引号，编辑器会生成正确引号。
+> **入口钉不是节点，不能从它拖线**。只要 Log 是当前唯一“没有 Flow 入边”的节点，入口钉会自动指向它。
 
 ---
 
@@ -176,8 +176,8 @@ main:
 - `_timediff` → **GetTimeDiff**
 
 > 注意：
-> - `GetSave` / `GetSettings` / `GetMod` / `GetMods` 返回对象/列表，需要指定键或字段拆分。`GetSave` 现在支持 `key` 参数生成 `_save.key`，但存档不是实时写入的，不适合读取当前分数或经验。
-> - 角色经验/等级没有专门的“增加经验”节点，一般通过 `_state.Rank` 读取等级，或用 `SetPlayerData(dataName="Rank", value=...)` 尝试设置（具体是否生效取决于游戏内部实现）。
+> `GetSave` / `GetSettings` / `GetMod` / `GetMods` 返回对象/列表，需要指定键或字段拆分。`GetSave` 现在支持 `key` 参数生成 `_save.key`，但存档不是实时写入的，不适合读取当前分数或经验。
+> 角色经验/等级没有专门的“增加经验”节点，一般通过 `_state.Rank` 读取等级，或用 `SetPlayerData(dataName="Rank", value=...)` 尝试设置（具体是否生效取决于游戏内部实现）。
 
 ---
 
@@ -237,9 +237,9 @@ main:
 ```
 
 > 注意：
-> - `CreateCondition` 是 Flow 节点，必须放在 Flow 链里才会生成变量。
-> - `CheckCondition` 是 Data 节点，把条件对象转成布尔值，才能接入 `LogicAnd` / `If`。
-> - 实际变量名（如 `var_cond`）由节点 ID 自动生成，不必手动写。
+> `CreateCondition` 是 Flow 节点，必须放在 Flow 链里才会生成变量。
+> `CheckCondition` 是 Data 节点，把条件对象转成布尔值，才能接入 `LogicAnd` / `If`。
+> 实际变量名（如 `var_cond`）由节点 ID 自动生成，不必手动写。
 
 ---
 
@@ -264,8 +264,8 @@ main:
 ```
 
 > 类似节点：
-> - **AddCurrentEarnRP** — 增加本次外出赚取的 RP。
-> - **SetCurrentRP** / **SetCurrentEarnRP** — 直接设置，而不是增加。
+> **AddCurrentEarnRP** — 增加本次外出赚取的 RP。
+> **SetCurrentRP** / **SetCurrentEarnRP** — 直接设置，而不是增加。
 
 ---
 

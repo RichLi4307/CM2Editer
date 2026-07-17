@@ -9,6 +9,7 @@
 ## 实现
 
 Ctrl+C/V 需要**双重保护**，因为 eframe 在不同平台上的行为不同：
+
 - 部分平台（Windows 7/10 旧版 winit）Ctrl+C/V 作为 `Key::C`/`Key::V` 事件
 - 部分平台（Wayland/Windows 11）Ctrl+C/V 被 eframe 转为 `Event::Copy`/`Event::Paste`
 

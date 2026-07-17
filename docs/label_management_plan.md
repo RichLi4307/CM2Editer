@@ -24,18 +24,22 @@
 ## 计划
 
 ### Phase 1：修复绑定范围
+
 - **删除 Label 节点**时清理 `graph.labels` 对应 entry
 - **Label 改名**时从旧名字的 `graph.labels` 中移除，并插入新名字的 entry
 - **`+ 新建标签`**时同时创建一个空 Label 节点（或提示用户需要拖拽 Label 到画布）
 
 ### Phase 2：完善验证规则
+
 - 未绑定标签的 Label 节点触发**新警告** `FlowError::Warning("Label 节点未被绑定到 graph.labels")`
 - BFS 源 3 保持现有规则：只匹配已绑定的 Label
 
 ### Phase 3：Data 连线支持
+
 - `CreateListener.out_label` / `Goto.out_name` / `StringConstant.out_value` → Label.name 的 Data 连线时，自动将 Label 绑定到 `graph.labels`
 
 ### 风险
+
 - 多个标签节点同名 → 现在会直接替换，后续需检查冲突
 - 改名时连线的端口可能已经丢失 → 维护属性面板自身的稳定性
 
