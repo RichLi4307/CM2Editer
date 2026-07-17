@@ -179,6 +179,7 @@
     "label.path": "路径: {}",
     "label.position": "位置: ({}, {})",
     "label.select_template": "选择模板...",
+    "label.select_method": "选择方法...",
     "label.selected_count": "已选 {} 项",
     "label.size": "尺寸: {} x {}",
     "label.space": "空间:",

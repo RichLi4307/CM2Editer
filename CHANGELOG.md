@@ -6,6 +6,18 @@
 
 ## [Unreleased]
 
+### 优化（P2.3 CallMethod 方法下拉）
+
+- 新增 `src/api/method_registry.rs`：统一方法注册表，按对象类型（Thread/NPC/Area/List/Audio/Text/...）收录 40+ 个对象方法，含方法名、参数类型与默认值模板。
+- 属性面板对 `CallMethod.method` 参数渲染方法下拉框：
+  - 若 `thread` 端口已连接对象，自动按对象类型过滤方法；
+  - 未连接时列出所有方法，按对象类型分组；
+  - 选中方法后自动填充方法名与 `params` 参数模板（默认值）。
+- 修复 `CallMethod` 代码生成：从 `CallMethod(thread=..., method=..., params=...)` 改为正确的 `var = object.Method(args)` 语法。
+- 新增 `test_generate_call_method_with_object_reference` 生成器测试；方法注册表自带 4 个单元测试。
+- 新增 i18n 键 `label.select_method`（zh/en/ja）。
+- `cargo test` 154 项 lib tests + 9 项 integration tests 通过。
+
 ### 优化（P2.2 属性面板参数折叠）
 
 - 属性面板参数数量超过 4 个时，前 4 个保持展开，剩余参数默认折叠到“高级参数”区域。

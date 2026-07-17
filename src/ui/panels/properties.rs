@@ -10,14 +10,17 @@ use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::ui::panels::condition_editor::ConditionEditorState;
 use crate::ui::panels::param_text_edit::{EditBuffers, ParamTextEdit};
+use std::collections::HashMap;
 
 /// 属性面板可能触发的动作。
 ///
 /// 属性面板不直接操作图，而是把动作返回给 `App`，由 `App` 转换为可撤销命令。
 #[derive(Debug, Clone)]
 pub enum PropertiesPanelAction {
-    /// 修改参数
+    /// 修改单个参数
     SetParam { key: String, value: ParamValue },
+    /// 同时修改多个参数（如 CallMethod 选择方法时同时设置方法名与参数模板）
+    SetParams { values: HashMap<String, ParamValue> },
     /// 添加动态端口/参数
     AddDynamicPort { group_id: String },
     /// 删除动态端口/参数
@@ -262,6 +265,11 @@ impl PropertiesPanel {
                     .size(11.0)
                     .color(egui::Color32::from_gray(140)),
             );
+        }
+
+        // CallMethod 方法下拉：根据 thread 数据连接推断对象类型，列出方法并自动填充参数模板。
+        if node.node_type == NodeType::CallMethod && key == "method" {
+            return Self::method_editor(ui, key, value, node, label, edit_bufs, i18n);
         }
 
         // Vector 参数：坐标预设选择器按钮
@@ -725,6 +733,84 @@ static IF_CONDITION_TEMPLATES: &[(&str, &str)] = &[
     ("template.moisture", "_state.Moisture >= "),
     ("template.heartrate", "_state.HeartRate >= "),
 ];
+
+/// CallMethod 方法下拉编辑器：根据 thread 数据连接推断对象类型，列出方法并自动填充参数模板。
+impl PropertiesPanel {
+    fn method_editor(
+        ui: &mut egui::Ui,
+        key: &str,
+        value: &ParamValue,
+        node: &Node,
+        label: &LabelContainer,
+        edit_bufs: &mut EditBuffers,
+        i18n: &I18n,
+    ) -> Option<PropertiesPanelAction> {
+        use crate::api::method_registry::{
+            all_methods, methods_for_object_type, object_type_from_node_type,
+        };
+
+        let current = match value {
+            ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
+            _ => String::new(),
+        };
+
+        let object_type = connected_data_source(label, &node.id, "thread")
+            .and_then(|(src_id, _)| label.nodes.get(&src_id))
+            .and_then(|src| object_type_from_node_type(src.node_type));
+
+        let methods: Vec<&crate::api::method_registry::MethodSignature> = if let Some(ot) = object_type {
+            methods_for_object_type(ot)
+        } else {
+            all_methods().iter().collect()
+        };
+
+        if methods.is_empty() {
+            return Self::literal_editor(ui, key, value, &node.id, edit_bufs, i18n);
+        }
+
+        let mut picked = None;
+        egui::ComboBox::from_id_salt("call_method_method")
+            .width(180.0)
+            .selected_text(if current.is_empty() {
+                i18n.text("label.select_method")
+            } else {
+                current.clone()
+            })
+            .show_ui(ui, |ui| {
+                let mut last_object_type = "";
+                for method in methods {
+                    if method.object_type != last_object_type {
+                        if !last_object_type.is_empty() {
+                            ui.separator();
+                        }
+                        ui.label(egui::RichText::new(method.object_type).strong().size(11.0));
+                        last_object_type = method.object_type;
+                    }
+                    if ui
+                        .selectable_label(current == method.method_name, method.full_label())
+                        .clicked()
+                    {
+                        picked = Some(method);
+                    }
+                }
+            });
+
+        if let Some(method) = picked {
+            let mut values = HashMap::new();
+            values.insert(
+                key.to_string(),
+                ParamValue::Literal(serde_json::json!(method.method_name)),
+            );
+            values.insert(
+                "params".to_string(),
+                ParamValue::Literal(method.params_template()),
+            );
+            return Some(PropertiesPanelAction::SetParams { values });
+        }
+
+        Self::literal_editor(ui, key, value, &node.id, edit_bufs, i18n)
+    }
+}
 
 /// 返回参数类型简短标签，显示在参数名旁边帮助用户理解预期格式。
 fn param_type_label(node: &Node, param_name: &str) -> String {

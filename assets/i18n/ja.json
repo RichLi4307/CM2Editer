@@ -109,6 +109,7 @@
     "label.literal": "Literal",
     "label.dynamic_ports": "Dynamic Ports",
     "label.select_template": "Select template...",
+    "label.select_method": "Select method...",
     "hint.json_array": "JSON array [1,2,3]",
     "hint.json_object": "JSON object",
     "label.type": "Type: {}",

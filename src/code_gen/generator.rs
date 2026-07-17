@@ -559,6 +559,10 @@ impl<'a> CodeGenerator<'a> {
             return Ok(());
         }
 
+        if node.node_type == NodeType::CallMethod {
+            return self.generate_call_method(label, node);
+        }
+
         let is_thread_or_listener = matches!(
             node.node_type,
             NodeType::CreateThread | NodeType::CreateListener | NodeType::CreateListenerLocal
@@ -627,6 +631,37 @@ impl<'a> CodeGenerator<'a> {
                 .write_line(&format!("{node_name}({param_str})"));
         }
 
+        Ok(())
+    }
+
+    /// 生成 `CallMethod` 节点的 `.code`：输出 `var_out = object.Method(args)`。
+    fn generate_call_method(&mut self, label: &LabelContainer, node: &Node) -> Result<()> {
+        let object = self.require_param(label, node, "thread")?;
+        let method = self
+            .require_param(label, node, "method")?
+            .trim_matches('"')
+            .to_string();
+
+        let mut args: Vec<String> = Vec::new();
+        if let Some(ParamValue::Literal(obj)) = node.params.get("params") {
+            if obj.is_object() {
+                if let Some(map) = obj.as_object() {
+                    for (key, value) in map {
+                        if value.is_null() {
+                            continue;
+                        }
+                        args.push(format!("{}={}", key, format_literal(value)));
+                    }
+                }
+            } else if !obj.is_null() {
+                args.push(format_literal(obj));
+            }
+        }
+        let args_str = args.join(", ");
+
+        let var_name = format!("var_{}_out_result", node.id);
+        self.formatter
+            .write_line(&format!("{var_name} = {object}.{method}({args_str})"));
         Ok(())
     }
 
@@ -1088,6 +1123,49 @@ mod tests {
                 "level {level} should generate {expected}, got:\n{code2}"
             );
         }
+        Ok(())
+    }
+
+    #[test]
+    fn test_generate_call_method_with_object_reference() -> Result<()> {
+        let mut graph = make_graph();
+        let mut thread = make_node("thread1", NodeType::CreateThread);
+        thread.set_param("labelName", ParamValue::Literal(serde_json::json!("sub")));
+        thread.outputs.push(Port::new("out_thread", PortType::Any, "Thread"));
+        thread.outputs.push(Port::new("out_name", PortType::String, "Name"));
+        graph.threads[0].labels[0].nodes.insert("thread1".to_string(), thread);
+
+        let mut call = make_node("call1", NodeType::CallMethod);
+        call.inputs.push(Port::new("thread", PortType::Any, "Thread"));
+        call.set_param("method", ParamValue::Literal(serde_json::json!("Goto")));
+        call.set_param(
+            "params",
+            ParamValue::Literal(serde_json::json!({ "labelName": "target" })),
+        );
+        call.outputs.push(Port::new("out_result", PortType::Any, "Result"));
+        graph.threads[0].labels[0].nodes.insert("call1".to_string(), call);
+
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "thread1",
+            "out_thread",
+            "call1",
+            "thread",
+            PortType::Any,
+        );
+
+        let flow_edge = Edge::new(
+            EdgeEndpoint::new("thread1", "out_flow"),
+            EdgeEndpoint::new("call1", "in_flow"),
+            PortType::Flow,
+        );
+        graph.threads[0].labels[0].edges.insert(flow_edge.id.clone(), flow_edge);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_call1_out_result = var_thread1_out_thread.Goto(labelName=\"target\")"),
+            "CallMethod should generate object.Method(args), got:\n{code}"
+        );
         Ok(())
     }
 
@@ -2153,7 +2231,7 @@ mod tests {
             NodeType::CreateSnapshot,
             NodeType::CreateNPC,
             NodeType::CreateInput,
-            NodeType::CallMethod,
+            // CallMethod is tested separately because it requires a connected object.
             NodeType::ForeachNode,
         ] {
             assert_flow_node_generates(ty, HashMap::new())?;

@@ -1640,6 +1640,17 @@ impl eframe::App for App {
                                         to: value,
                                     });
                                 }
+                                PropertiesPanelAction::SetParams { values } => {
+                                    for (key, value) in values {
+                                        let from = self.node_param(&node_id, &key);
+                                        self.push_command(Command::SetParam {
+                                            node_id: node_id.clone(),
+                                            key,
+                                            from,
+                                            to: value,
+                                        });
+                                    }
+                                }
                                 PropertiesPanelAction::AddDynamicPort { group_id } => {
                                     self.push_command(Command::AddDynamicPort {
                                         node_id: node_id.clone(),

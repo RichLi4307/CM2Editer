@@ -132,6 +132,7 @@
     "label.path": "Path: {}",
     "label.position": "Position: ({}, {})",
     "label.select_template": "Select template...",
+    "label.select_method": "Select method...",
     "label.selected_count": "Selected {} items",
     "label.size": "Size: {} x {}",
     "label.space": "Space:",
