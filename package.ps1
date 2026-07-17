@@ -1,9 +1,9 @@
 # CM2Editer release packaging script
 # Usage: powershell -File package.ps1
-# Output: dist/CM2Editer_v0.2.2.zip
+# Output: dist/CM2Editer_v0.3.0.zip
 
 $ErrorActionPreference = "Stop"
-$version = "0.2.2"
+$version = "0.3.0"
 $root = $PSScriptRoot
 $distDir = Join-Path $root "dist\CM2Editer_v$version"
 $exe = Join-Path $root "target\release\CM2Editer.exe"
@@ -23,17 +23,13 @@ Copy-Item $exe -Destination $distDir
 # Copy data directories
 Copy-Item (Join-Path $root "assets\namespaces") -Destination (Join-Path $distDir "assets\namespaces") -Recurse
 Copy-Item (Join-Path $root "assets\coordinates") -Destination (Join-Path $distDir "assets\coordinates") -Recurse
+Copy-Item (Join-Path $root "assets\i18n") -Destination (Join-Path $distDir "assets\i18n") -Recurse
+Copy-Item (Join-Path $root "assets\icons") -Destination (Join-Path $distDir "assets\icons") -Recurse
+Copy-Item (Join-Path $root "assets\fonts") -Destination (Join-Path $distDir "assets\fonts") -Recurse
 
-# Copy fonts (Regular + Bold only)
-$fontDst = Join-Path $distDir "assets\fonts"
-$null = New-Item -ItemType Directory -Path $fontDst -Force
-$fontFiles = Get-ChildItem (Join-Path $root "assets\fonts") -Recurse -Filter "CM2Editer-*.otf"
-foreach ($f in $fontFiles) {
-    Copy-Item $f.FullName -Destination $fontDst
-}
-
-# Copy readme
+# Copy documentation and license
 Copy-Item (Join-Path $root "README.md") -Destination $distDir
+Copy-Item (Join-Path $root "LICENSE") -Destination $distDir
 
 # Print listing
 Write-Host ""
