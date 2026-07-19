@@ -226,10 +226,12 @@ impl PropertiesPanel {
             }
         }
 
-        // If/While 条件模板下拉框.
-        if (node.node_type == NodeType::If || node.node_type == NodeType::While)
-            && key == "condition"
-        {
+        // If/While 条件模板下拉框；对 If 节点的动态 elseif 条件参数也使用同样编辑器。
+        let is_if_condition = (node.node_type == NodeType::If || node.node_type == NodeType::While)
+            && key == "condition";
+        let is_elseif_condition =
+            node.node_type == NodeType::If && key.starts_with("elseif_") && key.ends_with("_condition");
+        if is_if_condition || is_elseif_condition {
             return Self::condition_template_editor(ui, key, value, i18n);
         }
 

@@ -200,6 +200,13 @@ fn default_show_grid() -> bool {
 }
 
 impl ContainerGraph {
+    /// 创建一个完全空的图，不包含任何线程或标签。
+    ///
+    /// 用于新建 `.code` 文件：不是每个文件都需要线程，空图让用户自行添加容器。
+    pub fn default_empty() -> Self {
+        Self::default()
+    }
+
     /// 创建一个默认图，包含一个 main 线程和 main 标签
     pub fn default_main() -> Self {
         let mut graph = Self::default();

@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+### 修复（P0 v0.3.0 issues）
+
+- 修复 `If` / `While` 条件代码生成被引号包裹：新增 `resolve_condition`，对字符串字面量条件去除 JSON 引号并直接作为 `.code` 表达式输出；Data 端口连接的条件仍走 `evaluate_data_output`。
+- 为 `If` / `While` 及其 `elseif` 链统一添加外层括号，生成 `if (condition) / elseif (condition) / while (condition)`，避免解释器优先级解析不稳定。
+- 新建 `.code` 文件时默认使用空图，不再强制创建 `main` 线程；通过 `add_code_file` 与无内部 JSON 的 `.code` 加载回退均改为 `ContainerGraph::default_empty()`。新建项目的主文件仍保留默认线程便于快速开始。
+- 修复 `elseif` 分支条件编辑不直观：`properties.rs` 中对 `elseif_*_condition` 动态参数也使用条件模板下拉框（ComboBox 快速填充 + 文本微调），与主 `condition` 字段体验一致。
+- 为支持空图，将 `App.selected_container` 改为 `Option<SelectedContainer>`，`current_label()` / `label_ref()` / `label_mut()` 均返回 `Option`，并同步处理所有调用点（画布渲染、属性面板、复制/删除、撤销重做等）。
+
+### 测试
+
+- 更新 `test_if_elseif_else_chain` 与 `test_multi_branch_if_node` 断言，验证无引号且带括号的新格式。
+- 新增 `test_new_code_file_starts_empty`，验证新建项目主文件仍保留默认线程，而 `add_code_file` 创建的附加文件为空图。
+- 更新 `test_label_ref_switches_between_label_and_listener` 与 `test_label_mut_switches_between_label_and_listener`，适配 `Option<SelectedContainer>`。
+- `cargo test`：155 项 lib tests + 9 项 integration tests = 164 项全部通过。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明

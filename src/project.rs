@@ -196,7 +196,12 @@ impl Project {
         let mut meta = MissionMeta::with_title(name);
         meta.default_active = false;
 
-        let graph_doc = default_graph_doc();
+        let graph_doc = GraphDocument::from_graph(
+            ContainerGraph::default_main(),
+            Value::Object(serde_json::Map::new()),
+            Viewport::default(),
+            Vec::new(),
+        );
         let mut code_file = CodeFile {
             name: DEFAULT_CODE_FILE.to_string(),
             graph_doc,
@@ -471,10 +476,12 @@ impl Project {
     }
 }
 
-/// 创建一个默认的容器化节点图，包含一个 main 线程和 main 标签。
+/// 创建一个默认的容器化节点图，不包含任何线程或标签。
+///
+/// 新建 `.code` 文件时使用空图，因为不是每个文件都需要线程/标签。
 pub(crate) fn default_graph_doc() -> GraphDocument {
     GraphDocument::from_graph(
-        ContainerGraph::default_main(),
+        ContainerGraph::default_empty(),
         Value::Object(serde_json::Map::new()),
         Viewport::default(),
         Vec::new(),
@@ -535,7 +542,7 @@ fn load_code_file(root: &Path, name: &str) -> Result<CodeFile> {
     } else {
         loaded_from_code = true;
         GraphDocument::from_graph(
-            ContainerGraph::default_main(),
+            ContainerGraph::default_empty(),
             Value::Object(serde_json::Map::new()),
             Viewport::default(),
             Vec::new(),
@@ -732,4 +739,26 @@ mod tests {
         let _ = std::fs::remove_dir_all(&temp);
         Ok(())
     }
+
+    #[test]
+    fn test_new_code_file_starts_empty() -> Result<()> {
+        let temp = std::env::temp_dir().join(format!("cm2_test_{}", uuid::Uuid::new_v4()));
+        let mut project = Project::create(&temp, "Mission")?;
+
+        // 新建项目的主文件仍保留默认 main 线程，便于快速开始。
+        assert_eq!(project.code_files[0].graph_doc.graph.threads.len(), 1);
+
+        // 通过 add_code_file 创建的附加文件应为空图，不强制包含线程。
+        project.add_code_file("empty")?;
+        let empty_file = project
+            .code_files
+            .iter()
+            .find(|c| c.name == "empty")
+            .expect("empty file exists");
+        assert_eq!(empty_file.graph_doc.graph.threads.len(), 0);
+
+        let _ = std::fs::remove_dir_all(&project.root);
+        Ok(())
+    }
 }
+

@@ -371,7 +371,9 @@ impl<'a> CodeGenerator<'a> {
             .nodes
             .get(node_id)
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
-        let condition = self.require_param(label, node, "condition")?;
+        let condition = self
+            .resolve_condition(label, node, "condition")
+            .unwrap_or_else(|| "true".to_string());
 
         let true_target = self.flow_target(label, node_id, "out_true")?;
         let false_target = self.flow_target(label, node_id, "out_false")?;
@@ -384,7 +386,7 @@ impl<'a> CodeGenerator<'a> {
                     let port_id = &chunk[0];
                     let cond_param = &chunk[1];
                     let cond = self
-                        .resolve_param_opt(label, node, cond_param)
+                        .resolve_condition(label, node, cond_param)
                         .unwrap_or_else(|| "true".to_string());
                     let target = self.flow_target(label, node_id, port_id)?;
                     local_branches.push((cond, target));
@@ -410,7 +412,7 @@ impl<'a> CodeGenerator<'a> {
             None
         };
 
-        self.formatter.write_line(&format!("if {condition}"));
+        self.formatter.write_line(&format!("if ({condition})"));
         self.formatter.indent();
         if let Some(ref target) = true_target {
             self.generate_sequence(label, target, join.as_deref())?;
@@ -419,7 +421,7 @@ impl<'a> CodeGenerator<'a> {
 
         // 本节点的动态 elseif 分支
         for (cond, target) in &local_branches {
-            self.formatter.write_line(&format!("elseif {cond}"));
+            self.formatter.write_line(&format!("elseif ({cond})"));
             self.formatter.indent();
             if let Some(t) = target {
                 self.generate_sequence(label, t, join.as_deref())?;
@@ -438,8 +440,10 @@ impl<'a> CodeGenerator<'a> {
             if false_node.node_type == NodeType::If
                 && Self::is_single_flow_predecessor(label, &false_id, &prev_if_id)
             {
-                let elif_condition = self.require_param(label, false_node, "condition")?;
-                self.formatter.write_line(&format!("elseif {elif_condition}"));
+                let elif_condition = self
+                    .resolve_condition(label, false_node, "condition")
+                    .unwrap_or_else(|| "true".to_string());
+                self.formatter.write_line(&format!("elseif ({elif_condition})"));
                 self.formatter.indent();
                 if let Some(ref target) = self.flow_target(label, &false_id, "out_true")? {
                     self.generate_sequence(label, target, join.as_deref())?;
@@ -487,12 +491,14 @@ impl<'a> CodeGenerator<'a> {
             .nodes
             .get(node_id)
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
-        let condition = self.require_param(label, node, "condition")?;
+        let condition = self
+            .resolve_condition(label, node, "condition")
+            .unwrap_or_else(|| "true".to_string());
 
         let body_target = self.flow_target(label, node_id, "out_flow")?;
         let break_target = self.flow_target(label, node_id, "out_break")?;
 
-        self.formatter.write_line(&format!("while {condition}"));
+        self.formatter.write_line(&format!("while ({condition})"));
         self.formatter.indent();
         if let Some(ref target) = body_target {
             self.generate_sequence(label, target, Some(node_id))?;
@@ -763,6 +769,35 @@ impl<'a> CodeGenerator<'a> {
                 "Node {} missing required parameter '{}'",
                 node.id, name
             ))),
+        }
+    }
+
+    /// 解析条件表达式。
+    ///
+    /// 与 `resolve_param` 不同：条件字段通常以字符串字面量保存表达式原文
+    /// （如 `"a > b"`），生成代码时应去掉 JSON 字符串引号，直接作为 `.code`
+    /// 表达式输出；若连接了 Data 端口，则使用对应变量名。
+    fn resolve_condition(
+        &self,
+        label: &LabelContainer,
+        node: &Node,
+        name: &str,
+    ) -> Option<String> {
+        if let Some((src_node, src_port)) = self.connected_param_source(label, node, name) {
+            return self.evaluate_data_output(label, &src_node, &src_port);
+        }
+        match node.params.get(name)? {
+            ParamValue::Ref {
+                node: ref_node,
+                port,
+            } => Some(format!("var_{ref_node}_{port}")),
+            ParamValue::Literal(value) => match value {
+                serde_json::Value::String(s) => Some(s.clone()),
+                serde_json::Value::Bool(b) => Some(b.to_string()),
+                serde_json::Value::Number(n) => Some(n.to_string()),
+                _ => Some(format_literal(value)),
+            },
+            ParamValue::Null => Some("true".to_string()),
         }
     }
 
@@ -1455,8 +1490,8 @@ mod tests {
         }
 
         let code = generate_code(&graph)?;
-        assert!(code.contains("if true"), "missing if:\n{code}");
-        assert!(code.contains("elseif false"), "missing elseif:\n{code}");
+        assert!(code.contains("if (true)"), "missing if:\n{code}");
+        assert!(code.contains("elseif (false)"), "missing elseif:\n{code}");
         assert!(code.contains("else"), "missing else:\n{code}");
         assert!(
             !code.contains("else\n\tif"),
@@ -1519,9 +1554,9 @@ mod tests {
         }
 
         let code = generate_code(&graph)?;
-        assert!(code.contains("if \"a\""), "missing if:\n{code}");
-        assert!(code.contains("elseif \"b\""), "missing first elseif:\n{code}");
-        assert!(code.contains("elseif \"c\""), "missing second elseif:\n{code}");
+        assert!(code.contains("if (a)"), "missing if:\n{code}");
+        assert!(code.contains("elseif (b)"), "missing first elseif:\n{code}");
+        assert!(code.contains("elseif (c)"), "missing second elseif:\n{code}");
         assert!(code.contains("else"), "missing else:\n{code}");
         Ok(())
     }

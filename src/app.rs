@@ -275,7 +275,7 @@ pub struct Clipboard {
 pub struct App {
     pub graph_doc: GraphDocument,
     pub canvas: Canvas,
-    selected_container: SelectedContainer,
+    selected_container: Option<SelectedContainer>,
     pub selected_nodes: HashSet<String>,
     pub selected_edges: HashSet<String>,
     pub interaction: InteractionController,
@@ -365,7 +365,7 @@ impl App {
         Self {
             graph_doc,
             canvas: Canvas::new(),
-            selected_container: SelectedContainer::default(),
+            selected_container: None,
             selected_nodes: HashSet::new(),
             selected_edges: HashSet::new(),
             error_nodes: HashSet::new(),
@@ -438,42 +438,54 @@ impl App {
 
     }
 
-    fn label_ref(graph_doc: &GraphDocument, sel: SelectedContainer) -> &LabelContainer {
-        let thread = &graph_doc.graph.threads[sel.thread_idx];
-        match sel.kind {
-            ContainerKind::Label(idx) => &thread.labels[idx],
-            ContainerKind::Listener(idx) => &thread.listeners[idx].inner,
-        }
+    fn label_ref(
+        graph_doc: &GraphDocument,
+        sel: Option<SelectedContainer>,
+    ) -> Option<&LabelContainer> {
+        let sel = sel?;
+        let thread = graph_doc.graph.threads.get(sel.thread_idx)?;
+        Some(match sel.kind {
+            ContainerKind::Label(idx) => thread.labels.get(idx)?,
+            ContainerKind::Listener(idx) => &thread.listeners.get(idx)?.inner,
+        })
     }
 
-    fn label_mut(graph_doc: &mut GraphDocument, sel: SelectedContainer) -> &mut LabelContainer {
-        let thread = &mut graph_doc.graph.threads[sel.thread_idx];
-        match sel.kind {
-            ContainerKind::Label(idx) => &mut thread.labels[idx],
-            ContainerKind::Listener(idx) => &mut thread.listeners[idx].inner,
-        }
+    fn label_mut(
+        graph_doc: &mut GraphDocument,
+        sel: Option<SelectedContainer>,
+    ) -> Option<&mut LabelContainer> {
+        let sel = sel?;
+        let thread = graph_doc.graph.threads.get_mut(sel.thread_idx)?;
+        Some(match sel.kind {
+            ContainerKind::Label(idx) => thread.labels.get_mut(idx)?,
+            ContainerKind::Listener(idx) => &mut thread.listeners.get_mut(idx)?.inner,
+        })
     }
 
-    fn current_label(&self) -> &LabelContainer {
+    fn current_label(&self) -> Option<&LabelContainer> {
         Self::label_ref(&self.graph_doc, self.selected_container)
     }
 
-    fn current_label_mut(&mut self) -> &mut LabelContainer {
+    fn current_label_mut(&mut self) -> Option<&mut LabelContainer> {
         Self::label_mut(&mut self.graph_doc, self.selected_container)
     }
 
     fn node_param(&self, node_id: &str, key: &str) -> ParamValue {
-        let label = self.current_label();
-        label
-            .nodes
-            .get(node_id)
-            .and_then(|n| n.params.get(key).cloned())
+        self.current_label()
+            .and_then(|label| {
+                label
+                    .nodes
+                    .get(node_id)
+                    .and_then(|n| n.params.get(key).cloned())
+            })
             .unwrap_or(ParamValue::Null)
     }
 
     /// 执行命令并压入 Undo 栈。
     fn push_command(&mut self, cmd: Command) {
-        let label = self.current_label_mut();
+        let Some(label) = self.current_label_mut() else {
+            return;
+        };
         cmd.apply(label);
         self.undo_stack.push(cmd);
         if self.undo_stack.len() > 50 {
@@ -487,7 +499,9 @@ impl App {
     /// 撤销。
     fn undo(&mut self) {
         if let Some(cmd) = self.undo_stack.pop() {
-            let label = self.current_label_mut();
+            let Some(label) = self.current_label_mut() else {
+                return;
+            };
             cmd.undo(label);
             self.redo_stack.push(cmd);
             self.graph_version += 1;
@@ -499,7 +513,9 @@ impl App {
     /// 重做。
     fn redo(&mut self) {
         if let Some(cmd) = self.redo_stack.pop() {
-            let label = self.current_label_mut();
+            let Some(label) = self.current_label_mut() else {
+                return;
+            };
             cmd.apply(label);
             self.undo_stack.push(cmd);
             self.graph_version += 1;
@@ -561,8 +577,10 @@ impl App {
     /// 当存在选中的连线时，优先仅删除连线；否则删除选中的节点及其连接。
     /// 这样可以单独删除 Data 虚线而不误删节点。
     fn delete_selected(&mut self) {
+        let Some(label) = self.current_label() else {
+            return;
+        };
         let (edges_to_remove, nodes_to_remove) = {
-            let label = self.current_label();
             if !self.selected_edges.is_empty() {
                 let mut edges_to_remove = Vec::new();
                 for edge in label.edges.values() {
@@ -619,8 +637,10 @@ impl App {
         if self.selected_nodes.is_empty() {
             return;
         }
+        let Some(label) = self.current_label() else {
+            return;
+        };
         let (nodes, edges) = {
-            let label = self.current_label();
             let mut nodes: Vec<Node> = Vec::new();
             let mut old_to_new = HashMap::new();
             for id in &self.selected_nodes {
@@ -742,12 +762,15 @@ impl App {
             if let Some(code_file) = project.active_code_file() {
                 self.graph_doc = code_file.graph_doc.clone();
                 self.canvas = Canvas::with_viewport(self.graph_doc.viewport.clone());
-                self.selected_container = SelectedContainer::default();
+                self.selected_container = Self::first_available_container(&self.graph_doc);
                 self.selected_nodes.clear();
                 self.selected_edges.clear();
                 self.undo_stack.clear();
                 self.redo_stack.clear();
-                self.show_welcome_hint = self.current_label().nodes.is_empty();
+                self.show_welcome_hint = self
+                    .current_label()
+                    .map(|label| label.nodes.is_empty())
+                    .unwrap_or(true);
                 self.show_meta_editor = false;
                 // 为缺少必填参数的节点补默认值，兼容旧 JSON
                 for thread in &mut self.graph_doc.graph.threads {
@@ -762,6 +785,25 @@ impl App {
                 self.graph_version += 1;
             }
         }
+    }
+
+    /// 返回图中第一个可用的容器（第一个线程的第一个标签，或第一个监听器），
+    /// 用于新加载文件时初始化 `selected_container`。
+    fn first_available_container(graph_doc: &GraphDocument) -> Option<SelectedContainer> {
+        let thread = graph_doc.graph.threads.first()?;
+        if !thread.labels.is_empty() {
+            return Some(SelectedContainer {
+                thread_idx: 0,
+                kind: ContainerKind::Label(0),
+            });
+        }
+        if !thread.listeners.is_empty() {
+            return Some(SelectedContainer {
+                thread_idx: 0,
+                kind: ContainerKind::Listener(0),
+            });
+        }
+        None
     }
 
     /// 为容器中的节点补齐缺失的必填参数与数据端口。
@@ -812,7 +854,7 @@ impl App {
 
     /// 新建空图（在工程模式下清空当前激活的代码图）。
     fn confirm_new_graph(&mut self) {
-        if !self.current_label().nodes.is_empty() {
+        if self.current_label().map(|label| !label.nodes.is_empty()).unwrap_or(false) {
             let confirmed = rfd::MessageDialog::new()
                 .set_title(self.i18n.text("dialog.clear_graph_title"))
                 .set_description(self.i18n.text("dialog.clear_graph_body"))
@@ -834,7 +876,7 @@ impl App {
             Vec::new(),
         );
         self.canvas = Canvas::new();
-        self.selected_container = SelectedContainer::default();
+        self.selected_container = Self::first_available_container(&self.graph_doc);
         self.selected_nodes.clear();
         self.selected_edges.clear();
         self.undo_stack.clear();
@@ -858,7 +900,7 @@ impl App {
             return Ok(());
         };
         generate_code_to_file(&self.graph_doc.graph, &path)?;
-        if self.current_label().nodes.is_empty() {
+        if self.current_label().map(|label| label.nodes.is_empty()).unwrap_or(true) {
             rfd::MessageDialog::new()
                 .set_title(self.i18n.text("dialog.export_empty_title"))
                 .set_description(self.i18n.text("dialog.export_empty_body"))
@@ -948,13 +990,13 @@ impl App {
                 self.switch_to_code(&name);
             }
             ProjectTreeAction::SelectContainer { thread_idx, container } => {
-                self.selected_container = SelectedContainer {
+                self.selected_container = Some(SelectedContainer {
                     thread_idx,
                     kind: match container {
                         crate::ui::panels::project_tree::ContainerKind::Label(idx) => ContainerKind::Label(idx),
                         crate::ui::panels::project_tree::ContainerKind::Listener(idx) => ContainerKind::Listener(idx),
                     },
-                };
+                });
                 self.show_meta_editor = false;
             }
             ProjectTreeAction::NewCodeDialog => {
@@ -1236,8 +1278,8 @@ impl eframe::App for App {
 
                         // 工程文件树（下半部分，填满剩余空间）
                         let active_code = self.active_code_name();
-                        let selected_thread = self.selected_container.thread_idx;
-                        let selected_container = Some(match self.selected_container.kind {
+                        let selected_thread = self.selected_container.map(|s| s.thread_idx).unwrap_or(0);
+                        let selected_container = self.selected_container.map(|s| match s.kind {
                             ContainerKind::Label(idx) => crate::ui::panels::project_tree::ContainerKind::Label(idx),
                             ContainerKind::Listener(idx) => crate::ui::panels::project_tree::ContainerKind::Listener(idx),
                         });
@@ -1596,7 +1638,7 @@ impl eframe::App for App {
                     OverviewContainerKind::Label => ContainerKind::Label(idx),
                     OverviewContainerKind::Listener => ContainerKind::Listener(idx),
                 };
-                self.selected_container = SelectedContainer { thread_idx, kind };
+                self.selected_container = Some(SelectedContainer { thread_idx, kind });
                 self.selected_nodes.clear();
                 self.selected_edges.clear();
                 self.left_panel_tab = LeftPanelTab::Project;
@@ -1615,20 +1657,20 @@ impl eframe::App for App {
                     }
                 } else if let Some(node_id) = self.selected_nodes.iter().next().cloned() {
                     edited_node_id = Some(node_id.clone());
-                    let label = self.current_label().clone();
-                    if let Some(node) = label.nodes.get(&node_id).cloned() {
-                        let actions = PropertiesPanel::show(
-                            ui,
-                            &self.i18n,
-                            &node,
-                            &label,
-                            &self.namespace_registry,
-                            &mut self.namespace_picker,
-                            &self.coordinate_registry,
-                            &mut self.coordinate_picker,
-                            &mut self.condition_editor,
-                            &mut self.edit_buffers,
-                        );
+                    if let Some(label) = self.current_label().cloned() {
+                        if let Some(node) = label.nodes.get(&node_id).cloned() {
+                            let actions = PropertiesPanel::show(
+                                ui,
+                                &self.i18n,
+                                &node,
+                                &label,
+                                &self.namespace_registry,
+                                &mut self.namespace_picker,
+                                &self.coordinate_registry,
+                                &mut self.coordinate_picker,
+                                &mut self.condition_editor,
+                                &mut self.edit_buffers,
+                            );
                         for action in actions {
                             match action {
                                 PropertiesPanelAction::SetParam { key, value } => {
@@ -1677,6 +1719,7 @@ impl eframe::App for App {
                             }
                         }
                     }
+                }
                 } else if self.project.is_some() {
                     ui.heading(self.i18n.text("panel.project_settings"));
                     ui.label(self.i18n.text("properties.hint_select"));
@@ -1759,17 +1802,18 @@ impl eframe::App for App {
         // 条件组合编辑器悬浮窗口
         if let Some(mut editor) = self.condition_editor.take() {
             if editor.open {
-                let label = self.current_label().clone();
-                if let Some(new_value) = ConditionEditor::show(ctx, &mut editor, &label, &self.i18n) {
-                    if let Some(node_id) = edited_node_id.as_ref() {
-                        let key = editor.param_key.clone();
-                        let from = self.node_param(node_id, &key);
-                        self.push_command(Command::SetParam {
-                            node_id: node_id.clone(),
-                            key,
-                            from,
-                            to: ParamValue::Literal(serde_json::json!(new_value)),
-                        });
+                if let Some(label) = self.current_label().cloned() {
+                    if let Some(new_value) = ConditionEditor::show(ctx, &mut editor, &label, &self.i18n) {
+                        if let Some(node_id) = edited_node_id.as_ref() {
+                            let key = editor.param_key.clone();
+                            let from = self.node_param(node_id, &key);
+                            self.push_command(Command::SetParam {
+                                node_id: node_id.clone(),
+                                key,
+                                from,
+                                to: ParamValue::Literal(serde_json::json!(new_value)),
+                            });
+                        }
                     }
                 }
                 if editor.open {
@@ -1907,13 +1951,14 @@ impl eframe::App for App {
                     egui::vec2(panel_w - rs2.right_top().x, panel_h),
                 );
                 ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rc3), |ui| {
-                    let label = self.current_label().clone();
-                    if let Some(node_id) =
-                        DataMenuPanel::show(ui, &label, &self.selected_nodes, &self.i18n)
-                    {
-                        self.selected_nodes.clear();
-                        self.selected_nodes.insert(node_id);
-                        self.selected_edges.clear();
+                    if let Some(label) = self.current_label().cloned() {
+                        if let Some(node_id) =
+                            DataMenuPanel::show(ui, &label, &self.selected_nodes, &self.i18n)
+                        {
+                            self.selected_nodes.clear();
+                            self.selected_nodes.insert(node_id);
+                            self.selected_edges.clear();
+                        }
                     }
                 });
             });
@@ -2158,6 +2203,9 @@ impl App {
 
     /// 更新画布内容并处理交互。
     fn update_canvas(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
+        let Some(label) = Self::label_ref(&self.graph_doc, self.selected_container) else {
+            return;
+        };
         let canvas_response = self.canvas.update(ui);
         let canvas_rect = canvas_response.canvas_rect;
         let cull_margin = 50.0;
@@ -2177,7 +2225,6 @@ impl App {
         let mut port_hits: Vec<(String, String, Pos2, PortType, bool)> = Vec::new();
 
         {
-            let label = Self::label_ref(&self.graph_doc, self.selected_container);
             for node in label.nodes.values() {
                 let Some(definition) = get_definition(node.node_type) else {
                     continue;
@@ -2227,7 +2274,6 @@ impl App {
         // 便于用户点选/框选虚线并单独删除。
         let selected_node = self.selected_nodes.iter().next().cloned();
         {
-            let label = Self::label_ref(&self.graph_doc, self.selected_container);
             // 入口钉到入口节点的 Flow 连线
             if let Some(to_pos) = entry_target {
                 if cull_rect.intersects(Rect::from_two_pos(entry_pin_screen, to_pos)) {
@@ -2281,7 +2327,6 @@ impl App {
         // 第三遍：渲染非选中节点（下层）
         // 第四遍：渲染选中节点（上层 / 置顶）
         {
-            let label = Self::label_ref(&self.graph_doc, self.selected_container);
             for (node, definition, rect, ports, _, has_errors) in node_data.iter().filter(|d| !d.4) {
                 node_renderer.render_with_data(ui, node, definition, *rect, ports, false, *has_errors, Some(label));
             }
@@ -2302,9 +2347,9 @@ impl App {
                     .unwrap_or(canvas_rect.center());
                 let target_color = self.interaction.edge_target_color(&Theme::WIRE_DEFAULT);
                 edge_renderer.render_edge_with_color(ui, start_pos, end_pos, target_color, &[]);
-                if let Some(status) =
-                    self.interaction
-                        .edge_target_status(Self::label_ref(&self.graph_doc, self.selected_container), end_pos, &port_hits)
+                if let Some(status) = self
+                    .interaction
+                    .edge_target_status(label, end_pos, &port_hits)
                 {
                     if let Some((_, _, center, _, _)) = port_hits
                         .iter()
@@ -2319,7 +2364,9 @@ impl App {
 
         // 处理交互
         {
-            let label = Self::label_mut(&mut self.graph_doc, self.selected_container);
+            let Some(label) = Self::label_mut(&mut self.graph_doc, self.selected_container) else {
+                return;
+            };
             let commands = self.interaction.handle_input(
                 ctx,
                 ui,
@@ -2350,7 +2397,10 @@ impl App {
         }
 
         // 空画布欢迎提示
-        if self.show_welcome_hint && self.current_label().nodes.is_empty() && self.project.is_none() {
+        if self.show_welcome_hint
+            && self.current_label().map(|l| l.nodes.is_empty()).unwrap_or(true)
+            && self.project.is_none()
+        {
             let center = canvas_rect.center();
             let card_w = 320.0;
             let card_h = 220.0;
@@ -2649,13 +2699,13 @@ mod tests {
             thread_idx: 0,
             kind: ContainerKind::Label(0),
         };
-        assert_eq!(App::label_ref(&doc, label_sel).name, "main");
+        assert_eq!(App::label_ref(&doc, Some(label_sel)).unwrap().name, "main");
 
         let listener_sel = SelectedContainer {
             thread_idx: 0,
             kind: ContainerKind::Listener(0),
         };
-        assert_eq!(App::label_ref(&doc, listener_sel).name, "check");
+        assert_eq!(App::label_ref(&doc, Some(listener_sel)).unwrap().name, "check");
     }
 
     #[test]
@@ -2665,14 +2715,14 @@ mod tests {
             thread_idx: 0,
             kind: ContainerKind::Label(0),
         };
-        App::label_mut(&mut doc, label_sel).name = "renamed".to_string();
+        App::label_mut(&mut doc, Some(label_sel)).unwrap().name = "renamed".to_string();
         assert_eq!(doc.graph.threads[0].labels[0].name, "renamed");
 
         let listener_sel = SelectedContainer {
             thread_idx: 0,
             kind: ContainerKind::Listener(0),
         };
-        App::label_mut(&mut doc, listener_sel).name = "check2".to_string();
+        App::label_mut(&mut doc, Some(listener_sel)).unwrap().name = "check2".to_string();
         assert_eq!(doc.graph.threads[0].listeners[0].inner.name, "check2");
     }
 }
