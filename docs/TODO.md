@@ -15,7 +15,7 @@
 - **P0 v0.3.0 issues 已修复**：IF/While 条件取消引号包裹并统一外层括号；新建 `.code` 文件默认空图；`elseif_*_condition` 使用条件模板编辑器。
 - P1 高频 API：Log 级别、Translate、List 六方法、NPC 五方法、FunctionExists / GetModVersion 已全部完成。
 - 节点库按场景分类（7 个顶层场景、20+ 子分类）；i18n zh/en/ja 已接入，188 个节点均有 zh/en 名称键。
-- `cargo test --lib`：**155** 项通过；`cargo clippy --lib`：22 warnings（无新增）。
+- `cargo test --lib`：**155** 项通过；`cargo clippy --lib`：**23** warnings（无新增，均为历史遗留）。
 
 ---
 
