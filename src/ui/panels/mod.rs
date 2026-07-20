@@ -14,4 +14,5 @@ pub mod overview;
 pub mod param_text_edit;
 pub mod project_tree;
 pub mod properties;
+pub mod state_picker;
 pub mod status_bar;

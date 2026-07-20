@@ -37,6 +37,7 @@ use crate::ui::panels::{
     overview::{OverviewAction, OverviewContainerKind, OverviewPanel},
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::{PropertiesPanel, PropertiesPanelAction},
+    state_picker::{StatePicker, StatePickerState, StateType},
     status_bar::StatusBarPanel,
     status_bar::{ErrorDetailWindow, StatusBarEvent},
     condition_editor::{ConditionEditor, ConditionEditorState},
@@ -310,6 +311,8 @@ pub struct App {
     pub coordinate_registry: CoordinateRegistry,
     /// 坐标选择器窗口状态。
     pub coordinate_picker: Option<CoordinatePickerState>,
+    /// `_state` 探针选择器窗口状态。
+    pub state_picker: Option<StatePickerState>,
     /// 条件组合编辑器窗口状态。
     pub condition_editor: Option<ConditionEditorState>,
     /// 国际化文本注册表。
@@ -378,6 +381,7 @@ impl App {
             namespace_picker: None,
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
+            state_picker: None,
             condition_editor: None,
             i18n: {
                 let mut i18n = crate::ui::i18n::I18n::load_bundled();
@@ -1626,6 +1630,7 @@ impl eframe::App for App {
                             &mut self.namespace_picker,
                             &self.coordinate_registry,
                             &mut self.coordinate_picker,
+                            &mut self.state_picker,
                             &mut self.condition_editor,
                             &mut self.edit_buffers,
                         );
@@ -1753,6 +1758,38 @@ impl eframe::App for App {
                 }
             } else {
                 self.coordinate_picker = None;
+            }
+        }
+
+        // `_state` 探针选择器悬浮窗口
+        let expected_state_type = edited_node_id
+            .as_ref()
+            .and_then(|id| self.current_label().nodes.get(id))
+            .map(|node| {
+                if node.node_type == NodeType::GetStateBool {
+                    StateType::Boolean
+                } else {
+                    StateType::Number
+                }
+            })
+            .unwrap_or(StateType::Boolean);
+        if let Some(picker) = self.state_picker.as_mut() {
+            if picker.open {
+                if let Some(path) = StatePicker::show(ctx, picker, &self.i18n, expected_state_type) {
+                    if let Some(node_id) = edited_node_id.as_ref() {
+                        let value = ParamValue::Literal(serde_json::json!(path));
+                        let key = picker.param_key.clone();
+                        let from = self.node_param(node_id, &key);
+                        self.push_command(Command::SetParam {
+                            node_id: node_id.clone(),
+                            key,
+                            from,
+                            to: value,
+                        });
+                    }
+                }
+            } else {
+                self.state_picker = None;
             }
         }
 

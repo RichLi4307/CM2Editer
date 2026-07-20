@@ -9,6 +9,7 @@ use crate::ui::i18n::I18n;
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::ui::panels::condition_editor::ConditionEditorState;
+use crate::ui::panels::state_picker::StatePickerState;
 use crate::ui::panels::param_text_edit::{EditBuffers, ParamTextEdit};
 use std::collections::HashMap;
 
@@ -42,6 +43,7 @@ impl PropertiesPanel {
         picker: &mut Option<NamespacePickerState>,
         coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
+        state_picker: &mut Option<StatePickerState>,
         condition_editor: &mut Option<ConditionEditorState>,
         edit_bufs: &mut EditBuffers,
     ) -> Vec<PropertiesPanelAction> {
@@ -89,6 +91,7 @@ impl PropertiesPanel {
                 picker,
                 coord,
                 coord_picker,
+                state_picker,
                 condition_editor,
                 edit_bufs,
                 key,
@@ -112,6 +115,7 @@ impl PropertiesPanel {
                             picker,
                             coord,
                             coord_picker,
+                            state_picker,
                             condition_editor,
                             edit_bufs,
                             key,
@@ -155,6 +159,7 @@ impl PropertiesPanel {
         picker: &mut Option<NamespacePickerState>,
         coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
+        state_picker: &mut Option<StatePickerState>,
         condition_editor: &mut Option<ConditionEditorState>,
         edit_bufs: &mut EditBuffers,
         key: &str,
@@ -174,6 +179,7 @@ impl PropertiesPanel {
                 picker,
                 coord,
                 coord_picker,
+                state_picker,
                 condition_editor,
                 edit_bufs,
                 key,
@@ -200,6 +206,7 @@ impl PropertiesPanel {
         picker: &mut Option<NamespacePickerState>,
         _coord: &CoordinateRegistry,
         coord_picker: &mut Option<CoordinatePickerState>,
+        state_picker: &mut Option<StatePickerState>,
         condition_editor: &mut Option<ConditionEditorState>,
         edit_bufs: &mut EditBuffers,
         key: &str,
@@ -288,6 +295,14 @@ impl PropertiesPanel {
             if ui.button(i18n.text("button.coord_select")).on_hover_text(i18n.text("tooltip.coord_picker")).clicked() {
                 *coord_picker = Some(CoordinatePickerState::new("__getposition__"));
             }
+        }
+
+        // GetStateBool / GetStateNumber：_state 探针选择器。
+        if (node.node_type == NodeType::GetStateBool || node.node_type == NodeType::GetStateNumber)
+            && key == "stateKey"
+            && ui.button(i18n.text("button.state_select")).on_hover_text(i18n.text("tooltip.state_picker")).clicked()
+        {
+            *state_picker = Some(StatePickerState::new(key));
         }
 
         // 如果参数有固定枚举选项，直接显示枚举下拉框。

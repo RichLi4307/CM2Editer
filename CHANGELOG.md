@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+### 优化（P2.6 `_state` 探针选择器）
+
+- 新增 `src/ui/panels/state_picker.rs`：`_state` 嵌套字段树形选择器，按角色/状态/装备/成人玩具/位置/相机/手铐分组，叶子携带完整点分路径与类型（Boolean/Number/String）。
+- 在 `GetStateBool` / `GetStateNumber` 节点的 `stateKey` 参数旁增加 **选择状态** 按钮，点击弹出选择器，选中后自动写入路径（如 `Position.x`、`AdultToys.Handcuff`）。
+- `GetStateBool` / `GetStateNumber` 的 `stateKey` 参数从固定枚举改为 `String` 类型，以支持任意嵌套路径；代码生成器保持 `_state.{stateKey}` 不变，无需修改。
+- 在 `app.rs` 中新增 `state_picker` 窗口状态，与命名空间/坐标选择器保持一致的面板级 wiring。
+- 在 `assets/i18n/zh.json`、`en.json`、`ja.json` 中补充 `button.state_select`、`tooltip.state_picker`、`state_picker.title`、分类与搜索相关键。
+- 新增 `state_picker.rs` 单元测试 4 项，验证树构建、路径查找、类型一致性与搜索过滤；`cargo test --lib` 158 项通过，`cargo clippy --lib` 保持 23 个 pre-existing warnings（无新增）。
+- 位置：`src/ui/panels/state_picker.rs`、`src/ui/panels/properties.rs`、`src/ui/panels/mod.rs`、`src/app.rs`、`src/api/definitions.rs`、`assets/i18n/*.json`。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明

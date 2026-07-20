@@ -2448,16 +2448,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             PortType::Boolean,
             "状态值",
         )])
-        .with_params(vec![e(
-            "stateKey",
-            "状态键",
-            &[
-                "Futanari", "Sitting", "Orgasm", "Moving", "Crouching",
-                "Peeing", "Dashing", "InLight", "NearNPC", "Watched",
-                "ShowingOff", "Bukkake", "Blindfolded", "Invisible",
-                "InOpenToilet", "FPCamera", "IsDayTime", "GameOver",
-            ],
-        )]),
+        .with_params(vec![p_req("stateKey", "状态键", ParamType::String)]),
         NodeDefinition::new(
             NodeType::GetStateNumber, "Conditions & Queries",
             "读取数值状态",
@@ -2469,14 +2460,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             PortType::Number,
             "状态值",
         )])
-        .with_params(vec![e(
-            "stateKey",
-            "状态键",
-            &[
-                "Ecstasy", "Detection", "Rank", "HeartRate",
-                "Stamina", "StaminaMax", "Moisture", "Bodypaint",
-            ],
-        )]),
+        .with_params(vec![p_req("stateKey", "状态键", ParamType::String)]),
         NodeDefinition::new(
             NodeType::CompareNumbers, "Math & Logic",
             "数值比较",
