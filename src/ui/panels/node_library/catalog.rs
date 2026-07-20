@@ -180,18 +180,17 @@ impl SceneCatalog {
                 id: "scene.data_set",
                 subcategories: vec![
                     SceneSubcategory {
-                        id: "scene.data_set.player_state",
+                        id: "scene.data_set.player_position",
                         nodes: vec![
                             NodeType::SetPlayerPosition,
                             NodeType::SetStage,
-                            NodeType::SetAction,
-                            NodeType::SetFutanari,
-                            NodeType::SetSkill,
-                            NodeType::SetPlayerData,
-                            NodeType::SetSkillShortcut,
-                            NodeType::CanGameOver,
-                            NodeType::SetStageRankLimit,
                             NodeType::SetPortalEnabled,
+                        ],
+                    },
+                    SceneSubcategory {
+                        id: "scene.data_set.player_stats",
+                        nodes: vec![
+                            NodeType::SetStageRankLimit,
                             NodeType::SetGraphicsOption,
                             NodeType::AddCurrentEarnRP,
                             NodeType::SetCurrentEarnRP,
@@ -203,10 +202,21 @@ impl SceneCatalog {
                             NodeType::AddStamina,
                             NodeType::SetMoisture,
                             NodeType::AddMoisture,
+                            NodeType::SetAction,
+                            NodeType::SetSkill,
+                            NodeType::SetSkillShortcut,
+                            NodeType::SetPlayerData,
+                        ],
+                    },
+                    SceneSubcategory {
+                        id: "scene.data_set.player_sex",
+                        nodes: vec![
+                            NodeType::SetFutanari,
                             NodeType::SetSexPosition,
                             NodeType::DeactivateSex,
                             NodeType::SetSexMenu,
                             NodeType::TriggerSexOrgasm,
+                            NodeType::CanGameOver,
                         ],
                     },
                     SceneSubcategory {
@@ -254,22 +264,37 @@ impl SceneCatalog {
                 id: "scene.data_process",
                 subcategories: vec![
                     SceneSubcategory {
-                        id: "scene.data_process.math",
+                        id: "scene.data_process.trig",
                         nodes: vec![
-                            NodeType::Random,
-                            NodeType::RandomInt,
                             NodeType::Sin,
                             NodeType::Cos,
                             NodeType::Tan,
                             NodeType::Asin,
                             NodeType::Acos,
                             NodeType::Atan,
+                        ],
+                    },
+                    SceneSubcategory {
+                        id: "scene.data_process.rounding",
+                        nodes: vec![
                             NodeType::Floor,
                             NodeType::Ceil,
                             NodeType::Round,
                             NodeType::Trunc,
                             NodeType::Sign,
                             NodeType::Abs,
+                        ],
+                    },
+                    SceneSubcategory {
+                        id: "scene.data_process.random",
+                        nodes: vec![
+                            NodeType::Random,
+                            NodeType::RandomInt,
+                        ],
+                    },
+                    SceneSubcategory {
+                        id: "scene.data_process.math_general",
+                        nodes: vec![
                             NodeType::LogN,
                             NodeType::Log2,
                             NodeType::Log10,

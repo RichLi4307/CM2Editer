@@ -6,6 +6,20 @@
 
 ## [Unreleased]
 
+### 优化（P2.8 节点库场景分类再细分）
+
+- 将 `scene.data_set.player_state` 拆分为 3 个更精细的子分类：
+  - `scene.data_set.player_position`：玩家位置/场景相关（`SetPlayerPosition`、`SetStage`、`SetPortalEnabled`）。
+  - `scene.data_set.player_stats`：角色属性/RPG 相关（`SetStageRankLimit`、`SetGraphicsOption`、`Add/Set CurrentEarnRP`、`Add/Set CurrentRP`、`Set/Add Ecstasy`、`Set/Add Stamina`、`Set/Add Moisture`、`SetAction`、`SetSkill`、`SetSkillShortcut`、`SetPlayerData`）。
+  - `scene.data_set.player_sex`：性行为相关（`SetFutanari`、`SetSexPosition`、`DeactivateSex`、`SetSexMenu`、`TriggerSexOrgasm`、`CanGameOver`）。
+- 将 `scene.data_process.math` 拆分为 4 个更小的子分类：
+  - `scene.data_process.trig`：三角函数（`Sin`、`Cos`、`Tan`、`Asin`、`Acos`、`Atan`）。
+  - `scene.data_process.rounding`：取整与符号（`Floor`、`Ceil`、`Round`、`Trunc`、`Sign`、`Abs`）。
+  - `scene.data_process.random`：随机数（`Random`、`RandomInt`）。
+  - `scene.data_process.math_general`：通用数学（`LogN`、`Log2`、`Log10`、`Min`、`Max`、`CompareNumbers`、`NumberConstant`）。
+- 位置：`src/ui/panels/node_library/catalog.rs`；新增 zh/en 翻译键：`scene.data_set.player_position` / `player_stats` / `player_sex`、`scene.data_process.trig` / `rounding` / `random` / `math_general`。
+- 验证：`test_all_nodes_covered` 仍通过，无节点丢失；`cargo test --lib` 154 项通过；`cargo clippy --lib` 保持 23 个 pre-existing warnings，无新增。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明
