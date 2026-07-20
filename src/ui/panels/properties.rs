@@ -679,7 +679,7 @@ impl PropertiesPanel {
         };
 
         let mut picked = None;
-        egui::ComboBox::from_id_salt("if_condition_template")
+        egui::ComboBox::from_id_salt(format!("if_condition_template_{key}"))
             .width(160.0)
             .selected_text(if current.is_empty() { i18n.text("label.select_template") } else { current.clone() })
             .show_ui(ui, |ui| {
@@ -785,7 +785,7 @@ impl PropertiesPanel {
         }
 
         let mut picked = None;
-        egui::ComboBox::from_id_salt("call_method_method")
+        egui::ComboBox::from_id_salt(format!("call_method_method_{key}"))
             .width(180.0)
             .selected_text(if current.is_empty() {
                 i18n.text("label.select_method")

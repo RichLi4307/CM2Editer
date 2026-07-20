@@ -14,6 +14,11 @@
 - 修复 `elseif` 分支条件编辑不直观：`properties.rs` 中对 `elseif_*_condition` 动态参数也使用条件模板下拉框（ComboBox 快速填充 + 文本微调），与主 `condition` 字段体验一致。
 - 为支持空图，将 `App.selected_container` 改为 `Option<SelectedContainer>`，`current_label()` / `label_ref()` / `label_mut()` 均返回 `Option`，并同步处理所有调用点（画布渲染、属性面板、复制/删除、撤销重做等）。
 
+### 修复（egui duplicate widget ID）
+
+- 修复 `If` 节点属性面板中出现 `First use of widget ID FF44` / `Second use of widget ID FF44` 警告：条件模板 ComboBox 的 `id_salt` 从固定值改为按参数 key（如 `condition` / `elseif_0_condition`）生成唯一 ID；同时修复 `CallMethod` 方法下拉框使用固定 ID 的问题。
+- `cargo test --lib` 191 项通过；`cargo clippy --lib` 0 warnings。
+
 ### 测试
 
 - 更新 `test_if_elseif_else_chain` 与 `test_multi_branch_if_node` 断言，验证无引号且带括号的新格式。
