@@ -143,12 +143,11 @@ impl InteractionController {
         mouse_pos: Pos2,
         port_hits: &[(String, String, Pos2, PortType, bool)],
     ) -> Option<PortTargetStatus> {
-        let (source_node, source_port, source_type) = self.edge_source_info()?;
+        let (source_node, _source_port, source_type) = self.edge_source_info()?;
         let (target_node, target_port, target_type, is_input) = find_port_at(mouse_pos, port_hits)?;
         Some(evaluate_target(
             label,
             &source_node,
-            &source_port,
             &source_type,
             &target_node,
             &target_port,
@@ -223,7 +222,7 @@ impl InteractionController {
                 canvas,
                 &node_id,
                 start_mouse,
-                start_positions,
+                &start_positions,
                 &mut commands,
                 status_message,
                 i18n,
@@ -415,7 +414,7 @@ impl InteractionController {
         canvas: &Canvas,
         _node_id: &str,
         start_mouse: Pos2,
-        start_positions: HashMap<String, Vec2>,
+        start_positions: &HashMap<String, Vec2>,
         commands: &mut Vec<Command>,
         status_message: &mut String,
         i18n: &I18n,
@@ -424,7 +423,7 @@ impl InteractionController {
             if let Some(current) = response.hover_pos() {
                 let dx = (current.x - start_mouse.x) / canvas.viewport.zoom;
                 let dy = (current.y - start_mouse.y) / canvas.viewport.zoom;
-                for (id, start_pos) in &start_positions {
+                for (id, start_pos) in start_positions {
                     if let Some(node) = label.nodes.get_mut(id) {
                         node.position.x = start_pos.x + dx;
                         node.position.y = start_pos.y + dy;
@@ -432,7 +431,7 @@ impl InteractionController {
                 }
             }
         } else if response.drag_stopped() {
-            for (id, start_pos) in &start_positions {
+            for (id, start_pos) in start_positions {
                 if let Some(node) = label.nodes.get(id) {
                     if node.position != *start_pos {
                         commands.push(Command::MoveNode {
@@ -476,7 +475,6 @@ impl InteractionController {
             target_status = Some(evaluate_target(
                 label,
                 source_node,
-                source_port,
                 source_type,
                 &target_node,
                 &target_port,
@@ -821,7 +819,6 @@ fn would_form_cycle(label: &LabelContainer, source_node: &str, target_node: &str
 fn evaluate_target(
     label: &LabelContainer,
     source_node: &str,
-    _source_port: &str,
     source_type: &PortType,
     target_node: &str,
     target_port: &str,

@@ -186,6 +186,7 @@ impl NodeRenderer {
     /// 使用已计算好的几何数据渲染节点。
     ///
     /// 用于分阶段渲染：先收集数据做裁剪和排序，再统一绘制。
+    #[allow(clippy::too_many_arguments)]
     pub fn render_with_data(
         &self,
         ui: &mut egui::Ui,
@@ -328,7 +329,7 @@ impl NodeRenderer {
             if params_y > rect.max.y - self.port_padding {
                 break;
             }
-            let has_data = label.map_or(false, |l| {
+            let has_data = label.is_some_and(|l| {
                 l.edges.values().any(|e| {
                     e.to.node_id == node.id
                         && e.to.port_id == *name

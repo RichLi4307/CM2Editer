@@ -15,7 +15,7 @@
 - **P0 v0.3.0 issues 已修复**：IF/While 条件取消引号包裹并统一外层括号；新建 `.code` 文件默认空图；`elseif_*_condition` 使用条件模板编辑器。
 - P1 高频 API：Log 级别、Translate、List 六方法、NPC 五方法、FunctionExists / GetModVersion 已全部完成。
 - 节点库按场景分类（7 个顶层场景、20+ 子分类）；i18n zh/en/ja 已接入，188 个节点均有 zh/en 名称键。
-- `cargo test --lib`：**155** 项通过；`cargo clippy --lib`：**23** warnings（无新增，均为历史遗留）。
+- `cargo test --lib`：**155** 项通过；`cargo clippy --lib`：**0** warnings。
 
 ---
 
@@ -121,6 +121,7 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
+| 2026-07-20 | 重构 | 专项清理 clippy warning：修复全部 23 个 lib warning（含 needless_borrow、clone_on_copy、unnecessary_cast、collapsible_if、map_clone、derivable_impls 等）；`cargo test` 164 项全过；`cargo clippy` 0 warnings | 已完成 |
 | 2026-07-20 | P0 | 修复 P0 v0.3.0 issues：IF/While 条件去引号 + 加括号；新建 .code 文件默认空图；elseif 条件改用模板编辑器；`cargo test` 164 项全过 | 已完成 |
 | 2026-07-17 | P3.2 | Release 打包：版本号核对 0.3.0、README 与 CHANGELOG 同步、`cargo test` 163 项全过 | 已完成 |
 | 2026-07-17 | 文档-TODO | 归档 v10，新 TODO 按优先级整理 P2 使用体验优化与 P3 发布准备 | 已完成 |

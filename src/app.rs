@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use egui::{Align2, FontId, Pos2, Rect, Vec2 as EVec2};
 
-use crate::api::definitions::{NodeDefinition, PortDefinition};
+use crate::api::definitions::PortDefinition;
 use crate::api::namespace::NamespaceRegistry;
 use crate::api::registry::get_definition;
 use crate::code_gen::generator::generate_code_to_file;
@@ -24,7 +24,7 @@ use crate::ui::canvas::Canvas;
 use crate::ui::edge_renderer::EdgeRenderer;
 use crate::ui::entry_pin::EntryPinRenderer;
 use crate::ui::interaction::InteractionController;
-use crate::ui::node_renderer::{NodeRenderer, PortGeometry};
+use crate::ui::node_renderer::NodeRenderer;
 use crate::ui::panels::{
     code_editor::CodeEditorPanel,
     coordinate_picker::{CoordinatePicker, CoordinatePickerState},
@@ -761,7 +761,7 @@ impl App {
         if let Some(project) = &self.project {
             if let Some(code_file) = project.active_code_file() {
                 self.graph_doc = code_file.graph_doc.clone();
-                self.canvas = Canvas::with_viewport(self.graph_doc.viewport.clone());
+                self.canvas = Canvas::with_viewport(self.graph_doc.viewport);
                 self.selected_container = Self::first_available_container(&self.graph_doc);
                 self.selected_nodes.clear();
                 self.selected_edges.clear();
@@ -838,7 +838,7 @@ impl App {
             }
         }
         self.load_active_code();
-        self.status_message = self.i18n.format("status.switched_to", &[&name]);
+        self.status_message = self.i18n.format("status.switched_to", &[name]);
     }
 
     /// 切换到 meta.json 编辑。
@@ -1416,7 +1416,7 @@ impl eframe::App for App {
                                     Some(n) => n,
                                     None => continue,
                                 };
-                                let header = self.i18n.format("label.items_count", &[&name, &ns.entries.len().to_string()]);
+                                let header = self.i18n.format("label.items_count", &[name, &ns.entries.len().to_string()]);
                                 egui::CollapsingHeader::new(header)
                                 .id_salt(format!("left_ns_{name}"))
                                 .default_open(false)
@@ -1518,7 +1518,7 @@ impl eframe::App for App {
                                     .iter()
                                     .filter(|e| e.stage == stage)
                                     .collect();
-                                egui::CollapsingHeader::new(self.i18n.format("label.items_count", &[&stage, &entries.len().to_string()]))
+                                egui::CollapsingHeader::new(self.i18n.format("label.items_count", &[stage, &entries.len().to_string()]))
                                     .id_salt(format!("left_coord_{stage}"))
                                     .show(ui, |ui| {
                                         for e in entries {
@@ -1878,8 +1878,8 @@ impl eframe::App for App {
                 split2 = split2.clamp(MIN_SPLIT + GAP, MAX_SPLIT);
 
                 // 三列计算
-                let w1 = (panel_w * split1).round() as f32;
-                let w2 = (panel_w * split2).round() as f32;
+                let w1 = (panel_w * split1).round();
+                let w2 = (panel_w * split2).round();
 
                 // ── 列 1：代码预览 ──
                 let rc1 = egui::Rect::from_min_size(
@@ -2028,7 +2028,7 @@ impl eframe::App for App {
                     .show(ctx, |ui| {
                         ui.colored_label(
                             egui::Color32::from_rgb(150, 200, 255),
-                            &format!("{:?}", nt),
+                            format!("{:?}", nt),
                         );
                     });
             }
@@ -2219,8 +2219,7 @@ impl App {
         let label_name;
 
         // 第一遍：计算所有节点屏幕区域和端口几何（不渲染，支持裁剪和 z 序）
-        let mut node_data: Vec<(&Node, &NodeDefinition, Rect, Vec<PortGeometry>, bool, bool)> =
-            Vec::new();
+        let mut node_data = Vec::new();
         let mut port_positions: HashMap<(String, String), Pos2> = HashMap::new();
         let mut port_hits: Vec<(String, String, Pos2, PortType, bool)> = Vec::new();
 
@@ -2558,7 +2557,7 @@ fn ns_card<'a>(
                 egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("ns_tooltip")),
                 egui::Id::new(format!("ns_card_{}", entry.key)),
                 |ui: &mut egui::Ui| {
-                    ui.label(format!("{}", entry.key));
+                    ui.label(entry.key.to_string());
                 },
             );
         }

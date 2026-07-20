@@ -291,12 +291,11 @@ fn matches_filter(i18n: &I18n, node_type: NodeType, query: &str) -> bool {
     // 同时匹配场景分类/子分类标签
     for category in SceneCatalog::categories() {
         for sub in &category.subcategories {
-            if sub.nodes.contains(&node_type) {
-                if fuzzy_match(query, &i18n.text(category.id).to_lowercase())
-                    || fuzzy_match(query, &i18n.text(sub.id).to_lowercase())
-                {
-                    return true;
-                }
+            if sub.nodes.contains(&node_type)
+                && (fuzzy_match(query, &i18n.text(category.id).to_lowercase())
+                    || fuzzy_match(query, &i18n.text(sub.id).to_lowercase()))
+            {
+                return true;
             }
         }
     }

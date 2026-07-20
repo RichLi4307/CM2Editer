@@ -1,11 +1,13 @@
 # CM2Editer
 
-![Rust CI](https://github.com/RichLi4307/CM2Editer/actions/workflows/rust.yml/badge.svg)
-![Rust](https://img.shields.io/badge/rust-2024_dea584?logo=rust&logoColor=white)
-![egui](https://img.shields.io/badge/egui-0.31-amber)
-![Tests](https://img.shields.io/badge/tests-163%20passed-brightgreen)
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
-![License](https://img.shields.io/badge/license-MIT-blue)
+<p>
+  <img src="https://github.com/RichLi4307/CM2Editer/actions/workflows/rust.yml/badge.svg" alt="Rust CI">
+  <img src="https://img.shields.io/badge/rust-2024_dea584?logo=rust&logoColor=white.png" alt="Rust">
+  <img src="https://img.shields.io/badge/egui-0.31-amber.png" alt="egui">
+  <img src="https://img.shields.io/badge/tests-163%20passed-brightgreen.png" alt="Tests">
+  <img src="https://img.shields.io/badge/version-0.3.0-blue.png" alt="Version">
+  <img src="https://img.shields.io/badge/license-MIT-blue.png" alt="License">
+</p>
 
 CM2Editer 是给游戏 **Secret Flasher Manaka** 做自定义任务的一个节点式可视化编辑器。如果你给这个游戏制作 Custom Missions 2 的任务Mod，可以直接在画布上拖节点、连端口、填参数，最后导出成 `.code` 文件，让 Custom Missions 2 加载器读取。
 

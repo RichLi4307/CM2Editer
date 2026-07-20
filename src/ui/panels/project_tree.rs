@@ -262,7 +262,7 @@ impl ProjectTreePanel {
             .collapsible(false)
             .open(&mut show)
             .show(ctx, |ui| {
-                ui.label(i18n.format("dialog.original_name", &[&old_name]));
+                ui.label(i18n.format("dialog.original_name", &[old_name]));
                 ui.label(i18n.text("dialog.new_name"));
                 ui.text_edit_singleline(new_name);
                 ui.horizontal(|ui| {

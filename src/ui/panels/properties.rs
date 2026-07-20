@@ -278,18 +278,18 @@ impl PropertiesPanel {
         if let Some(param_def) = get_definition(node.node_type)
             .and_then(|def| def.params.iter().find(|p| p.name == key))
         {
-            if param_def.param_type == ParamType::Vector || param_def.param_type == ParamType::Quaternion {
-                if ui.button("...").on_hover_text(i18n.text("tooltip.coord_picker")).clicked() {
-                    *coord_picker = Some(CoordinatePickerState::new(key));
-                }
+            if (param_def.param_type == ParamType::Vector || param_def.param_type == ParamType::Quaternion)
+                && ui.button("...").on_hover_text(i18n.text("tooltip.coord_picker")).clicked()
+            {
+                *coord_picker = Some(CoordinatePickerState::new(key));
             }
         }
 
         // GetPosition 节点：coord_id 字段也提供坐标选择器。
-        if node.node_type == NodeType::GetPosition && key == "coord_id" {
-            if ui.button(i18n.text("button.coord_select")).on_hover_text(i18n.text("tooltip.coord_picker")).clicked() {
-                *coord_picker = Some(CoordinatePickerState::new("__getposition__"));
-            }
+        if node.node_type == NodeType::GetPosition && key == "coord_id"
+            && ui.button(i18n.text("button.coord_select")).on_hover_text(i18n.text("tooltip.coord_picker")).clicked()
+        {
+            *coord_picker = Some(CoordinatePickerState::new("__getposition__"));
         }
 
         // 如果参数有固定枚举选项，直接显示枚举下拉框。
@@ -535,8 +535,7 @@ impl PropertiesPanel {
         arr: &[serde_json::Value],
     ) -> Option<ParamValue> {
         let mut changed = false;
-        let mut new_arr: Vec<serde_json::Value> =
-            arr.iter().map(|v| v.clone()).collect();
+        let mut new_arr: Vec<serde_json::Value> = arr.to_vec();
         let labels = if arr.len() == 4 {
             &["rx", "ry", "rz", "rw"][..]
         } else if arr.len() == 3 {

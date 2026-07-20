@@ -43,10 +43,8 @@ impl ParamTextEdit {
 
         // 校验 + 错误提示
         let mut json_ok = true;
-        if needs_json && !text.is_empty() {
-            if serde_json::from_str::<serde_json::Value>(&text).is_err() {
-                json_ok = false;
-            }
+        if needs_json && !text.is_empty() && serde_json::from_str::<serde_json::Value>(&text).is_err() {
+            json_ok = false;
         }
         if !json_ok {
             ui.label(
@@ -61,7 +59,7 @@ impl ParamTextEdit {
             && (resp.lost_focus()
                 || ui.input(|i| i.key_pressed(egui::Key::Enter)));
         if committed && (json_ok || !needs_json) {
-            Some((buf_key.split('.').last().unwrap_or(buf_key).to_string(), str_to_param(&text, value, json_ok)))
+            Some((buf_key.split('.').next_back().unwrap_or(buf_key).to_string(), str_to_param(&text, value, json_ok)))
         } else {
             None
         }

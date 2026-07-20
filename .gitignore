@@ -11,3 +11,5 @@ docs/archive/*.md
 .kilo
 docs/documentation.html
 docs/documentation.html.bak
+.markdownlint.json
+CM2Editer.code-workspace

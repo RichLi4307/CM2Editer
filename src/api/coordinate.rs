@@ -109,7 +109,7 @@ impl CoordinateRegistry {
     /// 加载默认预设。
     pub fn load_bundled() -> Self {
         let mut registry = Self::new();
-        registry.load_from_dir(&Path::new("assets/coordinates"));
+        registry.load_from_dir(Path::new("assets/coordinates"));
         registry
     }
 }

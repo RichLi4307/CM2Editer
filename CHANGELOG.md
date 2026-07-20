@@ -21,7 +21,11 @@
 - 更新 `test_label_ref_switches_between_label_and_listener` 与 `test_label_mut_switches_between_label_and_listener`，适配 `Option<SelectedContainer>`。
 - `cargo test`：155 项 lib tests + 9 项 integration tests = 164 项全部通过。
 
-## [0.3.0] — 2026-07-17
+### 杂项
+
+- 专项清理全部 23 个 `cargo clippy --lib` warning：移除多余借用/克隆/强制类型转换、`ListenerKind` 改用 `#[derive(Default)]`、合并可折叠 if、用 `is_some_and`/`next_back`/`to_vec` 替代冗余写法、`evaluate_target` 删除未使用的 `source_port` 参数、`handle_dragging_node` 改为按引用传递位置快照、`render_with_data` 标记 `#[allow(clippy::too_many_arguments)]`。
+- 同步移除 `app.rs` 中因此不再使用的 `NodeDefinition` 与 `PortGeometry` import。
+- `cargo clippy` 与 `cargo test` 均通过。
 
 ### 发布说明
 

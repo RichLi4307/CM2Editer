@@ -132,7 +132,7 @@ fn coordinate_card(entry: &CoordinateEntry) -> impl egui::Widget + '_ {
         ui.painter().text(
             rect.left_top() + egui::vec2(6.0, 6.0),
             egui::Align2::LEFT_TOP,
-            format!("{}", entry.name),
+            entry.name.to_string(),
             egui::FontId::proportional(13.0),
             egui::Color32::WHITE,
         );

@@ -88,16 +88,11 @@ pub struct ListenerContainer {
     pub variable_name: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ListenerKind {
+    #[default]
     Listener,
     LocalListener,
-}
-
-impl Default for ListenerKind {
-    fn default() -> Self {
-        ListenerKind::Listener
-    }
 }
 
 impl ListenerContainer {
