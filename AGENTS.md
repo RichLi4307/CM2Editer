@@ -453,9 +453,10 @@ ParamTextEdit::show(ui, key, value, "占位提示")
 
 1. **更新 `CHANGELOG.md`** — 每次功能交付后追加条目，记录新增/修复/变更/测试数据。发布到 GitHub 时可直接用作 Release Notes。
 2. **更新 `docs/TODO.md`** — 标记已完成任务 ✅，追加工作日志条目（日期 + 任务编号 + 说明 + 状态）。
-3. **`cargo test` 全过再 commit** — 108 项全部通过为提交门槛。`cargo clippy` 只允许 pre-existing 警告。
+3. **`cargo test` 全过再 commit** — 191 项全部通过为提交门槛。`cargo clippy` 只允许 pre-existing 警告。
 4. **任何任务完成后必须提交一次 commit** — 即使是验证、文档或配置调整，只要改动了文件，就应当以 commit 收尾；不要留下未提交的改动。
 5. **commit message 用中文前缀** — 格式为 `<类型>: <简要描述>`，例如：`修复: Goto 标签自动注册`、`新增: 回归测试`、`文档: 更新交付规则`。类型可选：新增/修复/文档/重构/测试/杂项。方便中文项目维护者阅读 `git log`。
+6. **存在任何未提交更改时，禁止恢复记录** — 若 `git status --short` 显示任何未提交改动（包括用户在编辑器中保存但未 commit 的内容），不得执行 `git checkout -- <file>`、`git reset --hard`、`git restore` 或任何会覆盖工作区文件的 Git 操作。必须先让用户确认或 commit 当前更改；只有工作区干净时，才能用 `git checkout <ref> -- <file>` 或类似命令恢复历史版本。
 
 ### 9.2 重要文档归档
 
