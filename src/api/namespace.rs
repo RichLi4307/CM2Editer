@@ -8,6 +8,9 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::path::Path;
+
+use crate::error::FlowError;
 
 /// A single entry inside a namespace.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -189,6 +192,67 @@ impl NamespaceRegistry {
         }
         registry
     }
+
+    /// Remove an entry from the namespace identified by `namespace` and persist the
+    /// change back to the JSON file under `dir` that owns the namespace.
+    pub fn remove_entry(&mut self, namespace: &str, key: &str, dir: &Path) -> crate::error::Result<()> {
+        if !dir.is_dir() {
+            return Err(FlowError::Io(format!("namespace directory not found: {}", dir.display())));
+        }
+
+        let mut removed = false;
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path
+                .extension()
+                .map(|ext| ext.eq_ignore_ascii_case("json"))
+                .unwrap_or(false)
+                && remove_namespace_entry_from_file(&path, namespace, key)?
+            {
+                removed = true;
+                break;
+            }
+        }
+
+        if removed {
+            if let Some(ns) = self.namespaces.get_mut(namespace) {
+                ns.entries.retain(|e| e.key != key);
+                if ns.entries.is_empty() {
+                    self.namespaces.remove(namespace);
+                }
+            }
+            Ok(())
+        } else {
+            Err(FlowError::Validation(format!(
+                "namespace entry not found: {}.{}",
+                namespace, key
+            )))
+        }
+    }
+}
+
+fn remove_namespace_entry_from_file(path: &Path, namespace: &str, key: &str) -> crate::error::Result<bool> {
+    let text = std::fs::read_to_string(path)?;
+    let mut value: serde_json::Value = serde_json::from_str(&text)?;
+    let name = value
+        .get("name")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if name != namespace {
+        return Ok(false);
+    }
+
+    let entries = value
+        .get_mut("entries")
+        .and_then(|v| v.as_object_mut());
+    if let Some(entries) = entries {
+        if entries.remove(key).is_some() {
+            std::fs::write(path, serde_json::to_string_pretty(&value)?)?;
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn load_namespace_file(path: &std::path::Path) -> Result<Namespace, Box<dyn std::error::Error>> {
@@ -265,5 +329,64 @@ mod tests {
         assert_eq!(ns.name, "test");
         assert_eq!(ns.entries.len(), 3);
         assert_eq!(ns.get("B").unwrap().key, "B");
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_remove_namespace_entry_persists_to_file() {
+        let tmp = std::env::temp_dir().join(format!(
+            "cm2_test_namespaces_{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let file_path = tmp.join("test.json");
+        let content = serde_json::json!({
+            "name": "test",
+            "entries": {
+                "A": { "en": "Alpha", "zh": "阿尔法" },
+                "B": { "en": "Beta", "zh": "贝塔" }
+            }
+        });
+        std::fs::write(&file_path, serde_json::to_string_pretty(&content).unwrap()).unwrap();
+
+        let mut registry = NamespaceRegistry::new();
+        registry.load_from_dir(&tmp);
+        assert_eq!(registry.get("test").unwrap().entries.len(), 2);
+
+        registry.remove_entry("test", "A", &tmp).unwrap();
+        assert_eq!(registry.get("test").unwrap().entries.len(), 1);
+        assert!(registry.get("test").unwrap().get("B").is_some());
+
+        let mut reloaded = NamespaceRegistry::new();
+        reloaded.load_from_dir(&tmp);
+        assert_eq!(reloaded.get("test").unwrap().entries.len(), 1);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_remove_namespace_entry_missing_returns_error() {
+        let tmp = std::env::temp_dir().join(format!(
+            "cm2_test_namespaces_missing_{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(
+            tmp.join("test.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "name": "test",
+                "entries": { "A": { "en": "Alpha" } }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let mut registry = NamespaceRegistry::new();
+        registry.load_from_dir(&tmp);
+        assert!(registry.remove_entry("test", "Missing", &tmp).is_err());
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }

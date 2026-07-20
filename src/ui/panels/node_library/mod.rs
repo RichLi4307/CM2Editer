@@ -199,8 +199,10 @@ impl NodeLibraryPanel {
                                                 );
                                                 ui.add_space(16.0);
                                                 let name_resp = ui.add(
-                                                    egui::Button::new(display_name)
-                                                        .sense(egui::Sense::drag()),
+                                                    egui::Button::new(egui::RichText::new(&display_name))
+                                                        .sense(egui::Sense::drag())
+                                                        .min_size(egui::vec2(120.0, 24.0))
+                                                        .wrap_mode(egui::TextWrapMode::Truncate),
                                                 );
                                                 let star_resp = ui.button(fav_text);
                                                 (name_resp, star_resp)
