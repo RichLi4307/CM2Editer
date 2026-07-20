@@ -20,7 +20,7 @@
 | `Goto` | `thread.Goto("label")` |
 | `If` | `if {condition}` / `elseif {condition}` / `else` |
 | `While` | `while {condition}` |
-| `For` | `for i in {iterable}` |
+| `For` | `for i in {iterable}` / `for i in Range(start, stop, step?)` |
 | `Break` | `break` |
 | `Return` | `_result = {value}` |
 | `CallFunction` | `funcName(args)` |
