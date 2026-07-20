@@ -2048,7 +2048,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             NodeType::CreateArea,
             "Objects",
             "创建区域",
-            "创建区域",
+            "创建区域（支持球体、圆柱体、长方体）",
             OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
@@ -2057,11 +2057,13 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_area", PortType::Object, "区域"),
         ])
         .with_params(vec![
-            p_req("type", "类型", ParamType::String),
+            e("type", "类型", &["sphere", "cylinder", "cuboid"]),
             e("stage", "场景", STAGE_TYPES),
             p_req("position", "位置", ParamType::Vector),
-            p_req("r", "半径", ParamType::Number),
-            p_req("h", "高度", ParamType::Number),
+            p_opt("r", "半径", ParamType::Number),
+            p_opt("h", "高度", ParamType::Number),
+            p_opt("position2", "结束位置", ParamType::Vector),
+            p_opt("w", "宽度", ParamType::Number),
             p_opt("outline", "轮廓", ParamType::Boolean),
             p_opt("compass", "指南针", ParamType::String),
         ]),

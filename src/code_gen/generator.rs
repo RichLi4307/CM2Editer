@@ -611,6 +611,11 @@ impl<'a> CodeGenerator<'a> {
             return Ok(());
         }
 
+        // CreateArea 官方签名随形状变化：球体用 x/y/z/r，圆柱体加 h，长方体用 x1/y1/z1/x2/y2/z2/w/h。
+        if node.node_type == NodeType::CreateArea {
+            return self.generate_create_area(label, node);
+        }
+
         if node.node_type == NodeType::CallMethod {
             return self.generate_call_method(label, node);
         }
@@ -715,6 +720,124 @@ impl<'a> CodeGenerator<'a> {
         self.formatter
             .write_line(&format!("{var_name} = {object}.{method}({args_str})"));
         Ok(())
+    }
+
+    /// 生成 `CreateArea` 节点，按形状（sphere/cylinder/cuboid）输出官方签名的参数。
+    fn generate_create_area(
+        &mut self,
+        label: &LabelContainer,
+        node: &Node,
+    ) -> Result<()> {
+        let shape = self
+            .resolve_param_opt(label, node, "type")
+            .unwrap_or_else(|| "\"sphere\"".to_string())
+            .trim_matches('"')
+            .to_string();
+        let stage = self.require_param(label, node, "stage")?;
+        let mut args = vec![format!("type=\"{shape}\""), format!("stage={stage}")];
+
+        let position = self
+            .resolve_param_opt(label, node, "position")
+            .unwrap_or_else(|| "[]".to_string());
+        let (x1, y1, z1) = Self::extract_vector_components(&position);
+
+        match shape.as_str() {
+            "cuboid" => {
+                let position2 = self
+                    .resolve_param_opt(label, node, "position2")
+                    .unwrap_or_else(|| "[]".to_string());
+                let (x2, y2, z2) = Self::extract_vector_components(&position2);
+                let w = self
+                    .resolve_param_opt(label, node, "w")
+                    .unwrap_or_else(|| "0".to_string());
+                let h = self
+                    .resolve_param_opt(label, node, "h")
+                    .unwrap_or_else(|| "0".to_string());
+                args.extend([
+                    format!("x1={x1}"),
+                    format!("y1={y1}"),
+                    format!("z1={z1}"),
+                    format!("x2={x2}"),
+                    format!("y2={y2}"),
+                    format!("z2={z2}"),
+                    format!("w={w}"),
+                    format!("h={h}"),
+                ]);
+            }
+            "cylinder" => {
+                let r = self
+                    .resolve_param_opt(label, node, "r")
+                    .unwrap_or_else(|| "0".to_string());
+                let h = self
+                    .resolve_param_opt(label, node, "h")
+                    .unwrap_or_else(|| "0".to_string());
+                args.extend([
+                    format!("x={x1}"),
+                    format!("y={y1}"),
+                    format!("z={z1}"),
+                    format!("r={r}"),
+                    format!("h={h}"),
+                ]);
+            }
+            _ => {
+                // sphere
+                let r = self
+                    .resolve_param_opt(label, node, "r")
+                    .unwrap_or_else(|| "0".to_string());
+                args.extend([
+                    format!("x={x1}"),
+                    format!("y={y1}"),
+                    format!("z={z1}"),
+                    format!("r={r}"),
+                ]);
+            }
+        }
+
+        if let Some(outline) = self.resolve_param_opt(label, node, "outline") {
+            if outline != "null" && !outline.is_empty() {
+                args.push(format!("outline={outline}"));
+            }
+        }
+        if let Some(compass) = self.resolve_param_opt(label, node, "compass") {
+            if compass != "null" && compass != "\"\"" && !compass.is_empty() {
+                args.push(format!("compass={compass}"));
+            }
+        }
+
+        let args_str = args.join(", ");
+        self.formatter
+            .write_line(&format!("var_{}_out_area = CreateArea({args_str})", node.id));
+        Ok(())
+    }
+
+    /// 从 Vector 字面量或表达式中提取三个分量。
+    ///
+    /// 字面量如 `[1, 2, 3]` 直接拆分为三个值；动态表达式（如 `var_n_out_vec`）
+    /// 使用数组索引语法回退，以兼容 Data 端口连接。
+    fn extract_vector_components(value: &str) -> (String, String, String) {
+        if value == "null" || value == "[]" || value.is_empty() {
+            return ("0".to_string(), "0".to_string(), "0".to_string());
+        }
+        if let Ok(serde_json::Value::Array(arr)) = serde_json::from_str::<serde_json::Value>(value) {
+            let x = arr
+                .first()
+                .map(format_literal)
+                .unwrap_or_else(|| "0".to_string());
+            let y = arr
+                .get(1)
+                .map(format_literal)
+                .unwrap_or_else(|| "0".to_string());
+            let z = arr
+                .get(2)
+                .map(format_literal)
+                .unwrap_or_else(|| "0".to_string());
+            return (x, y, z);
+        }
+        (
+            format!("{value}[0]"),
+            format!("{value}[1]"),
+            format!("{value}[2]"),
+        )
     }
 
     /// 沿指定 Flow 输出端口继续生成
@@ -2388,6 +2511,174 @@ mod tests {
             "function".to_string(),
             ParamValue::Literal(serde_json::json!("myFunc")),
         )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_area_shapes() -> Result<()> {
+        // sphere: x/y/z/r
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateArea,
+            [
+                ("type".to_string(), ParamValue::Literal(serde_json::json!("sphere"))),
+                ("stage".to_string(), ParamValue::Literal(serde_json::json!("Residence"))),
+                ("position".to_string(), ParamValue::Literal(serde_json::json!([1.5, 2.5, 3.5]))),
+                ("r".to_string(), ParamValue::Literal(serde_json::json!(5.0))),
+            ]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"var_n1_out_area = CreateArea(type="sphere", stage="Residence", x=1.5, y=2.5, z=3.5, r=5.0)"#),
+            "Expected sphere CreateArea, got:\n{code}"
+        );
+
+        // cylinder: x/y/z/r/h
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateArea,
+            [
+                ("type".to_string(), ParamValue::Literal(serde_json::json!("cylinder"))),
+                ("stage".to_string(), ParamValue::Literal(serde_json::json!("Residence"))),
+                ("position".to_string(), ParamValue::Literal(serde_json::json!([1.0, 2.0, 3.0]))),
+                ("r".to_string(), ParamValue::Literal(serde_json::json!(4.0))),
+                ("h".to_string(), ParamValue::Literal(serde_json::json!(10.0))),
+            ]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"var_n1_out_area = CreateArea(type="cylinder", stage="Residence", x=1.0, y=2.0, z=3.0, r=4.0, h=10.0)"#),
+            "Expected cylinder CreateArea, got:\n{code}"
+        );
+
+        // cuboid: x1/y1/z1/x2/y2/z2/w/h
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateArea,
+            [
+                ("type".to_string(), ParamValue::Literal(serde_json::json!("cuboid"))),
+                ("stage".to_string(), ParamValue::Literal(serde_json::json!("Residence"))),
+                ("position".to_string(), ParamValue::Literal(serde_json::json!([1.0, 2.0, 3.0]))),
+                ("position2".to_string(), ParamValue::Literal(serde_json::json!([4.0, 5.0, 6.0]))),
+                ("w".to_string(), ParamValue::Literal(serde_json::json!(7.0))),
+                ("h".to_string(), ParamValue::Literal(serde_json::json!(8.0))),
+            ]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"var_n1_out_area = CreateArea(type="cuboid", stage="Residence", x1=1.0, y1=2.0, z1=3.0, x2=4.0, y2=5.0, z2=6.0, w=7.0, h=8.0)"#),
+            "Expected cuboid CreateArea, got:\n{code}"
+        );
+
+        // cuboid with optional outline/compass
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateArea,
+            [
+                ("type".to_string(), ParamValue::Literal(serde_json::json!("cuboid"))),
+                ("stage".to_string(), ParamValue::Literal(serde_json::json!("Residence"))),
+                ("position".to_string(), ParamValue::Literal(serde_json::json!([0.0, 0.0, 0.0]))),
+                ("position2".to_string(), ParamValue::Literal(serde_json::json!([1.0, 1.0, 1.0]))),
+                ("w".to_string(), ParamValue::Literal(serde_json::json!(2.0))),
+                ("h".to_string(), ParamValue::Literal(serde_json::json!(3.0))),
+                ("outline".to_string(), ParamValue::Literal(serde_json::json!(true))),
+                ("compass".to_string(), ParamValue::Literal(serde_json::json!("icon"))),
+            ]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"outline=true, compass="icon")"#),
+            "Expected cuboid CreateArea with outline/compass, got:\n{code}"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_area_connected_vector_position() -> Result<()> {
+        // MakeVector 输出会被内联为 [x, y, z] 字面量，再被拆分为 x/y/z 参数。
+        let mut graph = make_graph();
+        let mut pos_node = make_data_node("pos_src", NodeType::MakeVector, "out_vec");
+        pos_node.params = [
+            ("x".to_string(), ParamValue::Literal(serde_json::json!(1.0))),
+            ("y".to_string(), ParamValue::Literal(serde_json::json!(2.0))),
+            ("z".to_string(), ParamValue::Literal(serde_json::json!(3.0))),
+        ]
+        .into();
+        graph.threads[0].labels[0]
+            .nodes
+            .insert("pos_src".to_string(), pos_node);
+
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateArea,
+            [
+                ("type".to_string(), ParamValue::Literal(serde_json::json!("sphere"))),
+                ("stage".to_string(), ParamValue::Literal(serde_json::json!("Residence"))),
+                ("r".to_string(), ParamValue::Literal(serde_json::json!(5.0))),
+            ]
+            .into(),
+        );
+        // MakeVector.out_vec -> CreateArea.position
+        graph.threads[0].labels[0]
+            .nodes
+            .get_mut("n1")
+            .unwrap()
+            .inputs
+            .push(Port::new("position", PortType::List, "position"));
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "pos_src",
+            "out_vec",
+            "n1",
+            "position",
+            PortType::List,
+        );
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"var_n1_out_area = CreateArea(type="sphere", stage="Residence", x=1.0, y=2.0, z=3.0, r=5.0)"#),
+            "Expected CreateArea with connected MakeVector position, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_area_omits_unused_params() -> Result<()> {
+        // cuboid 不应生成 r；sphere 不应生成 position2/w。
+        let mut graph = make_graph();
+        add_flow_node(
+            &mut graph,
+            "n1",
+            NodeType::CreateArea,
+            [
+                ("type".to_string(), ParamValue::Literal(serde_json::json!("sphere"))),
+                ("stage".to_string(), ParamValue::Literal(serde_json::json!("Residence"))),
+                ("position".to_string(), ParamValue::Literal(serde_json::json!([0.0, 0.0, 0.0]))),
+                ("r".to_string(), ParamValue::Literal(serde_json::json!(1.0))),
+                ("position2".to_string(), ParamValue::Literal(serde_json::json!([1.0, 1.0, 1.0]))),
+                ("w".to_string(), ParamValue::Literal(serde_json::json!(2.0))),
+            ]
+            .into(),
+        );
+        let code = generate_code(&graph)?;
+        assert!(
+            !code.contains("position2=") && !code.contains("w=") && !code.contains("h="),
+            "sphere should not emit cuboid params, got:\n{code}"
+        );
         Ok(())
     }
 
