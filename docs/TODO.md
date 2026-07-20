@@ -4,7 +4,7 @@
 > **日期**: 2026-07-17
 > **目标**: P0 语法硬缺口与 P1 高频 API 已全部补齐，当前重心转向 P2 使用体验优化与 P3 发布准备。
 > **旧版已归档**: `docs/archive/TODO_20260717_v10.md`（P0–P1 完成详情）
-> **当前节点**: `NodeType` 188 变体，155 项 lib tests 通过
+> **当前节点**: `NodeType` 188 变体，173 项 lib tests 通过
 
 ---
 
@@ -15,7 +15,7 @@
 - **P0 v0.3.0 issues 已修复**：IF/While 条件取消引号包裹并统一外层括号；新建 `.code` 文件默认空图；`elseif_*_condition` 使用条件模板编辑器。
 - P1 高频 API：Log 级别、Translate、List 六方法、NPC 五方法、FunctionExists / GetModVersion 已全部完成。
 - 节点库按场景分类（7 个顶层场景、20+ 子分类）；i18n zh/en/ja 已接入，188 个节点均有 zh/en 名称键。
-- `cargo test --lib`：**155** 项通过；`cargo clippy --lib`：**0** warnings。
+- `cargo test --lib`：**173** 项通过；`cargo clippy --lib`：**0** warnings。
 
 ---
 
@@ -56,16 +56,16 @@
   - 目标：所有 188 个节点在 zh/en 均有详细描述，hover 即能理解用途
   - 位置：`assets/i18n/zh.json` / `en.json`（批量补全）
 
-- [ ] **P2.5 常用节点收藏 / 置顶**
+- [x] **P2.5 常用节点收藏 / 置顶**
   - 用户可将高频节点固定到节点库顶部，减少重复搜索
   - 位置：`src/ui/panels/node_library/`（收藏状态持久化）
 
-- [ ] **P2.6 _state 探针选择器**
+- [x] **P2.6 _state 探针选择器**
   - `_state.Position.x`、`_state.Camera.pitch`、`_state.Handcuffs.Type` 等嵌套路径树形选择，类型安全输出
   - 复用命名空间选择器模式
   - 位置：`src/ui/panels/`（新增 `state_picker.rs`）
 
-- [ ] **P2.7 条件表达式实时校验**
+- [x] **P2.7 条件表达式实时校验**
   - 括号配平、token 合法性提示（条件组合编辑器增强）
   - 位置：`src/ui/panels/condition_editor.rs`
 
@@ -81,11 +81,11 @@
   - 目标：为所有 A 类节点增加完整语义测试（如 CreateNPC、Translate、多分支 If）
   - 位置：`src/code_gen/generator.rs` 测试模块
 
-- [ ] **P2.10 For 自带 start/stop/step**
+- [x] **P2.10 For 自带 start/stop/step**
   - 无 iterable 连线时自动包装 `Range()`，减少用户手动创建 Range 节点
   - 位置：`src/code_gen/generator.rs`（`generate_for`）
 
-- [ ] **P2.11 CreateArea cuboid 参数集**
+- [x] **P2.11 CreateArea cuboid 参数集**
   - 官方支持 sphere / cylinder / cuboid 三种，当前缺 cuboid（x1..z2, w, h）
   - 位置：`src/api/definitions.rs` + `src/code_gen/generator.rs`
 
@@ -132,3 +132,8 @@
 | 2026-07-17 | P2.2 | 属性面板参数折叠：>4 参数自动收进“高级参数”区域 | 已完成 |
 | 2026-07-17 | P2.1 | 节点库搜索增强：场景分类过滤 + 模糊匹配 + 最近使用记录（持久化） | 已完成 |
 | 2026-07-20 | P2.4 | 节点描述 i18n 补全：188 个 NodeType 变体在 zh/en 中均有 1–2 句详细描述，`cargo test --lib` 154 项全过 | 已完成 |
+| 2026-07-20 | P2.5 | 节点收藏/置顶：新增 favorite_node_types 持久化，节点库与搜索窗口均支持星标切换，`cargo test --lib` 173 项全过 | 已完成 |
+| 2026-07-20 | P2.6 | `_state` 探针选择器：新增 state_picker.rs，树形选择 `_state` 嵌套路径，支持 GetStateBool/GetStateNumber，`cargo test --lib` 173 项全过 | 已完成 |
+| 2026-07-20 | P2.7 | 条件表达式实时校验：新增括号/token/空组/NOT 前缀校验，条件编辑器预览下方红字提示，`cargo test --lib` 165 项全过 | 已完成 |
+| 2026-07-20 | P2.10 | For 节点自带 start/stop/step：无 iterable 时自动 `Range(start, stop, step)`，`cargo test --lib` 173 项全过 | 已完成 |
+| 2026-07-20 | P2.11 | CreateArea cuboid 参数集：官方球体/圆柱体/长方体签名支持，按 shape 输出对应参数，`cargo test --lib` 173 项全过 | 已完成 |

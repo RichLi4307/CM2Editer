@@ -1789,7 +1789,7 @@ impl eframe::App for App {
         // `_state` 探针选择器悬浮窗口
         let expected_state_type = edited_node_id
             .as_ref()
-            .and_then(|id| self.current_label().nodes.get(id))
+            .and_then(|id| self.current_label().and_then(|l| l.nodes.get(id)))
             .map(|node| {
                 if node.node_type == NodeType::GetStateBool {
                     StateType::Boolean

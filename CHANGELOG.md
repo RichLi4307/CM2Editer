@@ -72,6 +72,54 @@
 - `assets/i18n/zh.json` 中对应中文描述已保持完整覆盖，未改动节点名称、端口与参数键。
 - 验证：`cargo test --lib` 154 项通过；`cargo clippy --lib` 23 个警告（均为 pre-existing，无新增）。
 
+### 新增（P2.5 节点收藏 / 置顶）
+
+- 在 `src/settings.rs` 中新增 `favorite_node_types` 持久化字段，与 `recent_node_types` 一起保存到 `%APPDATA%/CM2Editer/settings.json`。
+- `src/app.rs` 加载/保存收藏列表，并在节点库顶部和搜索窗口顶部显示“收藏”区域。
+- `src/ui/panels/node_library/mod.rs` 为每个节点项增加星标切换按钮，支持在库列表和搜索窗口中快速收藏/取消收藏。
+- 新增 i18n 键 `node_library.favorites` / `button.favorite` / `button.unfavorite`（zh/en/ja）。
+- `cargo test --lib` 173 项通过；`cargo clippy --lib` 0 warnings。
+
+### 新增（P2.6 _state 探针选择器）
+
+- 新增 `src/ui/panels/state_picker.rs`：提供 `_state` 嵌套路径树形选择器，按 Boolean / Number 类型分组（角色状态、属性、Position、Camera、AdultToys 等）。
+- `GetStateBool` / `GetStateNumber` 的 `stateKey` 参数改为自由字符串，并添加“选择状态”按钮打开悬浮窗口。
+- `src/app.rs` 新增 `state_picker` 状态；`src/ui/panels/properties.rs` 在属性面板调用选择器，选中路径后回写为 `stateKey`。
+- 新增 i18n 键 `state_picker.*`（zh/en/ja）。
+- 测试：`state_picker.rs` 包含 3 个单元测试；`cargo test --lib` 173 项通过；`cargo clippy --lib` 0 warnings。
+
+### 增强（P2.7 条件表达式实时校验）
+
+- 在 `src/ui/panels/condition_editor.rs` 新增 `validate_condition_expression`：检查方括号/圆括号配平、括号不交叉、token 合法性、无空组、逗号只在括号内、`!` 只能作为前缀。
+- 条件编辑器预览下方以红色实时显示校验错误，不阻塞确认按钮。
+- 新增 2 个单元测试覆盖 11 个有效和 18 个无效样例。
+- `cargo test --lib` 165 项通过；`cargo clippy --lib` 23 个 warnings（均为既有，无新增）。
+
+### 优化（P2.10 For 节点自带 start/stop/step）
+
+- `For` 节点定义增加 `start` / `stop` / `step` 可选参数，并新增 `iterable` 数据输入端口。
+- `src/code_gen/generator.rs` 中当 `iterable` 未连接且未提供时，自动生成 `Range(start, stop)` 或 `Range(start, stop, step)`。
+- 保留 Data 端口连接 `iterable` 的原有行为；`step` 为 0 或 1 时省略。
+- 新增 `test_for_with_connected_iterable_uses_source`、`test_for_without_iterable_uses_default_range`、`test_for_with_step_uses_three_arg_range`。
+- 更新 `docs/node_types.md` 中 `For` 的说明与 `.code` 示例。
+- `cargo test --lib` 173 项通过；`cargo clippy --lib` 0 warnings。
+
+### 新增（P2.11 CreateArea cuboid 参数集）
+
+- `CreateArea` 的 `type` 参数改为枚举（sphere / cylinder / cuboid），并新增 `position2` / `w` 等长方体参数。
+- `src/code_gen/generator.rs` 新增 `generate_create_area`，按形状输出官方签名：球体 `x,y,z,r`；圆柱体 `x,y,z,r,h`；长方体 `x1,y1,z1,x2,y2,z2,w,h`。
+- 新增 `extract_vector_components` 以支持 Vector 字面量与动态表达式。
+- 更新 `docs/node_types.md` 与 `docs/node_details.md`。
+- `cargo test --lib` 173 项通过；`cargo clippy --lib` 0 warnings。
+
+### 修复（checklist 暴露 UI 缺陷）
+
+- 窗口启动：在 `src/main.rs` 中设置启动时最大化，解决窗口部分在屏幕外及闪烁问题。
+- 节点库拖拽虚影：在 `src/app.rs` 中使用节点显示名、最小宽度 140px、截断模式，避免过窄换行。
+- 命名空间与坐标面板：在 `src/ui/panels/namespace_picker.rs` / `src/ui/panels/coordinate_picker.rs` 及 `src/api/namespace.rs` / `src/api/coordinate.rs` 中增加删除按钮与确认对话框，删除后持久化到对应 JSON 文件。
+- 更新 `docs/test_checklist.md` 对应条目。
+- `cargo test --lib` 173 项通过；`cargo clippy --lib` 0 warnings。
+
 ### 新增（FunctionExists / GetModVersion，P1.5）
 
 - 新增 `NodeType::FunctionExists`（C 类，Boolean 输出）与 `GetModVersion`（C 类，List 输出）。
