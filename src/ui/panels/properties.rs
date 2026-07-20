@@ -285,7 +285,7 @@ impl PropertiesPanel {
         if let Some(param_def) = get_definition(node.node_type)
             .and_then(|def| def.params.iter().find(|p| p.name == key))
         {
-            if (param_def.param_type == ParamType::Vector || param_def.param_type == ParamType::Quaternion)
+            if param_def.param_type == ParamType::Vector
                 && ui.button("...").on_hover_text(i18n.text("tooltip.coord_picker")).clicked()
             {
                 *coord_picker = Some(CoordinatePickerState::new(key));
@@ -305,6 +305,18 @@ impl PropertiesPanel {
             && ui.button(i18n.text("button.state_select")).on_hover_text(i18n.text("tooltip.state_picker")).clicked()
         {
             *state_picker = Some(StatePickerState::new(key));
+        }
+
+        // NPC 参数：下拉选择图中已有的 NPC 输出端口。
+        if key == "npc"
+            && get_definition(node.node_type)
+                .and_then(|def| def.params.iter().find(|p| p.name == key))
+                .map(|p| p.param_type == ParamType::Object)
+                .unwrap_or(false)
+        {
+            if let Some(action) = Self::npc_editor(ui, key, value, node, label, edit_bufs, i18n) {
+                return Some(action);
+            }
         }
 
         // 如果参数有固定枚举选项，直接显示枚举下拉框。
@@ -461,6 +473,20 @@ impl PropertiesPanel {
                                 key: key.to_string(),
                                 value: v2,
                             });
+                        }
+                    } else {
+                        // 空数组（如未设置的可选 Vector/Quaternion）提供文本输入，
+                        // 避免用户只能打开坐标选择器而无法手动输入。
+                        let hint = i18n.text("hint.json_array");
+                        if let Some((k, v)) = ParamTextEdit::show(
+                            ui,
+                            &format!("{node_id}.{key}"),
+                            value,
+                            edit_bufs,
+                            &hint,
+                            i18n,
+                        ) {
+                            return Some(PropertiesPanelAction::SetParam { key: k, value: v });
                         }
                     }
                 }
@@ -826,6 +852,77 @@ impl PropertiesPanel {
 
         Self::literal_editor(ui, key, value, &node.id, edit_bufs, i18n)
     }
+
+    /// NPC 参数专用编辑器：列出图中所有 NPC 输出端口供选择。
+    fn npc_editor(
+        ui: &mut egui::Ui,
+        key: &str,
+        value: &ParamValue,
+        node: &Node,
+        label: &LabelContainer,
+        edit_bufs: &mut EditBuffers,
+        i18n: &I18n,
+    ) -> Option<PropertiesPanelAction> {
+        let sources = npc_data_sources(label, i18n);
+        if sources.is_empty() {
+            return Self::literal_editor(ui, key, value, &node.id, edit_bufs, i18n);
+        }
+
+        let literal_label = i18n.text("label.literal");
+        let current_label = match value {
+            ParamValue::Ref { node: n, port } => format!("{}.{}", n, port),
+            _ => literal_label.clone(),
+        };
+
+        let mut picked = None;
+        egui::ComboBox::from_id_salt(format!("npc_editor_{key}"))
+            .width(180.0)
+            .selected_text(&current_label)
+            .show_ui(ui, |ui| {
+                if ui
+                    .selectable_label(current_label == literal_label, &literal_label)
+                    .clicked()
+                {
+                    picked = Some(ParamValue::Literal(serde_json::json!("")));
+                }
+                for (label, source_value) in &sources {
+                    if ui.selectable_label(current_label == *label, label).clicked() {
+                        picked = Some(source_value.clone());
+                    }
+                }
+            });
+
+        if let Some(picked) = picked {
+            return Some(PropertiesPanelAction::SetParam {
+                key: key.to_string(),
+                value: picked,
+            });
+        }
+
+        Self::literal_editor(ui, key, value, &node.id, edit_bufs, i18n)
+    }
+}
+
+/// 返回所有可连接的 NPC 输出端口（目前识别 `out_npc` 或标签为 "NPC" 的 Object 输出）。
+fn npc_data_sources(label: &LabelContainer, i18n: &I18n) -> Vec<(String, ParamValue)> {
+    let mut sources = Vec::new();
+    for (node_id, node) in &label.nodes {
+        for output in &node.outputs {
+            if output.port_type == PortType::Object {
+                let port_label = i18n.port_display_name(node.node_type, &output.id);
+                if output.id == "out_npc" || port_label == "NPC" {
+                    sources.push((
+                        format!("{}.{} ({})", node_id, output.id, port_label),
+                        ParamValue::Ref {
+                            node: node_id.clone(),
+                            port: output.id.clone(),
+                        },
+                    ));
+                }
+            }
+        }
+    }
+    sources
 }
 
 /// 返回参数类型简短标签，显示在参数名旁边帮助用户理解预期格式。

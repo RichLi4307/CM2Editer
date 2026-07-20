@@ -361,7 +361,7 @@ impl App {
     pub fn new(cc: &eframe::CreationContext) -> Self {
         setup_fonts(&cc.egui_ctx);
         let graph_doc = GraphDocument::from_graph(
-            ContainerGraph::default_main(),
+            ContainerGraph::default_empty(),
             serde_json::Value::Object(serde_json::Map::new()),
             Viewport::default(),
             Vec::new(),
@@ -903,7 +903,7 @@ impl App {
     /// 清空当前激活的代码图。
     fn new_graph(&mut self) {
         self.graph_doc = GraphDocument::from_graph(
-            ContainerGraph::default_main(),
+            ContainerGraph::default_empty(),
             serde_json::Value::Object(serde_json::Map::new()),
             Viewport::default(),
             Vec::new(),
@@ -1062,6 +1062,120 @@ impl App {
                 self.rename_new_name.clear();
                 self.rename_code_dialog_open = true;
             }
+            ProjectTreeAction::AddThread { code_name } => {
+                if let Some(project) = &mut self.project {
+                    if let Some(code_file) = project.code_files.iter_mut().find(|c| c.name == code_name) {
+                        code_file.graph_doc.graph.add_thread();
+                        if let Err(e) = code_file.regenerate_code() {
+                            self.status_message = self.i18n.format("status.generate_failed", &[&e.to_string()]);
+                        } else if project.active_code == code_name {
+                            self.load_active_code();
+                        }
+                    }
+                }
+            }
+            ProjectTreeAction::DeleteThread { code_name, thread_idx } => {
+                if let Some(project) = &mut self.project {
+                    if let Some(code_file) = project.code_files.iter_mut().find(|c| c.name == code_name) {
+                        code_file.graph_doc.graph.delete_thread(thread_idx);
+                        if let Err(e) = code_file.regenerate_code() {
+                            self.status_message = self.i18n.format("status.generate_failed", &[&e.to_string()]);
+                        } else if project.active_code == code_name {
+                            self.load_active_code();
+                            // 调整或清空受影响的 selected_container
+                            if let Some(selected) = self.selected_container {
+                                if selected.thread_idx == thread_idx {
+                                    self.selected_container = None;
+                                } else if selected.thread_idx > thread_idx {
+                                    self.selected_container = Some(SelectedContainer {
+                                        thread_idx: selected.thread_idx - 1,
+                                        kind: selected.kind,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ProjectTreeAction::AddLabel { code_name, thread_idx } => {
+                if let Some(project) = &mut self.project {
+                    if let Some(code_file) = project.code_files.iter_mut().find(|c| c.name == code_name) {
+                        if let Some(label_idx) = code_file.graph_doc.graph.add_label(thread_idx) {
+                            if let Err(e) = code_file.regenerate_code() {
+                                self.status_message = self.i18n.format("status.generate_failed", &[&e.to_string()]);
+                            } else if project.active_code == code_name {
+                                self.load_active_code();
+                                self.selected_container = Some(SelectedContainer {
+                                    thread_idx,
+                                    kind: ContainerKind::Label(label_idx),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            ProjectTreeAction::AddListener { code_name, thread_idx } => {
+                if let Some(project) = &mut self.project {
+                    if let Some(code_file) = project.code_files.iter_mut().find(|c| c.name == code_name) {
+                        if let Some(listener_idx) = code_file.graph_doc.graph.add_listener(thread_idx, false) {
+                            if let Err(e) = code_file.regenerate_code() {
+                                self.status_message = self.i18n.format("status.generate_failed", &[&e.to_string()]);
+                            } else if project.active_code == code_name {
+                                self.load_active_code();
+                                self.selected_container = Some(SelectedContainer {
+                                    thread_idx,
+                                    kind: ContainerKind::Listener(listener_idx),
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            ProjectTreeAction::DeleteLabel { code_name, thread_idx, label_idx } => {
+                if let Some(project) = &mut self.project {
+                    if let Some(code_file) = project.code_files.iter_mut().find(|c| c.name == code_name) {
+                        code_file.graph_doc.graph.delete_label(thread_idx, label_idx);
+                        if let Err(e) = code_file.regenerate_code() {
+                            self.status_message = self.i18n.format("status.generate_failed", &[&e.to_string()]);
+                        } else if project.active_code == code_name {
+                            self.load_active_code();
+                            self.adjust_selected_container_after_delete(thread_idx, ContainerKind::Label(label_idx));
+                        }
+                    }
+                }
+            }
+            ProjectTreeAction::DeleteListener { code_name, thread_idx, listener_idx } => {
+                if let Some(project) = &mut self.project {
+                    if let Some(code_file) = project.code_files.iter_mut().find(|c| c.name == code_name) {
+                        code_file.graph_doc.graph.delete_listener(thread_idx, listener_idx);
+                        if let Err(e) = code_file.regenerate_code() {
+                            self.status_message = self.i18n.format("status.generate_failed", &[&e.to_string()]);
+                        } else if project.active_code == code_name {
+                            self.load_active_code();
+                            self.adjust_selected_container_after_delete(thread_idx, ContainerKind::Listener(listener_idx));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// 删除容器后调整 selected_container：指向被删项的选中清空，同线程中索引更大的项前移。
+    fn adjust_selected_container_after_delete(&mut self, thread_idx: usize, deleted: ContainerKind) {
+        if let Some(selected) = self.selected_container {
+            if selected.thread_idx != thread_idx {
+                return;
+            }
+            if selected.kind == deleted {
+                self.selected_container = None;
+                return;
+            }
+            let adjusted_kind = match (selected.kind, deleted) {
+                (ContainerKind::Label(sel), ContainerKind::Label(del)) if sel > del => ContainerKind::Label(sel - 1),
+                (ContainerKind::Listener(sel), ContainerKind::Listener(del)) if sel > del => ContainerKind::Listener(sel - 1),
+                _ => selected.kind,
+            };
+            self.selected_container = Some(SelectedContainer { thread_idx, kind: adjusted_kind });
         }
     }
 }
@@ -1496,13 +1610,18 @@ impl eframe::App for App {
                                     .collect();
                                 egui::CollapsingHeader::new(self.i18n.format(
                                     "label.items_count",
-                                    &[stage, &entries.len().to_string()],
+                                    &[&self.i18n.stage_name(stage), &entries.len().to_string()],
                                 ))
                                 .id_salt(format!("left_coord_{stage}"))
                                 .show(ui, |ui| {
                                     for e in &entries {
                                         ui.horizontal(|ui| {
-                                            ui.label(format!("* {}", e.name));
+                                            let label = format!(
+                                                "{} - {}",
+                                                self.i18n.stage_name(&e.stage),
+                                                e.name
+                                            );
+                                            ui.label(format!("* {}", label));
                                             ui.label(e.coord_text());
                                             if ui
                                                 .small_button("×")
@@ -2385,7 +2504,7 @@ impl App {
         let canvas_rect = canvas_response.canvas_rect;
         let cull_margin = 50.0;
         let cull_rect = canvas_rect.expand(cull_margin);
-        let node_renderer = NodeRenderer::with_i18n(&self.i18n);
+        let mut node_renderer = NodeRenderer::with_i18n(&self.i18n);
         let edge_renderer = EdgeRenderer::default();
         let entry_pin_renderer = EntryPinRenderer::default();
 
@@ -2429,6 +2548,16 @@ impl App {
                     .copied()
             });
             label_name = label.name.clone();
+        }
+
+        // 若正在拖拽连线，将源端口类型传给渲染器，使不兼容输入端口变灰。
+        if let Some((source_node, source_port)) = self.interaction.edge_source() {
+            if let Some((_, _, _, port_type, _)) = port_hits
+                .iter()
+                .find(|(n, p, _, _, _)| *n == source_node && *p == source_port)
+            {
+                node_renderer.drag_source_port_type = Some(port_type.clone());
+            }
         }
 
         let mut node_hits: Vec<(String, Rect)> = node_data
@@ -2510,6 +2639,30 @@ impl App {
             // 绘制入口钉（不参与命中测试，置顶显示）
             if cull_rect.contains(entry_pin_screen) {
                 entry_pin_renderer.render_pin(ui, entry_pin_screen, &label_name, &self.i18n);
+            }
+        }
+
+        // 节点悬停描述提示（仅在未拖拽连线时显示）
+        if self.interaction.edge_source().is_none() {
+            if let Some(pos) = canvas_response.response.hover_pos() {
+                if let Some((node_id, _)) = node_hits.iter().find(|(_, rect)| rect.contains(pos)) {
+                    if let Some(node) = label.nodes.get(node_id) {
+                        let description = self.i18n.node_description(node.node_type);
+                        if !description.is_empty() {
+                            egui::show_tooltip_at_pointer(
+                                ui.ctx(),
+                                egui::LayerId::new(
+                                    egui::Order::Tooltip,
+                                    ui.id().with("node_tooltip").with(node_id),
+                                ),
+                                ui.id().with("node_tooltip").with(node_id),
+                                |ui| {
+                                    ui.label(description);
+                                },
+                            );
+                        }
+                    }
+                }
             }
         }
 

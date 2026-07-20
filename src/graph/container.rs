@@ -225,6 +225,118 @@ impl ContainerGraph {
         graph
     }
 
+    /// 添加一个空线程，返回其在线程数组中的索引。
+    pub fn add_thread(&mut self) -> usize {
+        let idx = self.threads.len() + 1;
+        let name = format!("Thread {}", idx);
+        let id = format!("thread_{}", uuid::Uuid::new_v4());
+        let variable_name = format!("var_thread_{}", idx);
+        self.threads.push(ThreadContainer {
+            id,
+            name,
+            variable_name,
+            auto_start: true,
+            labels: Vec::new(),
+            listeners: Vec::new(),
+            position: Vec2::default(),
+        });
+        self.threads.len() - 1
+    }
+
+    /// 删除指定线程。
+    pub fn delete_thread(&mut self, thread_idx: usize) {
+        if thread_idx < self.threads.len() {
+            self.threads.remove(thread_idx);
+        }
+    }
+
+    fn unique_label_name(thread: &ThreadContainer) -> String {
+        if thread.labels.is_empty() {
+            return "main".to_string();
+        }
+        let mut i = 2;
+        loop {
+            let name = format!("m{}", i);
+            if !thread.labels.iter().any(|l| l.name == name) {
+                return name;
+            }
+            i += 1;
+        }
+    }
+
+    /// 在线程内添加一个标签，返回标签索引。
+    pub fn add_label(&mut self, thread_idx: usize) -> Option<usize> {
+        let thread = self.threads.get_mut(thread_idx)?;
+        let name = Self::unique_label_name(thread);
+        let id = format!("label_{}", uuid::Uuid::new_v4());
+        thread.labels.push(LabelContainer {
+            id,
+            name,
+            params: Vec::new(),
+            nodes: HashMap::new(),
+            edges: HashMap::new(),
+            entry_pin: Vec2::default(),
+            position: Vec2::default(),
+        });
+        Some(thread.labels.len() - 1)
+    }
+
+    /// 删除线程内的指定标签。
+    pub fn delete_label(&mut self, thread_idx: usize, label_idx: usize) {
+        if let Some(thread) = self.threads.get_mut(thread_idx) {
+            if label_idx < thread.labels.len() {
+                thread.labels.remove(label_idx);
+            }
+        }
+    }
+
+    fn unique_listener_name(thread: &ThreadContainer) -> String {
+        let mut i = 1;
+        loop {
+            let name = format!("Listener {}", i);
+            if !thread.listeners.iter().any(|l| l.name() == name) {
+                return name;
+            }
+            i += 1;
+        }
+    }
+
+    /// 在线程内添加一个监听器，返回监听器索引。
+    pub fn add_listener(&mut self, thread_idx: usize, local: bool) -> Option<usize> {
+        let thread = self.threads.get_mut(thread_idx)?;
+        let name = Self::unique_listener_name(thread);
+        let id = format!("listener_{}", uuid::Uuid::new_v4());
+        let variable_name = format!("var_listener_{}", thread.listeners.len() + 1);
+        let kind = if local {
+            ListenerKind::LocalListener
+        } else {
+            ListenerKind::Listener
+        };
+        thread.listeners.push(ListenerContainer {
+            inner: LabelContainer {
+                id,
+                name,
+                params: Vec::new(),
+                nodes: HashMap::new(),
+                edges: HashMap::new(),
+                entry_pin: Vec2::default(),
+                position: Vec2::default(),
+            },
+            kind,
+            variable_name,
+        });
+        Some(thread.listeners.len() - 1)
+    }
+
+    /// 删除线程内的指定监听器。
+    pub fn delete_listener(&mut self, thread_idx: usize, listener_idx: usize) {
+        if let Some(thread) = self.threads.get_mut(thread_idx) {
+            if listener_idx < thread.listeners.len() {
+                thread.listeners.remove(listener_idx);
+            }
+        }
+    }
+
     /// 查找包含指定节点的线程和标签
     pub fn find_node_location(
         &self,

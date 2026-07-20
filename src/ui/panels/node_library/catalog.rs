@@ -110,6 +110,14 @@ impl SceneCatalog {
                             NodeType::CanGameOver,
                             NodeType::GetStateBool,
                             NodeType::GetStateNumber,
+                            NodeType::FunctionExists,
+                            NodeType::FileExists,
+                            NodeType::GetStageChanged,
+                            NodeType::CollectItem,
+                            NodeType::ListContains,
+                            NodeType::NPCIsAlive,
+                            NodeType::NPCSeesPlayer,
+                            NodeType::NPCSeesFlashing,
                         ],
                     },
                 ],
@@ -469,5 +477,36 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_boolean_output_nodes_are_in_conditions() {
+        use crate::graph::types::PortType;
+
+        let all_defs = crate::api::registry::all_node_definitions();
+        let categories = SceneCatalog::categories();
+        let condition_nodes: std::collections::HashSet<_> = categories
+            .iter()
+            .filter(|c| c.id == "scene.conditions")
+            .flat_map(|c| c.subcategories.iter())
+            .flat_map(|s| s.nodes.iter().copied())
+            .collect();
+
+        let mut missing = Vec::new();
+        for def in all_defs {
+            let has_bool_output = def
+                .outputs
+                .iter()
+                .any(|p| p.port_type == PortType::Boolean);
+            if has_bool_output && !condition_nodes.contains(&def.node_type) {
+                missing.push(def.node_type);
+            }
+        }
+
+        assert!(
+            missing.is_empty(),
+            "Boolean output nodes missing from scene.conditions: {:?}",
+            missing
+        );
     }
 }

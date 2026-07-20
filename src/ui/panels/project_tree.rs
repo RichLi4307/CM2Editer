@@ -49,7 +49,7 @@ impl ProjectTreePanel {
 
         egui::ScrollArea::vertical()
             .id_salt("project_tree_scroll")
-            .max_height(ui.available_height() * 0.9)
+            .max_height(ui.available_height())
             .auto_shrink([false, true])
             .show(ui, |ui| {
                 ui.label(i18n.text("project_tree.code_files"));
@@ -76,12 +76,21 @@ impl ProjectTreePanel {
                             if ui.small_button("Ren").on_hover_text(i18n.text("project_tree.rename")).clicked() {
                                 action = ProjectTreeAction::RenameCode(code_file.name.clone());
                             }
+                            if ui.small_button("Th+")
+                                .on_hover_text(i18n.text("project_tree.add_thread"))
+                                .clicked()
+                            {
+                                action = ProjectTreeAction::AddThread {
+                                    code_name: code_file.name.clone(),
+                                };
+                            }
                         });
                     })
                     .body(|ui| {
                         Self::show_threads(
                             ui,
                             &code_file.graph_doc.graph.threads,
+                            &code_file.name,
                             selected_code == code_file.name,
                             selected_thread,
                             selected_container,
@@ -90,25 +99,27 @@ impl ProjectTreePanel {
                         );
                     });
                 }
-            });
 
-        ui.separator();
-        if ui.button(i18n.text("project_tree.new_code")).clicked() {
-            action = ProjectTreeAction::NewCodeDialog;
-        }
-        if ui.button(i18n.text("project_tree.save_project")).clicked() {
-            action = ProjectTreeAction::SaveProject;
-        }
-        if ui.button(i18n.text("project_tree.export_project")).clicked() {
-            action = ProjectTreeAction::ExportProjectDialog;
-        }
+                ui.separator();
+                if ui.button(i18n.text("project_tree.new_code")).clicked() {
+                    action = ProjectTreeAction::NewCodeDialog;
+                }
+                if ui.button(i18n.text("project_tree.save_project")).clicked() {
+                    action = ProjectTreeAction::SaveProject;
+                }
+                if ui.button(i18n.text("project_tree.export_project")).clicked() {
+                    action = ProjectTreeAction::ExportProjectDialog;
+                }
+            });
 
         action
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn show_threads(
         ui: &mut egui::Ui,
         threads: &[ThreadContainer],
+        code_name: &str,
         code_active: bool,
         selected_thread: usize,
         selected_container: Option<ContainerKind>,
@@ -137,15 +148,26 @@ impl ProjectTreePanel {
                             container: ContainerKind::Label(0),
                         };
                     }
+                    if ui
+                        .small_button("Del")
+                        .on_hover_text(i18n.text("project_tree.delete_thread"))
+                        .clicked()
+                    {
+                        *action = ProjectTreeAction::DeleteThread {
+                            code_name: code_name.to_string(),
+                            thread_idx: t_idx,
+                        };
+                    }
                 });
             })
             .body(|ui| {
                 Self::show_labels(
                     ui,
                     &thread.labels,
+                    code_name,
+                    t_idx,
                     thread_active,
                     selected_container,
-                    t_idx,
                     action,
                     i18n,
                 );
@@ -154,23 +176,63 @@ impl ProjectTreePanel {
                     Self::show_listeners(
                         ui,
                         &thread.listeners,
+                        code_name,
+                        t_idx,
                         thread_active,
                         selected_container,
-                        t_idx,
                         action,
                         i18n,
                     );
+                }
+                ui.horizontal(|ui| {
+                    if ui
+                        .small_button("Lb+")
+                        .on_hover_text(i18n.text("project_tree.add_label"))
+                        .clicked()
+                    {
+                        *action = ProjectTreeAction::AddLabel {
+                            code_name: code_name.to_string(),
+                            thread_idx: t_idx,
+                        };
+                    }
+                    if ui
+                        .small_button("Ls+")
+                        .on_hover_text(i18n.text("project_tree.add_listener"))
+                        .clicked()
+                    {
+                        *action = ProjectTreeAction::AddListener {
+                            code_name: code_name.to_string(),
+                            thread_idx: t_idx,
+                        };
+                    }
+                });
+            });
+        }
+
+        if threads.is_empty() {
+            ui.horizontal(|ui| {
+                ui.label(i18n.text("project_tree.no_threads"));
+                if ui
+                    .small_button("Th+")
+                    .on_hover_text(i18n.text("project_tree.add_thread"))
+                    .clicked()
+                {
+                    *action = ProjectTreeAction::AddThread {
+                        code_name: code_name.to_string(),
+                    };
                 }
             });
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn show_labels(
         ui: &mut egui::Ui,
         labels: &[LabelContainer],
+        code_name: &str,
+        thread_idx: usize,
         thread_active: bool,
         selected_container: Option<ContainerKind>,
-        thread_idx: usize,
         action: &mut ProjectTreeAction,
         i18n: &I18n,
     ) {
@@ -178,25 +240,40 @@ impl ProjectTreePanel {
         for (l_idx, label) in labels.iter().enumerate() {
             let is_active =
                 thread_active && selected_container == Some(ContainerKind::Label(l_idx));
-            let response = ui.selectable_label(
-                is_active,
-                format!("  {}: {}", label.name, label.nodes.len()),
-            );
-            if response.clicked() && !is_active {
-                *action = ProjectTreeAction::SelectContainer {
-                    thread_idx,
-                    container: ContainerKind::Label(l_idx),
-                };
-            }
+            ui.horizontal(|ui| {
+                let response = ui.selectable_label(
+                    is_active,
+                    format!("  {}: {}", label.name, label.nodes.len()),
+                );
+                if response.clicked() && !is_active {
+                    *action = ProjectTreeAction::SelectContainer {
+                        thread_idx,
+                        container: ContainerKind::Label(l_idx),
+                    };
+                }
+                if ui
+                    .small_button("Del")
+                    .on_hover_text(i18n.text("project_tree.delete_label"))
+                    .clicked()
+                {
+                    *action = ProjectTreeAction::DeleteLabel {
+                        code_name: code_name.to_string(),
+                        thread_idx,
+                        label_idx: l_idx,
+                    };
+                }
+            });
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn show_listeners(
         ui: &mut egui::Ui,
         listeners: &[ListenerContainer],
+        code_name: &str,
+        thread_idx: usize,
         thread_active: bool,
         selected_container: Option<ContainerKind>,
-        thread_idx: usize,
         action: &mut ProjectTreeAction,
         i18n: &I18n,
     ) {
@@ -204,16 +281,29 @@ impl ProjectTreePanel {
         for (l_idx, listener) in listeners.iter().enumerate() {
             let is_active =
                 thread_active && selected_container == Some(ContainerKind::Listener(l_idx));
-            let response = ui.selectable_label(
-                is_active,
-                format!("  {}: {}", listener.name(), listener.nodes().len()),
-            );
-            if response.clicked() && !is_active {
-                *action = ProjectTreeAction::SelectContainer {
-                    thread_idx,
-                    container: ContainerKind::Listener(l_idx),
-                };
-            }
+            ui.horizontal(|ui| {
+                let response = ui.selectable_label(
+                    is_active,
+                    format!("  {}: {}", listener.name(), listener.nodes().len()),
+                );
+                if response.clicked() && !is_active {
+                    *action = ProjectTreeAction::SelectContainer {
+                        thread_idx,
+                        container: ContainerKind::Listener(l_idx),
+                    };
+                }
+                if ui
+                    .small_button("Del")
+                    .on_hover_text(i18n.text("project_tree.delete_listener"))
+                    .clicked()
+                {
+                    *action = ProjectTreeAction::DeleteListener {
+                        code_name: code_name.to_string(),
+                        thread_idx,
+                        listener_idx: l_idx,
+                    };
+                }
+            });
         }
     }
 
@@ -358,6 +448,22 @@ pub enum ProjectTreeAction {
     DeleteCode(String),
     /// 重命名指定 `.code` 文件。
     RenameCode(String),
+    /// 在指定 `.code` 文件中添加一个线程。
+    AddThread { code_name: String },
+    /// 删除指定 `.code` 文件中的线程。
+    DeleteThread { code_name: String, thread_idx: usize },
+    /// 在线程中添加一个标签容器。
+    AddLabel { code_name: String, thread_idx: usize },
+    /// 在线程中添加一个监听器容器。
+    AddListener { code_name: String, thread_idx: usize },
+    /// 删除线程中的标签容器。
+    DeleteLabel { code_name: String, thread_idx: usize, label_idx: usize },
+    /// 删除线程中的监听器容器。
+    DeleteListener {
+        code_name: String,
+        thread_idx: usize,
+        listener_idx: usize,
+    },
 }
 
 /// 容器中可被编辑的实体类型（工程树专用）。

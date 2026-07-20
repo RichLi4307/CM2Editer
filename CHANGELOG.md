@@ -10,7 +10,7 @@
 
 - 修复 `If` / `While` 条件代码生成被引号包裹：新增 `resolve_condition`，对字符串字面量条件去除 JSON 引号并直接作为 `.code` 表达式输出；Data 端口连接的条件仍走 `evaluate_data_output`。
 - 为 `If` / `While` 及其 `elseif` 链统一添加外层括号，生成 `if (condition) / elseif (condition) / while (condition)`，避免解释器优先级解析不稳定。
-- 新建 `.code` 文件时默认使用空图，不再强制创建 `main` 线程；通过 `add_code_file` 与无内部 JSON 的 `.code` 加载回退均改为 `ContainerGraph::default_empty()`。新建项目的主文件仍保留默认线程便于快速开始。
+- 新建 `.code` 文件时默认使用空图，不再强制创建 `main` 线程；通过 `add_code_file` 与无内部 JSON 的 `.code` 加载回退均改为 `ContainerGraph::default_empty()`。P3.1 后新建项目的主文件也使用空图，由用户自行创建容器。
 - 修复 `elseif` 分支条件编辑不直观：`properties.rs` 中对 `elseif_*_condition` 动态参数也使用条件模板下拉框（ComboBox 快速填充 + 文本微调），与主 `condition` 字段体验一致。
 - 为支持空图，将 `App.selected_container` 改为 `Option<SelectedContainer>`，`current_label()` / `label_ref()` / `label_mut()` 均返回 `Option`，并同步处理所有调用点（画布渲染、属性面板、复制/删除、撤销重做等）。
 
@@ -35,8 +35,21 @@
 ### 发布说明
 
 - 版本号与 `Cargo.toml` 对齐至 **0.3.0**。
-- 完整测试套件：**154 项 lib tests + 9 项 integration tests = 163 项全部通过**。
+- 完整测试套件：**192 项 lib tests + 9 项 integration tests = 201 项全部通过**。
 - Release 构建产物：`target/release/CM2Editer.exe`（需连同 `assets/fonts/`、`assets/namespaces/`、`assets/i18n/`、README、AGENTS.md、LICENSE 一起分发）。
+
+### 修复（P3.1 手动冒烟测试缺陷）
+
+- **默认线程策略**：移除新建工程自动创建 `main` 线程，新建/打开工程回退与 `App::new_graph` 均使用 `ContainerGraph::default_empty()`；项目树新增 `+T`/`-T`/`-Lb`/`-Ls` 按钮，支持创建/删除线程、标签与监听器，使用户可自行搭建容器结构而不强制默认线程。
+- **搜索大小写不敏感**：`node_library` 模糊匹配改为对查询与目标均转小写，节点库与 Space 搜索均支持大写字母；补充 `test_fuzzy_match` 大小写用例。
+- **描述悬停**：节点库列表、搜索窗口、画布节点悬停时显示 `I18n.node_description` Tooltip，统一工程树/画布/属性面板的信息入口。
+- **文件树底部控件**：将新建/保存/导出按钮移入 `ScrollArea`，解决按钮被挤出屏幕及下降速度滞后于文件树的问题。
+- **节点分类审计**：新增 `test_boolean_output_nodes_are_in_conditions`，强制所有 Boolean 输出节点必须出现在 `scene.conditions`；将 `FunctionExists`、`GetStageChanged`、`CollectItem`、`FileExists`、`ListContains`、`NPCIsAlive`、`NPCSeesPlayer`、`NPCSeesFlashing` 归入 `scene.conditions.state_check`。
+- **坐标标签中文显示**：坐标面板条目改为「场景中文名 - 名称」；新增 `I18n.stage_name` 与 `stage.*` 中文翻译，其他语言保持原样。
+- **Vector/Quaternion 手动输入**：空数组（默认未设置）时提供 JSON 数组文本输入，避免只能打开弹窗；Quaternion 不再打开坐标选择器（仅 Vector 使用坐标预设）。
+- **NPC 输出端口下拉选择**：`npc` Object 参数新增专用下拉框，列出图中 `out_npc` 或标签为 "NPC" 的输出端口，选中后自动转为 Data 引用。
+- **连线端口灰化**：拖拽连线时，`NodeRenderer` 将源端口类型不兼容的输入端口渲染为 25% 透明度，提升连接反馈。
+- `cargo test --lib` 192 项通过；`cargo test` 192 lib + 9 integration 全部通过；`cargo clippy --lib` 0 warnings。
 
 ### 修复（P2 交互回归）
 

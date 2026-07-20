@@ -198,12 +198,16 @@ impl NodeLibraryPanel {
                                                     color,
                                                 );
                                                 ui.add_space(16.0);
-                                                let name_resp = ui.add(
-                                                    egui::Button::new(egui::RichText::new(&display_name))
+                                                let name_resp = ui
+                                                    .add(
+                                                        egui::Button::new(egui::RichText::new(
+                                                            &display_name,
+                                                        ))
                                                         .sense(egui::Sense::drag())
                                                         .min_size(egui::vec2(120.0, 24.0))
                                                         .wrap_mode(egui::TextWrapMode::Truncate),
-                                                );
+                                                    )
+                                                    .on_hover_text(i18n.node_description(node_type));
                                                 let star_resp = ui.button(fav_text);
                                                 (name_resp, star_resp)
                                             });
@@ -312,7 +316,11 @@ impl NodeLibraryPanel {
                             if ui.button(i18n.text("button.unfavorite")).clicked() {
                                 action = NodeLibraryAction::ToggleFavorite(node_type);
                             }
-                            if ui.button(display_name).clicked() {
+                            if ui
+                                .button(display_name)
+                                .on_hover_text(i18n.node_description(node_type))
+                                .clicked()
+                            {
                                 action = NodeLibraryAction::Create(node_type);
                             }
                         });
@@ -334,7 +342,11 @@ impl NodeLibraryPanel {
                             if ui.button(i18n.text("button.favorite")).clicked() {
                                 action = NodeLibraryAction::ToggleFavorite(node_type);
                             }
-                            if ui.button(display_name).clicked() {
+                            if ui
+                                .button(display_name)
+                                .on_hover_text(i18n.node_description(node_type))
+                                .clicked()
+                            {
                                 action = NodeLibraryAction::Create(node_type);
                             }
                         });
@@ -355,6 +367,7 @@ impl NodeLibraryPanel {
                         }
                         if ui
                             .button(format!("{} [{}]", display_name, def.category))
+                            .on_hover_text(i18n.node_description(def.node_type))
                             .clicked()
                         {
                             action = NodeLibraryAction::Create(def.node_type);
@@ -379,8 +392,8 @@ fn matches_filter(i18n: &I18n, node_type: NodeType, query: &str) -> bool {
     if query.is_empty() {
         return true;
     }
-    let name = i18n.node_display_name(node_type).to_lowercase();
-    let debug = format!("{:?}", node_type).to_lowercase();
+    let name = i18n.node_display_name(node_type);
+    let debug = format!("{:?}", node_type);
     if fuzzy_match(query, &name) || fuzzy_match(query, &debug) {
         return true;
     }
@@ -388,15 +401,15 @@ fn matches_filter(i18n: &I18n, node_type: NodeType, query: &str) -> bool {
         Some(d) => d,
         None => return false,
     };
-    if fuzzy_match(query, &def.category.to_lowercase()) {
+    if fuzzy_match(query, &def.category) {
         return true;
     }
     // 同时匹配场景分类/子分类标签
     for category in SceneCatalog::categories() {
         for sub in &category.subcategories {
             if sub.nodes.contains(&node_type)
-                && (fuzzy_match(query, &i18n.text(category.id).to_lowercase())
-                    || fuzzy_match(query, &i18n.text(sub.id).to_lowercase()))
+                && (fuzzy_match(query, &i18n.text(category.id))
+                    || fuzzy_match(query, &i18n.text(sub.id)))
             {
                 return true;
             }
@@ -407,11 +420,14 @@ fn matches_filter(i18n: &I18n, node_type: NodeType, query: &str) -> bool {
 
 /// 简单字符级模糊匹配：query 中的字符按顺序在 target 中出现即匹配。
 /// 若 query 是 target 的连续子串则优先命中。
+/// 大小写不敏感。
 fn fuzzy_match(query: &str, target: &str) -> bool {
     if query.is_empty() {
         return true;
     }
-    if target.contains(query) {
+    let query = query.to_lowercase();
+    let target = target.to_lowercase();
+    if target.contains(&query) {
         return true;
     }
     let mut qi = query.chars();
@@ -437,6 +453,10 @@ mod tests {
         assert!(fuzzy_match("stp", "setplayerposition"));
         assert!(fuzzy_match("setplayer", "setplayerposition"));
         assert!(!fuzzy_match("xyz", "setplayerposition"));
+        // 大小写不敏感
+        assert!(fuzzy_match("SET", "SetPlayerPosition"));
+        assert!(fuzzy_match("SetPlayer", "setplayerposition"));
+        assert!(fuzzy_match("sEt", "SetPlayerPosition"));
     }
 
     #[test]

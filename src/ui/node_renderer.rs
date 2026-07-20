@@ -27,6 +27,8 @@ pub struct NodeRenderer {
     pub min_height: f32,
     /// 翻译注册表
     pub i18n: I18n,
+    /// 当前拖拽连线源端口类型。若存在，输入端口中不兼容的端口会被变灰。
+    pub drag_source_port_type: Option<PortType>,
 }
 
 impl Default for NodeRenderer {
@@ -41,6 +43,7 @@ impl Default for NodeRenderer {
             min_width: 180.0,
             min_height: 80.0,
             i18n: I18n::new(),
+            drag_source_port_type: None,
         }
     }
 }
@@ -278,7 +281,12 @@ impl NodeRenderer {
             label: port.label.clone(),
             required: false,
         };
-        self.paint_port(ui, port.center, &port_def, port.is_input);
+        let dimmed = if let Some(src) = self.drag_source_port_type.as_ref() {
+            port.is_input && !src.is_compatible_with(&port.port_type)
+        } else {
+            false
+        };
+        self.paint_port(ui, port.center, &port_def, port.is_input, dimmed);
     }
 
     /// 布局并渲染端口，返回端口几何信息。
@@ -292,8 +300,13 @@ impl NodeRenderer {
     }
 
     /// 绘制单个端口圆点。
-    fn paint_port(&self, ui: &egui::Ui, center: Pos2, port: &Port, is_input: bool) {
+    fn paint_port(&self, ui: &egui::Ui, center: Pos2, port: &Port, is_input: bool, dimmed: bool) {
         let color = port_color(&port.port_type);
+        let color = if dimmed {
+            color.gamma_multiply(0.25)
+        } else {
+            color
+        };
         ui.painter().circle_filled(center, self.port_radius, color);
         let label_pos = if is_input {
             Pos2::new(center.x + self.port_radius + 4.0, center.y)

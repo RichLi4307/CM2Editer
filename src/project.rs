@@ -197,7 +197,7 @@ impl Project {
         meta.default_active = false;
 
         let graph_doc = GraphDocument::from_graph(
-            ContainerGraph::default_main(),
+            ContainerGraph::default_empty(),
             Value::Object(serde_json::Map::new()),
             Viewport::default(),
             Vec::new(),
@@ -251,7 +251,7 @@ impl Project {
             let mut code_file = CodeFile {
                 name: DEFAULT_CODE_FILE.to_string(),
                 graph_doc: GraphDocument::from_graph(
-                    ContainerGraph::default_main(),
+                    ContainerGraph::default_empty(),
                     Value::Object(serde_json::Map::new()),
                     Viewport::default(),
                     Vec::new(),
@@ -706,6 +706,7 @@ mod tests {
 
     #[test]
     fn test_project_save_and_export() -> Result<()> {
+        use crate::graph::container::ContainerGraph;
         use crate::graph::node::{Node, Vec2};
         use crate::graph::types::NodeType;
 
@@ -713,6 +714,8 @@ mod tests {
         let mut project = Project::create(&temp, "Mission")?;
 
         if let Some(code_file) = project.active_code_file_mut() {
+            // 手动创建一个带 main 标签的线程，用于验证保存/导出。
+            code_file.graph_doc.graph = ContainerGraph::default_main();
             let node = Node::new(NodeType::Log, Vec2::default());
             code_file
                 .graph_doc
@@ -745,8 +748,8 @@ mod tests {
         let temp = std::env::temp_dir().join(format!("cm2_test_{}", uuid::Uuid::new_v4()));
         let mut project = Project::create(&temp, "Mission")?;
 
-        // 新建项目的主文件仍保留默认 main 线程，便于快速开始。
-        assert_eq!(project.code_files[0].graph_doc.graph.threads.len(), 1);
+        // 新建项目的主文件应为空图，不再自动创建默认 main 线程。
+        assert_eq!(project.code_files[0].graph_doc.graph.threads.len(), 0);
 
         // 通过 add_code_file 创建的附加文件应为空图，不强制包含线程。
         project.add_code_file("empty")?;

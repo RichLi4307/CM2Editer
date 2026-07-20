@@ -110,6 +110,13 @@ impl I18n {
         self.text_opt(key).unwrap_or_else(|| key.to_string())
     }
 
+    /// Translate a stage key (`stage.{name}`) into the current language.
+    /// Falls back to the raw stage name if no translation is available.
+    pub fn stage_name(&self, stage: &str) -> String {
+        let key = format!("stage.{}", stage);
+        self.text_opt(&key).unwrap_or_else(|| stage.to_string())
+    }
+
     /// Translate a key, returning `None` if no translation is available.
     fn text_opt(&self, key: &str) -> Option<String> {
         if let Some(map) = self.translations.get(&self.current) {
