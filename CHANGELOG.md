@@ -6,6 +6,20 @@
 
 ## [Unreleased]
 
+### 修复（test_checklist.md UI 缺陷）
+
+- **窗口启动位置/大小**：`src/main.rs` 设置 `eframe::ViewportBuilder::with_maximized(true)`，启动即最大化，消除窗口部分在屏幕外与闪烁问题。
+- **节点库拖拽虚影过窄**：`src/ui/panels/node_library/mod.rs` 中节点按钮设置 `min_size(120, 24)` 与 `wrap(false)`；`src/app.rs` 的拖拽虚影改用 i18n 节点名并设置最小宽度 140px，单行显示。
+- **命名空间面板缺少删除按钮**：左栏命名空间每个条目右侧新增 “×” 删除按钮，点击后弹出 `rfd::MessageDialog` 二次确认；`NamespaceRegistry` 新增 `remove_entry` 方法，删除 `assets/namespaces/*.json` 中的对应条目并持久化。
+- **坐标面板缺少删除按钮**：左栏坐标每个条目右侧新增 “×” 删除按钮，二次确认；`CoordinateRegistry` 新增 `remove_entry` 方法，从 `assets/coordinates/*.json` 中删除对应条目。
+- 新增 i18n 键：`dialog.confirm_delete_namespace_body`、`dialog.confirm_delete_coordinate_body`、`status.namespace_entry_deleted`、`status.coordinate_deleted`（zh/en/ja）。
+- 更新 `docs/test_checklist.md`，标记 1.4、2.1.5、2.3.4、2.4.1/2.4.3 为 `[JM]`。
+
+### 测试
+
+- 新增 `api::namespace::tests::test_remove_namespace_entry_persists_to_file`、`test_remove_namespace_entry_missing_returns_error`。
+- 新增 `api::coordinate::tests::test_remove_coordinate_entry_persists_to_file`、`test_remove_coordinate_entry_missing_returns_error`。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明
