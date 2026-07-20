@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 优化（P2.7 条件表达式实时校验）
+
+- 新增 `validate_condition_expression`：检查括号配平、交叉括号、空组、逗号位置、NOT 前缀位置、未知 token。
+- `ConditionEditor` 预览下方实时显示红色校验错误，不阻塞确认按钮。
+- 位置：`src/ui/panels/condition_editor.rs`。
+- 测试：新增 `test_validate_condition_expression_valid` 与 `test_validate_condition_expression_invalid` 覆盖 11+ 个有效与无效样例；`cargo test` 165 项全部通过。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明
