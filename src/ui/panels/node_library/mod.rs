@@ -457,7 +457,7 @@ mod tests {
         assert_eq!(favorites, vec![NodeType::If]);
         // 测试上限：用大量不同节点填充
         let all_types: Vec<NodeType> = all_node_definitions()
-            .into_iter()
+            .iter()
             .map(|d| d.node_type)
             .collect();
         for &nt in &all_types {
