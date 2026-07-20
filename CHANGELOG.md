@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+### 优化（P2.11 CreateArea cuboid 参数集）
+
+- `CreateArea` 节点 `type` 参数从字符串改为下拉枚举，支持 `sphere` / `cylinder` / `cuboid`。
+- 新增 `position2`（Vector）和 `w`（Number）参数，用于长方体（cuboid）的结束角与宽度。
+- `r` / `h` 改为可选参数：球体/圆柱体使用 `r`，圆柱体/长方体使用 `h`；长方体不再需要 `r`。
+- `src/code_gen/generator.rs` 新增 `CreateArea` 专用生成逻辑：
+  - sphere: `CreateArea(type="sphere", stage=..., x=..., y=..., z=..., r=...)`
+  - cylinder: `CreateArea(type="cylinder", stage=..., x=..., y=..., z=..., r=..., h=...)`
+  - cuboid: `CreateArea(type="cuboid", stage=..., x1=..., y1=..., z1=..., x2=..., y2=..., z2=..., w=..., h=...)`
+- 支持 Vector 字面量直接拆分与 Data 端口动态连接（使用数组索引回退）。
+- 更新 `docs/node_types.md`、`docs/node_details.md`、zh/en i18n。
+- 测试：新增 `test_create_area_shapes`（覆盖三种形状）、`test_create_area_dynamic_position`、`test_create_area_omits_unused_params`；`cargo test --lib` 全部通过。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明

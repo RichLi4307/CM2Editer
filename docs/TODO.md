@@ -77,7 +77,7 @@
   - 无 iterable 连线时自动包装 `Range()`，减少用户手动创建 Range 节点
   - 位置：`src/code_gen/generator.rs`（`generate_for`）
 
-- [ ] **P2.11 CreateArea cuboid 参数集**
+- [x] **P2.11 CreateArea cuboid 参数集**
   - 官方支持 sphere / cylinder / cuboid 三种，当前缺 cuboid（x1..z2, w, h）
   - 位置：`src/api/definitions.rs` + `src/code_gen/generator.rs`
 
@@ -113,6 +113,7 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
+| 2026-07-20 | P2.11 | CreateArea 支持 cuboid：type 改为下拉枚举，新增 position2/w 参数，生成器按形状输出官方签名参数，补充 4 个生成器测试 | 已完成 |
 | 2026-07-17 | P3.2 | Release 打包：版本号核对 0.3.0、README 与 CHANGELOG 同步、`cargo test` 163 项全过 | 已完成 |
 | 2026-07-17 | 文档-TODO | 归档 v10，新 TODO 按优先级整理 P2 使用体验优化与 P3 发布准备 | 已完成 |
 | 2026-07-17 | 修复 | 节点库渲染黑框 + 底栏分割线可互相越过 | 已完成 |
