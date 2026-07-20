@@ -3585,7 +3585,8 @@ missionItem.SetBackgroundColor(Color(0.495, 1.000, 0.521, 1.000), Color(0.000, 0
 - **中文名**：创建区域
 - **类别**：Objects（对象）
 - **代码生成类别**：B
-- **官方 API 签名**：`CreateArea(type, stage, x, y, z, r[, h][, outline][, compass])`  
+- **官方 API 签名**：`CreateArea(type = "sphere", stage, x, y, z, r[, outline][, compass])`  
+  或 `CreateArea(type = "cylinder", stage, x, y, z, r, h[, outline][, compass])`  
   或 `CreateArea(type = "cuboid", stage, x1, y1, z1, x2, y2, z2, w, h[, outline][, compass])`
 - **返回值类型**：Object（Area 对象）
 - **作用**：在指定场景中创建一个检测区域（球体、圆柱体或长方体），用于检测玩家位置、触发事件或作为视觉引导。支持设置颜色、轮廓线和指南针图标。
@@ -3594,11 +3595,13 @@ missionItem.SetBackgroundColor(Color(0.495, 1.000, 0.521, 1.000), Color(0.000, 0
 
 | 参数 | 必填 | 类型 | 含义 |
 |------|------|------|------|
-| `type` | 是 | String | 区域形状：`"sphere"`、`"cylinder"` 或 `"cuboid"` |
+| `type` | 是 | Enum | 区域形状：`"sphere"`、`"cylinder"` 或 `"cuboid"` |
 | `stage` | 是 | Enum (StageType) | 所属场景 |
-| `position` | 是 | Vector | 中心位置（x, y, z）。球体/圆柱体用 `position`，长方体用 `position` 作为 Start |
-| `r` | 是 | Number | 半径（球体/圆柱体） |
-| `h` | 是 | Number | 高度（圆柱体/长方体） |
+| `position` | 是 | Vector | 中心位置（x, y, z）。球体/圆柱体用 `position`，长方体用 `position` 作为 Start（x1, y1, z1） |
+| `r` | 否 | Number | 半径（球体/圆柱体） |
+| `h` | 否 | Number | 高度（圆柱体/长方体） |
+| `position2` | 否 | Vector | 长方体结束角（x2, y2, z2） |
+| `w` | 否 | Number | 长方体宽度 |
 | `outline` | 否 | Boolean | 是否显示轮廓线 |
 | `compass` | 否 | String/Boolean | 指南针图标（True=默认图标，String=自定义图片路径） |
 

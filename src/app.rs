@@ -37,6 +37,7 @@ use crate::ui::panels::{
     overview::{OverviewAction, OverviewContainerKind, OverviewPanel},
     project_tree::{ProjectTreeAction, ProjectTreePanel},
     properties::{PropertiesPanel, PropertiesPanelAction},
+    state_picker::{StatePicker, StatePickerState, StateType},
     status_bar::StatusBarPanel,
     status_bar::{ErrorDetailWindow, StatusBarEvent},
     condition_editor::{ConditionEditor, ConditionEditorState},
@@ -291,6 +292,7 @@ pub struct App {
     pub search_window_open: bool,
     pub node_library_filter: NodeLibraryFilter,
     pub recent_node_types: Vec<NodeType>,
+    pub favorite_node_types: Vec<NodeType>,
     pub status_message: String,
     /// 是否显示空画布欢迎提示
     pub show_welcome_hint: bool,
@@ -310,6 +312,8 @@ pub struct App {
     pub coordinate_registry: CoordinateRegistry,
     /// 坐标选择器窗口状态。
     pub coordinate_picker: Option<CoordinatePickerState>,
+    /// `_state` 探针选择器窗口状态。
+    pub state_picker: Option<StatePickerState>,
     /// 条件组合编辑器窗口状态。
     pub condition_editor: Option<ConditionEditorState>,
     /// 国际化文本注册表。
@@ -378,6 +382,7 @@ impl App {
             namespace_picker: None,
             coordinate_registry: CoordinateRegistry::load_bundled(),
             coordinate_picker: None,
+            state_picker: None,
             condition_editor: None,
             i18n: {
                 let mut i18n = crate::ui::i18n::I18n::load_bundled();
@@ -408,6 +413,16 @@ impl App {
                 let settings = AppSettings::load();
                 settings
                     .recent_node_types
+                    .iter()
+                    .filter_map(|name| {
+                        serde_json::from_value(serde_json::Value::String(name.clone())).ok()
+                    })
+                    .collect()
+            },
+            favorite_node_types: {
+                let settings = AppSettings::load();
+                settings
+                    .favorite_node_types
                     .iter()
                     .filter_map(|name| {
                         serde_json::from_value(serde_json::Value::String(name.clone())).ok()
@@ -570,6 +585,24 @@ impl App {
             .map(|n| format!("{:?}", n))
             .collect();
         settings.save()
+    }
+
+    /// 将收藏的节点类型持久化到设置文件。
+    fn save_favorite_node_types(&self) -> Result<()> {
+        let mut settings = AppSettings::load();
+        settings.favorite_node_types = self
+            .favorite_node_types
+            .iter()
+            .map(|n| format!("{:?}", n))
+            .collect();
+        settings.save()
+    }
+
+    /// 切换节点的收藏状态并持久化。
+    fn toggle_favorite_node(&mut self, node_type: NodeType) {
+        use crate::ui::panels::node_library::toggle_favorite;
+        toggle_favorite(&mut self.favorite_node_types, node_type);
+        let _ = self.save_favorite_node_types();
     }
 
     /// 删除选中的项。
@@ -1238,6 +1271,7 @@ impl eframe::App for App {
                             &mut self.node_library_filter,
                             &mut self.search_window_open,
                             &self.recent_node_types,
+                            &self.favorite_node_types,
                             self.node_library_height,
                         ) {
                             NodeLibraryAction::Create(node_type) => {
@@ -1248,6 +1282,9 @@ impl eframe::App for App {
                             }
                             NodeLibraryAction::DragStart(node_type) => {
                                 self.dragged_node = Some(node_type);
+                            }
+                            NodeLibraryAction::ToggleFavorite(node_type) => {
+                                self.toggle_favorite_node(node_type);
                             }
                             NodeLibraryAction::None => {}
                         }
@@ -1411,96 +1448,28 @@ impl eframe::App for App {
                             ui.label(self.i18n.text("label.no_namespace_loaded"));
                             ui.label(self.i18n.text("label.check_assets_namespaces"));
                         } else {
-                            for name in self.namespace_registry.namespace_names() {
-                                let ns = match self.namespace_registry.get(name) {
-                                    Some(n) => n,
-                                    None => continue,
-                                };
-                                let header = self.i18n.format("label.items_count", &[name, &ns.entries.len().to_string()]);
+                            let names: Vec<String> = self
+                                .namespace_registry
+                                .namespace_names()
+                                .iter()
+                                .map(|s| s.to_string())
+                                .collect();
+                            for name in &names {
+                                let entries: Vec<crate::api::namespace::NamespaceEntry> = self
+                                    .namespace_registry
+                                    .get(name)
+                                    .map(|ns| ns.entries.clone())
+                                    .unwrap_or_default();
+                                let header = self.i18n.format(
+                                    "label.items_count",
+                                    &[name, &entries.len().to_string()],
+                                );
                                 egui::CollapsingHeader::new(header)
-                                .id_salt(format!("left_ns_{name}"))
-                                .default_open(false)
-                                .show(ui, |ui| {
-                                    let has_cats = ns.entries.iter().any(|e| e.category.is_some());
-                                    if has_cats {
-                                        let mut by_cat: std::collections::BTreeMap<
-                                            String,
-                                            Vec<&crate::api::namespace::NamespaceEntry>,
-                                        > = std::collections::BTreeMap::new();
-                                        for e in &ns.entries {
-                                            let cat = e.category.clone().unwrap_or_else(|| self.i18n.text("label.category_other"));
-                                            by_cat.entry(cat).or_default().push(e);
-                                        }
-                                        egui::ScrollArea::vertical()
-                                            .id_salt(format!("ns_scroll_{name}"))
-                                            .max_height(ui.available_height().max(160.0))
-                                            .show(ui, |ui| {
-                                                for (cat, entries) in &by_cat {
-                                                    let cat_header = self.i18n.format("label.items_count", &[cat, &entries.len().to_string()]);
-                                                    egui::CollapsingHeader::new(cat_header)
-                                                        .id_salt(format!(
-                                                            "left_ns_{name}_{cat}"
-                                                        ))
-                                                        .show(ui, |ui| {
-                                                            ui.horizontal_wrapped(|ui| {
-                                                                for e in entries {
-                                                                    let is_selected = self.left_ns_selected.contains(&e.key);
-                                                                    if ui.add(ns_card(e, name, is_selected, self.i18n.current_language())).clicked() {
-                                                                        if self.left_ns_multi {
-                                                                            if is_selected {
-                                                                                self.left_ns_selected.remove(&e.key);
-                                                                            } else {
-                                                                                self.left_ns_selected.insert(e.key.clone());
-                                                                            }
-                                                                        } else {
-                                                                            ui.ctx().output_mut(|o| {
-                                                                                o.commands.push(
-                                                                                    egui::OutputCommand::CopyText(
-                                                                                        e.key.clone(),
-                                                                                    ),
-                                                                                )
-                                                                            });
-                                                                            self.status_message =
-                                                                                self.i18n.format("label.copied", &[&e.key]);
-                                                                        }
-                                                                    }
-                                                                }
-                                                            });
-                                                        });
-                                                }
-                                            });
-                                    } else {
-                                        egui::ScrollArea::vertical()
-                                            .id_salt(format!("ns_scroll_{name}"))
-                                            .max_height(320.0)
-                                            .show(ui, |ui| {
-                                                ui.horizontal_wrapped(|ui| {
-                                                    for e in &ns.entries {
-                                                        let is_selected = self.left_ns_selected.contains(&e.key);
-                                                         if ui.add(ns_card(e, name, is_selected, self.i18n.current_language())).clicked() {
-                                                            if self.left_ns_multi {
-                                                                if is_selected {
-                                                                    self.left_ns_selected.remove(&e.key);
-                                                                } else {
-                                                                    self.left_ns_selected.insert(e.key.clone());
-                                                                }
-                                                            } else {
-                                                                ui.ctx().output_mut(|o| {
-                                                                    o.commands.push(
-                                                                        egui::OutputCommand::CopyText(
-                                                                            e.key.clone(),
-                                                                        ),
-                                                                    )
-                                                                });
-                                                                self.status_message =
-                                                                    self.i18n.format("label.copied", &[&e.key]);
-                                                            }
-                                                        }
-                                                    }
-                                                });
-                                            });
-                                    }
-                                });
+                                    .id_salt(format!("left_ns_{name}"))
+                                    .default_open(false)
+                                    .show(ui, |ui| {
+                                        self.show_namespace_category(ui, name, &entries);
+                                    });
                             }
                         }
                     }
@@ -1511,23 +1480,40 @@ impl eframe::App for App {
                             ui.label(self.i18n.text("label.no_coordinate_loaded"));
                             ui.label(self.i18n.text("label.edit_coordinates"));
                         } else {
-                            for stage in self.coordinate_registry.stage_names() {
-                                let entries: Vec<_> = self
+                            let stages: Vec<String> = self
+                                .coordinate_registry
+                                .stage_names()
+                                .iter()
+                                .map(|s| s.to_string())
+                                .collect();
+                            for stage in &stages {
+                                let entries: Vec<crate::api::coordinate::CoordinateEntry> = self
                                     .coordinate_registry
                                     .entries
                                     .iter()
-                                    .filter(|e| e.stage == stage)
+                                    .filter(|e| e.stage == *stage)
+                                    .cloned()
                                     .collect();
-                                egui::CollapsingHeader::new(self.i18n.format("label.items_count", &[stage, &entries.len().to_string()]))
-                                    .id_salt(format!("left_coord_{stage}"))
-                                    .show(ui, |ui| {
-                                        for e in entries {
-                        ui.horizontal(|ui| {
-                            ui.label(format!("* {}", e.name));
-                            ui.label(e.coord_text());
-                        });
-                                        }
-                                    });
+                                egui::CollapsingHeader::new(self.i18n.format(
+                                    "label.items_count",
+                                    &[stage, &entries.len().to_string()],
+                                ))
+                                .id_salt(format!("left_coord_{stage}"))
+                                .show(ui, |ui| {
+                                    for e in &entries {
+                                        ui.horizontal(|ui| {
+                                            ui.label(format!("* {}", e.name));
+                                            ui.label(e.coord_text());
+                                            if ui
+                                                .small_button("×")
+                                                .on_hover_text(self.i18n.text("button.delete"))
+                                                .clicked()
+                                            {
+                                                self.confirm_delete_coordinate_entry(&e.id);
+                                            }
+                                        });
+                                    }
+                                });
                             }
                             ui.separator();
                             ui.horizontal(|ui| {
@@ -1668,6 +1654,7 @@ impl eframe::App for App {
                                 &mut self.namespace_picker,
                                 &self.coordinate_registry,
                                 &mut self.coordinate_picker,
+                                &mut self.state_picker,
                                 &mut self.condition_editor,
                                 &mut self.edit_buffers,
                             );
@@ -1796,6 +1783,38 @@ impl eframe::App for App {
                 }
             } else {
                 self.coordinate_picker = None;
+            }
+        }
+
+        // `_state` 探针选择器悬浮窗口
+        let expected_state_type = edited_node_id
+            .as_ref()
+            .and_then(|id| self.current_label().and_then(|l| l.nodes.get(id)))
+            .map(|node| {
+                if node.node_type == NodeType::GetStateBool {
+                    StateType::Boolean
+                } else {
+                    StateType::Number
+                }
+            })
+            .unwrap_or(StateType::Boolean);
+        if let Some(picker) = self.state_picker.as_mut() {
+            if picker.open {
+                if let Some(path) = StatePicker::show(ctx, picker, &self.i18n, expected_state_type) {
+                    if let Some(node_id) = edited_node_id.as_ref() {
+                        let value = ParamValue::Literal(serde_json::json!(path));
+                        let key = picker.param_key.clone();
+                        let from = self.node_param(node_id, &key);
+                        self.push_command(Command::SetParam {
+                            node_id: node_id.clone(),
+                            key,
+                            from,
+                            to: value,
+                        });
+                    }
+                }
+            } else {
+                self.state_picker = None;
             }
         }
 
@@ -1999,19 +2018,24 @@ impl eframe::App for App {
                     let spawn_pos = self
                         .hover_world_pos(ctx, self.canvas_rect(ctx))
                         .map(|p| Vec2::new(p.x, p.y));
-                    if let Some(node_type) =
-                        NodeLibraryPanel::show_search(
-                            ui,
-                            &self.i18n,
-                            &mut self.node_library_filter,
-                            &self.recent_node_types,
-                        )
-                    {
-                        let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
-                        self.add_node_at(node_type, pos);
-                        record_recent(&mut self.recent_node_types, node_type);
-                        let _ = self.save_recent_node_types();
-                        self.search_window_open = false;
+                    match NodeLibraryPanel::show_search(
+                        ui,
+                        &self.i18n,
+                        &mut self.node_library_filter,
+                        &self.recent_node_types,
+                        &self.favorite_node_types,
+                    ) {
+                        NodeLibraryAction::Create(node_type) => {
+                            let pos = spawn_pos.unwrap_or(Vec2::new(0.0, 0.0));
+                            self.add_node_at(node_type, pos);
+                            record_recent(&mut self.recent_node_types, node_type);
+                            let _ = self.save_recent_node_types();
+                            self.search_window_open = false;
+                        }
+                        NodeLibraryAction::ToggleFavorite(node_type) => {
+                            self.toggle_favorite_node(node_type);
+                        }
+                        _ => {}
                     }
                 });
         }
@@ -2026,9 +2050,13 @@ impl eframe::App for App {
                     .order(egui::Order::Foreground)
                     .fixed_pos(pos)
                     .show(ctx, |ui| {
-                        ui.colored_label(
-                            egui::Color32::from_rgb(150, 200, 255),
-                            format!("{:?}", nt),
+                        ui.set_min_width(140.0);
+                        ui.add(
+                            egui::Label::new(
+                                egui::RichText::new(self.i18n.node_display_name(nt))
+                                    .color(egui::Color32::from_rgb(150, 200, 255)),
+                            )
+                            .wrap_mode(egui::TextWrapMode::Truncate),
                         );
                     });
             }
@@ -2199,6 +2227,153 @@ impl App {
             .as_ref()
             .map(|p| p.active_code.clone())
             .unwrap_or_default()
+    }
+
+    /// 在左栏命名空间面板渲染一个条目行，含复制/多选与删除按钮。
+    fn show_namespace_entry_row(
+        &mut self,
+        ui: &mut egui::Ui,
+        namespace: &str,
+        entry: &crate::api::namespace::NamespaceEntry,
+    ) {
+        let key = entry.key.clone();
+        let display = entry.display_name(self.i18n.current_language());
+        let label = if display == key {
+            key.clone()
+        } else {
+            format!("{} ({})", display, key)
+        };
+
+        ui.horizontal(|ui| {
+            if self.left_ns_multi {
+                let mut selected = self.left_ns_selected.contains(&key);
+                if ui.checkbox(&mut selected, &label).changed() {
+                    if selected {
+                        self.left_ns_selected.insert(key.clone());
+                    } else {
+                        self.left_ns_selected.remove(&key);
+                    }
+                }
+            } else if ui.selectable_label(false, &label).clicked() {
+                ui.ctx().output_mut(|o| {
+                    o.commands
+                        .push(egui::OutputCommand::CopyText(key.clone()));
+                });
+                self.status_message = self.i18n.format("label.copied", &[&key]);
+            }
+            if ui
+                .small_button("×")
+                .on_hover_text(self.i18n.text("button.delete"))
+                .clicked()
+            {
+                self.confirm_delete_namespace_entry(namespace, &key);
+            }
+        });
+    }
+
+    /// 弹出确认对话框并删除命名空间条目。
+    fn confirm_delete_namespace_entry(&mut self, namespace: &str, key: &str) {
+        let title = self.i18n.text("dialog.confirm_delete_title");
+        let body = self
+            .i18n
+            .format("dialog.confirm_delete_namespace_body", &[key]);
+        let confirmed = rfd::MessageDialog::new()
+            .set_title(&title)
+            .set_description(&body)
+            .set_buttons(rfd::MessageButtons::YesNo)
+            .show();
+        if matches!(confirmed, rfd::MessageDialogResult::Yes) {
+            match self.namespace_registry.remove_entry(
+                namespace,
+                key,
+                std::path::Path::new("assets/namespaces"),
+            ) {
+                Ok(()) => {
+                    self.namespace_registry = NamespaceRegistry::load_bundled();
+                    self.status_message =
+                        self.i18n.format("status.namespace_entry_deleted", &[key]);
+                }
+                Err(e) => {
+                    self.status_message =
+                        self.i18n.format("status.delete_failed", &[&e.to_string()]);
+                }
+            }
+        }
+    }
+
+    /// 弹出确认对话框并删除坐标条目。
+    fn confirm_delete_coordinate_entry(&mut self, id: &str) {
+        let title = self.i18n.text("dialog.confirm_delete_title");
+        let body = self
+            .i18n
+            .format("dialog.confirm_delete_coordinate_body", &[id]);
+        let confirmed = rfd::MessageDialog::new()
+            .set_title(&title)
+            .set_description(&body)
+            .set_buttons(rfd::MessageButtons::YesNo)
+            .show();
+        if matches!(confirmed, rfd::MessageDialogResult::Yes) {
+            match self
+                .coordinate_registry
+                .remove_entry(id, std::path::Path::new("assets/coordinates"))
+            {
+                Ok(()) => {
+                    self.coordinate_registry = CoordinateRegistry::load_bundled();
+                    self.status_message = self.i18n.format("status.coordinate_deleted", &[id]);
+                }
+                Err(e) => {
+                    self.status_message =
+                        self.i18n.format("status.delete_failed", &[&e.to_string()]);
+                }
+            }
+        }
+    }
+
+    /// 在左栏命名空间面板渲染一个分类下的所有条目。
+    fn show_namespace_category(
+        &mut self,
+        ui: &mut egui::Ui,
+        namespace: &str,
+        entries: &[crate::api::namespace::NamespaceEntry],
+    ) {
+        let has_cats = entries.iter().any(|e| e.category.is_some());
+        if has_cats {
+            let mut by_cat: std::collections::BTreeMap<
+                String,
+                Vec<&crate::api::namespace::NamespaceEntry>,
+            > = std::collections::BTreeMap::new();
+            let other = self.i18n.text("label.category_other");
+            for e in entries {
+                let cat = e.category.clone().unwrap_or_else(|| other.clone());
+                by_cat.entry(cat).or_default().push(e);
+            }
+            egui::ScrollArea::vertical()
+                .id_salt(format!("ns_scroll_{namespace}"))
+                .max_height(ui.available_height().max(160.0))
+                .show(ui, |ui| {
+                    for (cat, cat_entries) in &by_cat {
+                        let cat_header = self
+                            .i18n
+                            .format("label.items_count", &[cat, &cat_entries.len().to_string()]);
+                        egui::CollapsingHeader::new(cat_header)
+                            .id_salt(format!("left_ns_{namespace}_{cat}"))
+                            .show(ui, |ui| {
+                                for e in cat_entries {
+                                    self.show_namespace_entry_row(ui, namespace, e);
+                                }
+                            });
+                    }
+                });
+        } else {
+            egui::ScrollArea::vertical()
+                .id_salt(format!("ns_scroll_{namespace}"))
+                .max_height(320.0)
+                .show(ui, |ui| {
+                    for e in entries {
+                        self.show_namespace_entry_row(ui, namespace, e);
+                    }
+                });
+        }
     }
 
     /// 更新画布内容并处理交互。
@@ -2486,82 +2661,6 @@ impl App {
             FontId::proportional(14.0),
             Theme::TEXT,
         );
-    }
-}
-
-/// 命名空间条目卡片 — 居中粗体标题 + 彩色边框。
-/// 单选模式下点击复制 key；多选模式下由调用方维护 `is_selected` 状态。
-fn ns_card<'a>(
-    entry: &'a crate::api::namespace::NamespaceEntry,
-    cat: &'a str,
-    is_selected: bool,
-    lang: &'a str,
-) -> impl egui::Widget + 'a {
-    move |ui: &mut egui::Ui| {
-        let (rect, response) =
-            ui.allocate_exact_size(egui::vec2(130.0, 50.0), egui::Sense::click());
-
-        let hash = cat.bytes().fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32));
-        let palette: [egui::Color32; 8] = [
-            egui::Color32::from_rgb(33, 150, 243),
-            egui::Color32::from_rgb(76, 175, 80),
-            egui::Color32::from_rgb(255, 152, 0),
-            egui::Color32::from_rgb(156, 39, 176),
-            egui::Color32::from_rgb(0, 188, 212),
-            egui::Color32::from_rgb(233, 30, 99),
-            egui::Color32::from_rgb(255, 235, 59),
-            egui::Color32::from_rgb(121, 85, 72),
-        ];
-        let accent = palette[(hash as usize) % palette.len()];
-        let fill = if is_selected {
-            accent.gamma_multiply(0.25)
-        } else if response.hovered() {
-            accent.gamma_multiply(0.12)
-        } else {
-            egui::Color32::from_gray(30)
-        };
-        let border = if is_selected || response.hovered() {
-            accent
-        } else {
-            accent.gamma_multiply(0.5)
-        };
-
-        ui.painter().rect_filled(rect, 6.0, fill);
-        ui.painter().rect_stroke(rect, 6.0, egui::Stroke::new(1.5, border), egui::StrokeKind::Middle);
-
-        let display_name = entry.display_name(lang);
-        ui.painter().text(
-            rect.center() - egui::vec2(0.0, 5.0),
-            egui::Align2::CENTER_CENTER,
-            display_name,
-            egui::FontId::new(13.0, egui::FontFamily::Proportional),
-            egui::Color32::WHITE,
-        );
-
-        let key_text = if entry.key.len() > 18 {
-            format!("{}..", &entry.key[..18])
-        } else {
-            entry.key.clone()
-        };
-        ui.painter().text(
-            rect.center() + egui::vec2(0.0, 11.0),
-            egui::Align2::CENTER_CENTER,
-            key_text,
-            egui::FontId::new(9.0, egui::FontFamily::Proportional),
-            egui::Color32::from_gray(130),
-        );
-
-        if response.hovered() {
-            egui::show_tooltip_at_pointer(
-                ui.ctx(),
-                egui::LayerId::new(egui::Order::Tooltip, egui::Id::new("ns_tooltip")),
-                egui::Id::new(format!("ns_card_{}", entry.key)),
-                |ui: &mut egui::Ui| {
-                    ui.label(entry.key.to_string());
-                },
-            );
-        }
-        response
     }
 }
 

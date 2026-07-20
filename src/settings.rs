@@ -15,6 +15,9 @@ pub struct AppSettings {
     /// 最近使用的节点类型，以 NodeType 的 PascalCase 名称存储。
     #[serde(default)]
     pub recent_node_types: Vec<String>,
+    /// 收藏的节点类型，以 NodeType 的 PascalCase 名称存储。
+    #[serde(default)]
+    pub favorite_node_types: Vec<String>,
 }
 
 impl AppSettings {
@@ -71,6 +74,7 @@ mod tests {
         let settings = AppSettings {
             language: "zh".to_string(),
             recent_node_types: vec!["Log".to_string(), "If".to_string()],
+            favorite_node_types: vec!["DropItem".to_string()],
         };
         // We can't easily write to the real config dir in tests, so just verify
         // serialization/deserialization.
@@ -78,6 +82,7 @@ mod tests {
         let loaded: AppSettings = serde_json::from_str(&json).unwrap();
         assert_eq!(loaded.language, "zh");
         assert_eq!(loaded.recent_node_types, vec!["Log", "If"]);
+        assert_eq!(loaded.favorite_node_types, vec!["DropItem"]);
     }
 
     #[test]

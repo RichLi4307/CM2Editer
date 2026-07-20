@@ -378,10 +378,24 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow(), out_break()])
         .with_params(vec![p_req("condition", "条件", ParamType::Boolean)]),
-        NodeDefinition::new(NodeType::For, "Control Flow", "遍历", "遍历列表", CONTROL_COLOR)
-            .with_inputs(vec![in_flow()])
-            .with_outputs(vec![out_flow(), out_break()])
-            .with_params(vec![p_req("iterable", "列表", ParamType::List)]),
+        NodeDefinition::new(
+            NodeType::For, "Control Flow", "遍历", "遍历列表或范围", CONTROL_COLOR,
+        )
+        .with_inputs(vec![
+            in_flow(),
+            PortDefinition::new("iterable", PortType::List, "列表").required(false),
+        ])
+        .with_outputs(vec![out_flow(), out_break()])
+        .with_params(vec![
+            p_opt("iterable", "列表", ParamType::List)
+                .with_default(ParamValue::Literal(serde_json::json!([]))),
+            p_opt("start", "起始", ParamType::Number)
+                .with_default(ParamValue::Literal(serde_json::json!(0))),
+            p_opt("stop", "结束", ParamType::Number)
+                .with_default(ParamValue::Literal(serde_json::json!(10))),
+            p_opt("step", "步长", ParamType::Number)
+                .with_default(ParamValue::Literal(serde_json::json!(1))),
+        ]),
         NodeDefinition::new(
             NodeType::Break, "Control Flow",
             "跳出",
@@ -2034,7 +2048,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             NodeType::CreateArea,
             "Objects",
             "创建区域",
-            "创建区域",
+            "创建区域（支持球体、圆柱体、长方体）",
             OBJECT_COLOR,
         )
         .with_inputs(vec![in_flow()])
@@ -2043,11 +2057,13 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             out_data("out_area", PortType::Object, "区域"),
         ])
         .with_params(vec![
-            p_req("type", "类型", ParamType::String),
+            e("type", "类型", &["sphere", "cylinder", "cuboid"]),
             e("stage", "场景", STAGE_TYPES),
             p_req("position", "位置", ParamType::Vector),
-            p_req("r", "半径", ParamType::Number),
-            p_req("h", "高度", ParamType::Number),
+            p_opt("r", "半径", ParamType::Number),
+            p_opt("h", "高度", ParamType::Number),
+            p_opt("position2", "结束位置", ParamType::Vector),
+            p_opt("w", "宽度", ParamType::Number),
             p_opt("outline", "轮廓", ParamType::Boolean),
             p_opt("compass", "指南针", ParamType::String),
         ]),
@@ -2448,16 +2464,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             PortType::Boolean,
             "状态值",
         )])
-        .with_params(vec![e(
-            "stateKey",
-            "状态键",
-            &[
-                "Futanari", "Sitting", "Orgasm", "Moving", "Crouching",
-                "Peeing", "Dashing", "InLight", "NearNPC", "Watched",
-                "ShowingOff", "Bukkake", "Blindfolded", "Invisible",
-                "InOpenToilet", "FPCamera", "IsDayTime", "GameOver",
-            ],
-        )]),
+        .with_params(vec![p_req("stateKey", "状态键", ParamType::String)]),
         NodeDefinition::new(
             NodeType::GetStateNumber, "Conditions & Queries",
             "读取数值状态",
@@ -2469,14 +2476,7 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
             PortType::Number,
             "状态值",
         )])
-        .with_params(vec![e(
-            "stateKey",
-            "状态键",
-            &[
-                "Ecstasy", "Detection", "Rank", "HeartRate",
-                "Stamina", "StaminaMax", "Moisture", "Bodypaint",
-            ],
-        )]),
+        .with_params(vec![p_req("stateKey", "状态键", ParamType::String)]),
         NodeDefinition::new(
             NodeType::CompareNumbers, "Math & Logic",
             "数值比较",

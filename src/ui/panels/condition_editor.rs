@@ -39,6 +39,8 @@ pub struct ConditionEditorState {
     /// We maintain it ourselves so that repeated button clicks do not re-use an
     /// outdated selection from egui's stored state.
     pub last_insert_pos: usize,
+    /// Last validation error message, displayed under the preview.
+    pub last_validation_error: Option<String>,
 }
 
 impl ConditionEditorState {
@@ -54,6 +56,7 @@ impl ConditionEditorState {
             cursor_range: None,
             text_edit_id: None,
             last_insert_pos: 0,
+            last_validation_error: None,
         }
     }
 
@@ -224,6 +227,8 @@ impl ConditionEditor {
 
                 // Preview / flash message
                 let preview = normalize_condition_expression(&state.value);
+                let validation_errors = validate_condition_expression(&state.value).err().unwrap_or_default();
+                state.last_validation_error = validation_errors.first().cloned();
                 ui.horizontal(|ui| {
                     ui.label(i18n.text("condition_editor.preview"));
                     if preview.is_empty() {
@@ -234,6 +239,13 @@ impl ConditionEditor {
                         ));
                     }
                 });
+                if let Some(err) = state.last_validation_error.as_ref() {
+                    ui.label(
+                        egui::RichText::new(err)
+                            .size(11.0)
+                            .color(egui::Color32::from_rgb(255, 120, 120)),
+                    );
+                }
                 if let Some(flash) = state.flash.as_ref() {
                     ui.label(
                         egui::RichText::new(flash)
@@ -601,6 +613,213 @@ fn normalize_condition_expression(expr: &str) -> String {
     expr.replace(",", ", ")
 }
 
+/// Validate a condition expression and return a list of human-readable errors.
+/// An empty expression is considered valid.
+pub fn validate_condition_expression(expr: &str) -> Result<(), Vec<String>> {
+    let tokens = match tokenize(expr) {
+        Ok(t) => t,
+        Err(e) => return Err(vec![e]),
+    };
+    if tokens.is_empty() {
+        return Ok(());
+    }
+    let mut pos = 0usize;
+    match parse_expression(&tokens, &mut pos) {
+        Ok(()) => Ok(()),
+        Err(e) => Err(vec![e]),
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum Token {
+    AndOpen,
+    AndClose,
+    OrOpen,
+    OrClose,
+    Comma,
+    Not,
+    Ident(String),
+}
+
+fn tokenize(expr: &str) -> Result<Vec<Token>, String> {
+    let mut tokens = Vec::new();
+    let mut chars = expr.chars().peekable();
+    while let Some(&c) = chars.peek() {
+        match c {
+            '[' => {
+                tokens.push(Token::AndOpen);
+                chars.next();
+            }
+            ']' => {
+                tokens.push(Token::AndClose);
+                chars.next();
+            }
+            '(' => {
+                tokens.push(Token::OrOpen);
+                chars.next();
+            }
+            ')' => {
+                tokens.push(Token::OrClose);
+                chars.next();
+            }
+            ',' => {
+                tokens.push(Token::Comma);
+                chars.next();
+            }
+            '!' => {
+                tokens.push(Token::Not);
+                chars.next();
+            }
+            c if c.is_whitespace() => {
+                chars.next();
+            }
+            c if c.is_alphanumeric() || c == '_' => {
+                let mut s = String::new();
+                while let Some(&c) = chars.peek() {
+                    if c.is_alphanumeric() || c == '_' {
+                        s.push(c);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                tokens.push(Token::Ident(s));
+            }
+            _ => return Err(format!("无效字符: '{}'", c)),
+        }
+    }
+    Ok(tokens)
+}
+
+fn parse_expression(tokens: &[Token], pos: &mut usize) -> Result<(), String> {
+    parse_not(tokens, pos)?;
+    if *pos < tokens.len() {
+        let unexpected = describe_token(&tokens[*pos]);
+        return Err(format!("表达式末尾出现意外 token: {}", unexpected));
+    }
+    Ok(())
+}
+
+fn parse_not(tokens: &[Token], pos: &mut usize) -> Result<(), String> {
+    if let Some(Token::Not) = tokens.get(*pos) {
+        *pos += 1;
+        if tokens.get(*pos).is_none() {
+            return Err("NOT 操作符 '!' 后缺少条件或组".to_string());
+        }
+        parse_not(tokens, pos)?;
+        return Ok(());
+    }
+    parse_primary_or_group(tokens, pos)
+}
+
+fn parse_primary_or_group(tokens: &[Token], pos: &mut usize) -> Result<(), String> {
+    match tokens.get(*pos) {
+        Some(Token::AndOpen) => {
+            *pos += 1;
+            if matches!(tokens.get(*pos), Some(Token::AndClose)) {
+                return Err("AND 组 [] 不能为空".to_string());
+            }
+            parse_not(tokens, pos)?;
+            loop {
+                match tokens.get(*pos) {
+                    Some(Token::Comma) => {
+                        *pos += 1;
+                        if matches!(tokens.get(*pos), Some(Token::AndClose)) {
+                            return Err("逗号后缺少条件".to_string());
+                        }
+                        parse_not(tokens, pos)?;
+                    }
+                    Some(Token::AndClose) => {
+                        *pos += 1;
+                        break;
+                    }
+                    Some(tok) => {
+                        return Err(format!(
+                            "AND 组中需要 ',' 或 ']'，但遇到 {}",
+                            describe_token(tok)
+                        ));
+                    }
+                    None => {
+                        return Err("AND 组缺少闭合 ']'".to_string());
+                    }
+                }
+            }
+            Ok(())
+        }
+        Some(Token::OrOpen) => {
+            *pos += 1;
+            if matches!(tokens.get(*pos), Some(Token::OrClose)) {
+                return Err("OR 组 () 不能为空".to_string());
+            }
+            parse_not(tokens, pos)?;
+            loop {
+                match tokens.get(*pos) {
+                    Some(Token::Comma) => {
+                        *pos += 1;
+                        if matches!(tokens.get(*pos), Some(Token::OrClose)) {
+                            return Err("逗号后缺少条件".to_string());
+                        }
+                        parse_not(tokens, pos)?;
+                    }
+                    Some(Token::OrClose) => {
+                        *pos += 1;
+                        break;
+                    }
+                    Some(tok) => {
+                        return Err(format!(
+                            "OR 组中需要 ',' 或 ')'，但遇到 {}",
+                            describe_token(tok)
+                        ));
+                    }
+                    None => {
+                        return Err("OR 组缺少闭合 ')'".to_string());
+                    }
+                }
+            }
+            Ok(())
+        }
+        Some(Token::Ident(s)) => {
+            *pos += 1;
+            if is_valid_identifier(s) {
+                Ok(())
+            } else {
+                Err(format!("未知 token: '{}'", s))
+            }
+        }
+        Some(tok) => Err(format!(
+            "此处需要条件或组，但遇到 {}",
+            describe_token(tok)
+        )),
+        None => Err("缺少条件或组".to_string()),
+    }
+}
+
+fn describe_token(tok: &Token) -> String {
+    match tok {
+        Token::AndOpen => "'['".to_string(),
+        Token::AndClose => "']'".to_string(),
+        Token::OrOpen => "'('".to_string(),
+        Token::OrClose => "')'".to_string(),
+        Token::Comma => "','".to_string(),
+        Token::Not => "'!'".to_string(),
+        Token::Ident(s) => format!("'{}'", s),
+    }
+}
+
+fn is_valid_identifier(s: &str) -> bool {
+    if let Some(suffix) = s.strip_prefix("SubCondition_") {
+        !suffix.is_empty() && suffix.chars().all(|c| c.is_alphanumeric() || c == '_')
+    } else {
+        is_base_condition(s)
+    }
+}
+
+fn is_base_condition(name: &str) -> bool {
+    CONDITION_CATEGORIES
+        .iter()
+        .any(|(_, items)| items.contains(&name))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -762,5 +981,61 @@ mod tests {
 
         let ids = collect_existing_condition_ids(&label);
         assert_eq!(ids, vec!["item".to_string(), "main".to_string()]);
+    }
+
+    #[test]
+    fn test_validate_condition_expression_valid() {
+        assert!(validate_condition_expression("").is_ok());
+        assert!(validate_condition_expression("  ").is_ok());
+        assert!(validate_condition_expression("CoatDropped").is_ok());
+        assert!(validate_condition_expression("[CoatDropped, HandcuffsBack]").is_ok());
+        assert!(validate_condition_expression("(CoatDropped, HandcuffsBack)").is_ok());
+        assert!(validate_condition_expression("!CoatDropped").is_ok());
+        assert!(validate_condition_expression("!!CoatDropped").is_ok());
+        assert!(validate_condition_expression("[CoatDropped, (HandcuffsBack, !Blindfolded)]").is_ok());
+        assert!(validate_condition_expression("SubCondition_main").is_ok());
+        assert!(validate_condition_expression("SubCondition_123").is_ok());
+        assert!(validate_condition_expression("!SubCondition_abc").is_ok());
+    }
+
+    #[test]
+    fn test_validate_condition_expression_invalid() {
+        assert_validation_error("(", "缺少条件或组");
+        assert_validation_error("[", "缺少条件或组");
+        assert_validation_error(")", "此处需要条件或组");
+        assert_validation_error("]", "此处需要条件或组");
+        assert_validation_error("()", "OR 组 () 不能为空");
+        assert_validation_error("[]", "AND 组 [] 不能为空");
+        assert_validation_error("[CoatDropped", "AND 组缺少闭合");
+        assert_validation_error("CoatDropped]", "表达式末尾出现意外 token");
+        assert_validation_error("[CoatDropped, HandcuffsBack)", "AND 组中需要 ',' 或 ']'");
+        assert_validation_error("CoatDropped, HandcuffsBack", "表达式末尾出现意外 token");
+        assert_validation_error("UnknownToken", "未知 token");
+        assert_validation_error("!", "NOT 操作符 '!' 后缺少条件或组");
+        assert_validation_error("CoatDropped!", "表达式末尾出现意外 token");
+        assert_validation_error("[CoatDropped HandcuffsBack]", "AND 组中需要 ',' 或 ']'");
+        assert_validation_error("(,CoatDropped)", "此处需要条件或组");
+        assert_validation_error("[CoatDropped, ]", "逗号后缺少条件");
+        assert_validation_error("SubCondition_", "未知 token");
+        assert_validation_error("SubCondition_abc!", "表达式末尾出现意外 token");
+        assert_validation_error("CoatDropped + HandcuffsBack", "无效字符");
+    }
+
+    fn assert_validation_error(expr: &str, expected_substr: &str) {
+        let result = validate_condition_expression(expr);
+        assert!(
+            result.is_err(),
+            "Expected '{}' to be invalid, but got {:?}",
+            expr,
+            result
+        );
+        let errors = result.unwrap_err();
+        assert!(
+            errors.iter().any(|e| e.contains(expected_substr)),
+            "Expected error for '{}' to contain '{}', but got {:?}",
+            expr,
+            expected_substr,
+            errors
+        );
     }
 }

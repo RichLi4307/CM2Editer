@@ -20,7 +20,7 @@
 | `Goto` | `thread.Goto("label")` |
 | `If` | `if {condition}` / `elseif {condition}` / `else` |
 | `While` | `while {condition}` |
-| `For` | `for i in {iterable}` |
+| `For` | `for i in {iterable}` / `for i in Range(start, stop, step?)` |
 | `Break` | `break` |
 | `Return` | `_result = {value}` |
 | `CallFunction` | `funcName(args)` |
@@ -185,7 +185,7 @@
 |------|------|------|
 | `CreateMissionPanel` | B | 创建任务面板 |
 | `CreateMissionMenuItem` | B | 创建任务菜单项 |
-| `CreateArea` | B | 创建区域 |
+| `CreateArea` | B | 创建区域（支持 sphere / cylinder / cuboid） |
 | `CreateZone` | B | 创建区域（旧版） |
 | `CreateCondition` | B | 创建条件对象 |
 | `CreateItemCondition` | B | 创建物品条件对象 |

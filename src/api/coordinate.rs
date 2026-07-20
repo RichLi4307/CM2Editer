@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 
+use crate::error::FlowError;
+
 /// 单个坐标预设条目。
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoordinateEntry {
@@ -112,6 +114,53 @@ impl CoordinateRegistry {
         registry.load_from_dir(Path::new("assets/coordinates"));
         registry
     }
+
+    /// 从 `dir` 下的 JSON 文件中删除指定 ID 的坐标条目，并同步更新内存注册表。
+    pub fn remove_entry(&mut self, id: &str, dir: &Path) -> crate::error::Result<()> {
+        if !dir.is_dir() {
+            return Err(FlowError::Io(format!(
+                "coordinate directory not found: {}",
+                dir.display()
+            )));
+        }
+
+        let mut removed = false;
+        for entry in std::fs::read_dir(dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path
+                .extension()
+                .map(|ext| ext.eq_ignore_ascii_case("json"))
+                .unwrap_or(false)
+                && remove_coordinate_entry_from_file(&path, id)?
+            {
+                removed = true;
+                break;
+            }
+        }
+
+        if removed {
+            self.entries.retain(|e| e.id != id);
+            Ok(())
+        } else {
+            Err(FlowError::Validation(format!("coordinate not found: {}", id)))
+        }
+    }
+}
+
+fn remove_coordinate_entry_from_file(path: &Path, id: &str) -> crate::error::Result<bool> {
+    let text = std::fs::read_to_string(path)?;
+    let mut value: serde_json::Value = serde_json::from_str(&text)?;
+    let Some(array) = value.as_array_mut() else {
+        return Ok(false);
+    };
+    let before = array.len();
+    array.retain(|v| v.get("id").and_then(|v| v.as_str()) != Some(id));
+    if array.len() < before {
+        std::fs::write(path, serde_json::to_string_pretty(&value)?)?;
+        return Ok(true);
+    }
+    Ok(false)
 }
 
 fn load_coordinate_file(path: &Path) -> Result<Vec<CoordinateEntry>, Box<dyn std::error::Error>> {
@@ -147,5 +196,60 @@ mod tests {
         assert_eq!(reg.search("Apart").len(), 2);
         assert_eq!(reg.by_stage().get("Apart").unwrap().len(), 2);
         assert_eq!(reg.stage_names(), vec!["Apart"]);
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_remove_coordinate_entry_persists_to_file() {
+        let tmp = std::env::temp_dir().join(format!(
+            "cm2_test_coordinates_{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let file_path = tmp.join("default.json");
+        let content = serde_json::json!([
+            { "id": "spawn", "name": "Spawn", "stage": "Apart", "x": 0.0, "y": 0.0, "z": 0.0 },
+            { "id": "bed", "name": "Bedside", "stage": "Apart", "x": 1.5, "y": 0.0, "z": -1.5 }
+        ]);
+        std::fs::write(&file_path, serde_json::to_string_pretty(&content).unwrap()).unwrap();
+
+        let mut registry = CoordinateRegistry::new();
+        registry.load_from_dir(&tmp);
+        assert_eq!(registry.entries.len(), 2);
+
+        registry.remove_entry("spawn", &tmp).unwrap();
+        assert_eq!(registry.entries.len(), 1);
+        assert!(registry.get("bed").is_some());
+
+        let mut reloaded = CoordinateRegistry::new();
+        reloaded.load_from_dir(&tmp);
+        assert_eq!(reloaded.entries.len(), 1);
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    #[allow(clippy::unwrap_used)]
+    fn test_remove_coordinate_entry_missing_returns_error() {
+        let tmp = std::env::temp_dir().join(format!(
+            "cm2_test_coordinates_missing_{}",
+            uuid::Uuid::new_v4()
+        ));
+        std::fs::create_dir_all(&tmp).unwrap();
+        std::fs::write(
+            tmp.join("default.json"),
+            serde_json::to_string_pretty(&serde_json::json!([
+                { "id": "spawn", "name": "Spawn", "stage": "Apart", "x": 0.0, "y": 0.0, "z": 0.0 }
+            ]))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let mut registry = CoordinateRegistry::new();
+        registry.load_from_dir(&tmp);
+        assert!(registry.remove_entry("missing", &tmp).is_err());
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
