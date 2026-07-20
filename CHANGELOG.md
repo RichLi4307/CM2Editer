@@ -6,6 +6,21 @@
 
 ## [Unreleased]
 
+### 优化（P2.5 常用节点收藏 / 置顶）
+
+- 新增节点收藏功能，减少高频节点重复搜索：
+  - `AppSettings` 新增 `favorite_node_types` 字段，与 `recent_node_types` 一起持久化到 `%APPDATA%/CM2Editer/settings.json`。
+  - `App` 新增 `favorite_node_types: Vec<NodeType>`，启动时从设置加载，切换时写回设置。
+  - 节点库面板顶部新增「收藏」区域，位于「最近使用」上方；点击节点右侧星标按钮 `☆`/`★` 即可切换收藏状态。
+  - 搜索弹窗（Space）顶部同样新增「收藏」区域，每个节点行左侧显示星标按钮。
+  - 「最近使用」区域自动过滤已收藏的节点，避免与「收藏」区域重复；分类目录中仍正常显示所有节点。
+  - 收藏数量上限为 30，超出时按最近添加顺序截断。
+- 扩展 `NodeLibraryAction` 新增 `ToggleFavorite(NodeType)`，面板与搜索窗口统一返回该动作。
+- 新增 `ui::panels::node_library` 辅助函数 `is_favorite` / `toggle_favorite`，并配套单元测试。
+- 新增 zh/en i18n 键：`node_library.favorites`、`button.favorite`、`button.unfavorite`（ja 回退到 en）。
+- 位置：`src/settings.rs`、`src/app.rs`、`src/ui/panels/node_library/mod.rs`。
+- 测试：`cargo test --lib` 156 项通过；`cargo clippy --lib` 保持 23 个 pre-existing warnings，无新增。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明

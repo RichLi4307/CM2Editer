@@ -11,6 +11,7 @@ mod catalog;
 pub enum NodeLibraryAction {
     Create(NodeType),
     DragStart(NodeType),
+    ToggleFavorite(NodeType),
     None,
 }
 
@@ -30,6 +31,24 @@ pub fn record_recent(recent: &mut Vec<NodeType>, node_type: NodeType) {
     recent.truncate(10);
 }
 
+/// 收藏节点数量上限。
+const MAX_FAVORITES: usize = 30;
+
+/// 判断某个节点是否已被收藏。
+fn is_favorite(favorite_node_types: &[NodeType], node_type: NodeType) -> bool {
+    favorite_node_types.contains(&node_type)
+}
+
+/// 切换节点的收藏状态（添加时置顶并截断到上限）。
+pub fn toggle_favorite(favorite_node_types: &mut Vec<NodeType>, node_type: NodeType) {
+    if let Some(pos) = favorite_node_types.iter().position(|&n| n == node_type) {
+        favorite_node_types.remove(pos);
+    } else {
+        favorite_node_types.insert(0, node_type);
+        favorite_node_types.truncate(MAX_FAVORITES);
+    }
+}
+
 /// 节点库面板。
 pub struct NodeLibraryPanel;
 
@@ -40,6 +59,7 @@ impl NodeLibraryPanel {
         filter: &mut NodeLibraryFilter,
         search_window_open: &mut bool,
         recent_node_types: &[NodeType],
+        favorite_node_types: &[NodeType],
         max_height: f32,
     ) -> NodeLibraryAction {
         let categories = SceneCatalog::categories();
@@ -85,13 +105,45 @@ impl NodeLibraryPanel {
                 });
                 ui.separator();
 
-                // 最近使用
-                if !recent_node_types.is_empty() {
+                // 收藏（置顶）
+                if !favorite_node_types.is_empty() {
+                    ui.label(egui::RichText::new(i18n.text("node_library.favorites")).strong());
+                    ui.horizontal_wrapped(|ui| {
+                        for &node_type in favorite_node_types {
+                            if ui
+                                .button(format!(
+                                    "{} {}",
+                                    i18n.text("button.favorite"),
+                                    i18n.node_display_name(node_type)
+                                ))
+                                .clicked()
+                            {
+                                action = NodeLibraryAction::ToggleFavorite(node_type);
+                            }
+                        }
+                    });
+                    ui.separator();
+                }
+
+                // 最近使用（过滤掉已收藏的节点，避免重复）
+                let recent_not_favorite: Vec<_> = recent_node_types
+                    .iter()
+                    .copied()
+                    .filter(|&n| !is_favorite(favorite_node_types, n))
+                    .collect();
+                if !recent_not_favorite.is_empty() {
                     ui.label(egui::RichText::new(i18n.text("node_library.recent")).strong());
                     ui.horizontal_wrapped(|ui| {
-                        for &node_type in recent_node_types {
-                            if ui.button(i18n.node_display_name(node_type)).clicked() {
-                                action = NodeLibraryAction::Create(node_type);
+                        for &node_type in &recent_not_favorite {
+                            if ui
+                                .button(format!(
+                                    "{} {}",
+                                    i18n.text("button.favorite"),
+                                    i18n.node_display_name(node_type)
+                                ))
+                                .clicked()
+                            {
+                                action = NodeLibraryAction::ToggleFavorite(node_type);
                             }
                         }
                     });
@@ -134,6 +186,11 @@ impl NodeLibraryPanel {
                                             let color = scene_category_color(category.id);
                                             let display_name =
                                                 i18n.node_display_name(node_type);
+                                            let fav_text = if is_favorite(favorite_node_types, node_type) {
+                                                i18n.text("button.unfavorite")
+                                            } else {
+                                                i18n.text("button.favorite")
+                                            };
                                             let resp = ui.horizontal(|ui| {
                                                 ui.painter().circle_filled(
                                                     ui.cursor().min + egui::vec2(8.0, 8.0),
@@ -141,16 +198,21 @@ impl NodeLibraryPanel {
                                                     color,
                                                 );
                                                 ui.add_space(16.0);
-                                                ui.add(
+                                                let name_resp = ui.add(
                                                     egui::Button::new(display_name)
                                                         .sense(egui::Sense::drag()),
-                                                )
+                                                );
+                                                let star_resp = ui.button(fav_text);
+                                                (name_resp, star_resp)
                                             });
-                                            if resp.inner.clicked() {
+                                            if resp.inner.0.clicked() {
                                                 action = NodeLibraryAction::Create(node_type);
                                             }
-                                            if resp.inner.drag_started() {
+                                            if resp.inner.0.drag_started() {
                                                 action = NodeLibraryAction::DragStart(node_type);
+                                            }
+                                            if resp.inner.1.clicked() {
+                                                action = NodeLibraryAction::ToggleFavorite(node_type);
                                             }
                                         }
                                     });
@@ -166,13 +228,14 @@ impl NodeLibraryPanel {
         action
     }
 
-    /// 在弹出窗口中显示搜索界面，返回选中的节点类型（如果有）。
+    /// 在弹出窗口中显示搜索界面，返回操作结果。
     pub fn show_search(
         ui: &mut egui::Ui,
         i18n: &I18n,
         filter: &mut NodeLibraryFilter,
         recent_node_types: &[NodeType],
-    ) -> Option<NodeType> {
+        favorite_node_types: &[NodeType],
+    ) -> NodeLibraryAction {
         ui.text_edit_singleline(&mut filter.query);
 
         let categories = SceneCatalog::categories();
@@ -206,7 +269,7 @@ impl NodeLibraryPanel {
         });
         ui.separator();
 
-        let mut created = None;
+        let mut action = NodeLibraryAction::None;
         let mut matched = Vec::new();
         for def in all_node_definitions() {
             if !filter.scene_filter.is_empty() {
@@ -238,28 +301,66 @@ impl NodeLibraryPanel {
             .id_salt("node_search_scroll")
             .max_height(300.0)
             .show(ui, |ui| {
-                // 最近使用
-                if !recent_node_types.is_empty() {
+                // 收藏（置顶）
+                if !favorite_node_types.is_empty() {
+                    ui.label(egui::RichText::new(i18n.text("node_library.favorites")).strong());
+                    for &node_type in favorite_node_types {
+                        let display_name = i18n.node_display_name(node_type);
+                        ui.horizontal(|ui| {
+                            if ui.button(i18n.text("button.unfavorite")).clicked() {
+                                action = NodeLibraryAction::ToggleFavorite(node_type);
+                            }
+                            if ui.button(display_name).clicked() {
+                                action = NodeLibraryAction::Create(node_type);
+                            }
+                        });
+                    }
+                    ui.separator();
+                }
+
+                // 最近使用（过滤掉已收藏的节点）
+                let recent_not_favorite: Vec<_> = recent_node_types
+                    .iter()
+                    .copied()
+                    .filter(|&n| !is_favorite(favorite_node_types, n))
+                    .collect();
+                if !recent_not_favorite.is_empty() {
                     ui.label(egui::RichText::new(i18n.text("node_library.recent")).strong());
-                    for &node_type in recent_node_types {
-                        if ui.button(i18n.node_display_name(node_type)).clicked() {
-                            created = Some(node_type);
-                        }
+                    for &node_type in &recent_not_favorite {
+                        let display_name = i18n.node_display_name(node_type);
+                        ui.horizontal(|ui| {
+                            if ui.button(i18n.text("button.favorite")).clicked() {
+                                action = NodeLibraryAction::ToggleFavorite(node_type);
+                            }
+                            if ui.button(display_name).clicked() {
+                                action = NodeLibraryAction::Create(node_type);
+                            }
+                        });
                     }
                     ui.separator();
                 }
 
                 for def in matched {
                     let display_name = i18n.node_display_name(def.node_type);
-                    if ui
-                        .button(format!("{} [{}]", display_name, def.category))
-                        .clicked()
-                    {
-                        created = Some(def.node_type);
-                    }
+                    let fav_text = if is_favorite(favorite_node_types, def.node_type) {
+                        i18n.text("button.unfavorite")
+                    } else {
+                        i18n.text("button.favorite")
+                    };
+                    ui.horizontal(|ui| {
+                        if ui.button(fav_text).clicked() {
+                            action = NodeLibraryAction::ToggleFavorite(def.node_type);
+                        }
+                        if ui
+                            .button(format!("{} [{}]", display_name, def.category))
+                            .clicked()
+                        {
+                            action = NodeLibraryAction::Create(def.node_type);
+                        }
+                    });
                 }
             });
-        created
+        action
     }
 }
 
@@ -335,6 +436,42 @@ mod tests {
         assert!(fuzzy_match("stp", "setplayerposition"));
         assert!(fuzzy_match("setplayer", "setplayerposition"));
         assert!(!fuzzy_match("xyz", "setplayerposition"));
+    }
+
+    #[test]
+    fn test_toggle_favorite_add_remove_and_limit() {
+        let mut favorites = Vec::new();
+        // 添加收藏
+        toggle_favorite(&mut favorites, NodeType::Log);
+        assert_eq!(favorites, vec![NodeType::Log]);
+        // 再次点击同一节点应取消收藏
+        toggle_favorite(&mut favorites, NodeType::Log);
+        assert!(favorites.is_empty());
+        // 重新添加并追加新收藏
+        toggle_favorite(&mut favorites, NodeType::Log);
+        toggle_favorite(&mut favorites, NodeType::If);
+        assert_eq!(favorites, vec![NodeType::If, NodeType::Log]);
+        // 取消收藏
+        toggle_favorite(&mut favorites, NodeType::Log);
+        assert_eq!(favorites, vec![NodeType::If]);
+        // 测试上限：用大量不同节点填充
+        let all_types: Vec<NodeType> = all_node_definitions()
+            .into_iter()
+            .map(|d| d.node_type)
+            .collect();
+        for &nt in &all_types {
+            toggle_favorite(&mut favorites, nt);
+        }
+        assert_eq!(favorites.len(), MAX_FAVORITES);
+        // 最后插入的节点应位于列表前端
+        assert!(is_favorite(&favorites, *all_types.last().unwrap()));
+    }
+
+    #[test]
+    fn test_is_favorite() {
+        let favorites = vec![NodeType::Log, NodeType::If];
+        assert!(is_favorite(&favorites, NodeType::Log));
+        assert!(!is_favorite(&favorites, NodeType::While));
     }
 
     #[test]
