@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+### 优化（P2.10 For 自带 start/stop/step）
+
+- `For` 节点新增可选参数 `start` / `stop` / `step`，并新增 `iterable` Data 输入端口。
+- 当 `iterable` 未连接且未提供（为空或默认 `[]`）时，自动生成 `Range(start, stop)` 或 `Range(start, stop, step)`。
+- `step` 为 0 或默认值 1 时省略，生成两参数 `Range`。
+- 已连接 `iterable` 时保持原有行为，使用数据源的值。
+- 位置：`src/api/definitions.rs`（For 定义）、`src/code_gen/generator.rs`（`generate_for`）。
+- 测试：新增 `test_for_with_connected_iterable_uses_source`、`test_for_without_iterable_uses_default_range`、`test_for_with_step_uses_three_arg_range`；`cargo test` 157 项 lib + 9 项 integration 全部通过。
+- 文档：更新 `docs/node_types.md`，补充 zh/en i18n 键。
+
 ## [0.3.0] — 2026-07-17
 
 ### 发布说明

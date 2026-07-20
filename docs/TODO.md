@@ -4,7 +4,7 @@
 > **日期**: 2026-07-17
 > **目标**: P0 语法硬缺口与 P1 高频 API 已全部补齐，当前重心转向 P2 使用体验优化与 P3 发布准备。
 > **旧版已归档**: `docs/archive/TODO_20260717_v10.md`（P0–P1 完成详情）
-> **当前节点**: `NodeType` 188 变体，147 项 lib tests 通过
+> **当前节点**: `NodeType` 188 变体，157 项 lib tests 通过
 
 ---
 
@@ -14,7 +14,7 @@
 - P0 语法缺口：事件监听器、停止音频、全局变量、性高潮、elseif 折叠、复合赋值、多分支 If、动态端口基础设施已全部完成。
 - P1 高频 API：Log 级别、Translate、List 六方法、NPC 五方法、FunctionExists / GetModVersion 已全部完成。
 - 节点库按场景分类（7 个顶层场景、20+ 子分类）；i18n zh/en/ja 已接入，188 个节点均有 zh/en 名称键。
-- `cargo test --lib`：154 项通过；`cargo clippy --lib`：22 warnings（无新增）。
+- `cargo test --lib`：157 项通过；`cargo clippy --lib`：23 warnings（无新增）。
 
 ---
 
@@ -73,7 +73,7 @@
   - 目标：为所有 A 类节点增加完整语义测试（如 CreateNPC、Translate、多分支 If）
   - 位置：`src/code_gen/generator.rs` 测试模块
 
-- [ ] **P2.10 For 自带 start/stop/step**
+- [x] **P2.10 For 自带 start/stop/step**
   - 无 iterable 连线时自动包装 `Range()`，减少用户手动创建 Range 节点
   - 位置：`src/code_gen/generator.rs`（`generate_for`）
 
@@ -113,6 +113,7 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
+| 2026-07-20 | P2.10 | For 自带 start/stop/step：无 iterable 时自动包装 Range，添加 3 个生成器测试 | 已完成 |
 | 2026-07-17 | P3.2 | Release 打包：版本号核对 0.3.0、README 与 CHANGELOG 同步、`cargo test` 163 项全过 | 已完成 |
 | 2026-07-17 | 文档-TODO | 归档 v10，新 TODO 按优先级整理 P2 使用体验优化与 P3 发布准备 | 已完成 |
 | 2026-07-17 | 修复 | 节点库渲染黑框 + 底栏分割线可互相越过 | 已完成 |

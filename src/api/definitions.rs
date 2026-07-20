@@ -378,10 +378,24 @@ pub fn all_definitions() -> Vec<NodeDefinition> {
         .with_inputs(vec![in_flow()])
         .with_outputs(vec![out_flow(), out_break()])
         .with_params(vec![p_req("condition", "条件", ParamType::Boolean)]),
-        NodeDefinition::new(NodeType::For, "Control Flow", "遍历", "遍历列表", CONTROL_COLOR)
-            .with_inputs(vec![in_flow()])
-            .with_outputs(vec![out_flow(), out_break()])
-            .with_params(vec![p_req("iterable", "列表", ParamType::List)]),
+        NodeDefinition::new(
+            NodeType::For, "Control Flow", "遍历", "遍历列表或范围", CONTROL_COLOR,
+        )
+        .with_inputs(vec![
+            in_flow(),
+            PortDefinition::new("iterable", PortType::List, "列表").required(false),
+        ])
+        .with_outputs(vec![out_flow(), out_break()])
+        .with_params(vec![
+            p_opt("iterable", "列表", ParamType::List)
+                .with_default(ParamValue::Literal(serde_json::json!([]))),
+            p_opt("start", "起始", ParamType::Number)
+                .with_default(ParamValue::Literal(serde_json::json!(0))),
+            p_opt("stop", "结束", ParamType::Number)
+                .with_default(ParamValue::Literal(serde_json::json!(10))),
+            p_opt("step", "步长", ParamType::Number)
+                .with_default(ParamValue::Literal(serde_json::json!(1))),
+        ]),
         NodeDefinition::new(
             NodeType::Break, "Control Flow",
             "跳出",

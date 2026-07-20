@@ -516,7 +516,23 @@ impl<'a> CodeGenerator<'a> {
             .nodes
             .get(node_id)
             .ok_or_else(|| FlowError::NodeNotFound(node_id.to_string()))?;
-        let iterable = self.require_param(label, node, "iterable")?;
+
+        let iterable = if self.connected_param_source(label, node, "iterable").is_some() {
+            self.resolve_param_opt(label, node, "iterable")
+                .unwrap_or_else(|| "[]".to_string())
+        } else {
+            match node.params.get("iterable") {
+                Some(ParamValue::Literal(v))
+                    if !v.is_null() && v.as_array().is_none_or(|a| !a.is_empty()) =>
+                {
+                    format_literal(v)
+                }
+                Some(ParamValue::Ref { node: ref_node, port }) => {
+                    format!("var_{ref_node}_{port}")
+                }
+                _ => self.build_auto_range(label, node),
+            }
+        };
 
         let body_target = self.flow_target(label, node_id, "out_flow")?;
         let break_target = self.flow_target(label, node_id, "out_break")?;
@@ -533,6 +549,36 @@ impl<'a> CodeGenerator<'a> {
             self.generate_sequence(label, target, stop_at)?;
         }
         Ok(())
+    }
+
+    /// 当 `For` 节点的 `iterable` 未连接且未提供时，根据 `start`/`stop`/`step`
+    /// 生成 `Range(...)` 表达式。`step` 为 0 或 1 时省略，与官方 `Range` 默认值一致。
+    fn build_auto_range(&self, label: &LabelContainer, node: &Node) -> String {
+        let start = self
+            .resolve_param_opt(label, node, "start")
+            .unwrap_or_else(|| "0".to_string());
+        let stop = self
+            .resolve_param_opt(label, node, "stop")
+            .unwrap_or_else(|| "10".to_string());
+        let step = self.resolve_param_opt(label, node, "step");
+        let step_suffix = match step {
+            Some(s) if s != "null" && !s.is_empty() => {
+                if let Ok(n) = s.parse::<f64>() {
+                    if n != 0.0 && n != 1.0 {
+                        Some(format!(", {s}"))
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(format!(", {s}"))
+                }
+            }
+            _ => None,
+        };
+        match step_suffix {
+            Some(suffix) => format!("Range({start}, {stop}{suffix})"),
+            None => format!("Range({start}, {stop})"),
+        }
     }
 
     /// 生成普通函数调用节点
@@ -1399,6 +1445,73 @@ mod tests {
             "eventName".to_string(),
             ParamValue::Literal(serde_json::json!("evt")),
         )].into())?;
+        Ok(())
+    }
+
+    #[test]
+    fn test_for_with_connected_iterable_uses_source() -> Result<()> {
+        let mut graph = make_graph();
+        let mut range = make_data_node("range1", NodeType::Range, "out_list");
+        range.set_param("start", ParamValue::Literal(serde_json::json!(0)));
+        range.set_param("stop", ParamValue::Literal(serde_json::json!(5)));
+        graph.threads[0].labels[0].nodes.insert("range1".to_string(), range);
+
+        let mut for_node = make_node("for1", NodeType::For);
+        for_node
+            .inputs
+            .push(Port::new("iterable", PortType::List, "列表"));
+        for_node
+            .outputs
+            .push(Port::new("out_break", PortType::Flow, "Break"));
+        graph.threads[0].labels[0].nodes.insert("for1".to_string(), for_node);
+
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "range1",
+            "out_list",
+            "for1",
+            "iterable",
+            PortType::List,
+        );
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("for i in Range(0, 5)"),
+            "For with connected iterable should use the data source, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_for_without_iterable_uses_default_range() -> Result<()> {
+        let mut graph = make_graph();
+        let mut for_node = make_node("for1", NodeType::For);
+        for_node
+            .outputs
+            .push(Port::new("out_break", PortType::Flow, "Break"));
+        graph.threads[0].labels[0].nodes.insert("for1".to_string(), for_node);
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("for i in Range(0, 10)"),
+            "For without iterable should default to Range(0, 10), got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_for_with_step_uses_three_arg_range() -> Result<()> {
+        let mut graph = make_graph();
+        let mut for_node = make_node("for1", NodeType::For);
+        for_node
+            .outputs
+            .push(Port::new("out_break", PortType::Flow, "Break"));
+        for_node.set_param("step", ParamValue::Literal(serde_json::json!(2)));
+        graph.threads[0].labels[0].nodes.insert("for1".to_string(), for_node);
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("for i in Range(0, 10, 2)"),
+            "For with step=2 should generate Range(0, 10, 2), got:\n{code}"
+        );
         Ok(())
     }
 
