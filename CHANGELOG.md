@@ -66,6 +66,12 @@
 - 位置：`src/ui/panels/node_library/mod.rs`、`src/app.rs`、`src/settings.rs`；新增 zh/en/ja i18n 键 `node_library.recent` / `filter_all` / `filter_label`。
 - 测试：新增 `test_fuzzy_match`、`test_record_recent_dedup_and_limit`；`cargo test` 149 项 lib tests + 9 项 integration tests 通过。
 
+### 文档（P2.4 节点描述 i18n 补全）
+
+- 补全 `assets/i18n/en.json` 中全部 188 个 `node.{NodeType}.description`，每个描述均精炼为 1–2 句用户向说明，覆盖控制流、线程/监听器、变量、游戏 API、数学/向量、字符串/列表/文件、对象构造等全部类别。
+- `assets/i18n/zh.json` 中对应中文描述已保持完整覆盖，未改动节点名称、端口与参数键。
+- 验证：`cargo test --lib` 154 项通过；`cargo clippy --lib` 23 个警告（均为 pre-existing，无新增）。
+
 ### 新增（FunctionExists / GetModVersion，P1.5）
 
 - 新增 `NodeType::FunctionExists`（C 类，Boolean 输出）与 `GetModVersion`（C 类，List 输出）。
