@@ -120,6 +120,23 @@
 - 更新 `docs/test_checklist.md` 对应条目。
 - `cargo test --lib` 173 项通过；`cargo clippy --lib` 0 warnings。
 
+### 测试（P2.9 生成器专项测试补全）
+
+- 在 `src/code_gen/generator.rs` 新增 A 类节点语义测试，覆盖：
+  - `Goto`（带 args）、`Return`（有值 / null）、`Break`（在 While 内）。
+  - `If`（true/false 分支、Data 边条件、动态 elseif 分支）。
+  - `While`（body/break 目标、Data 边条件）。
+  - `For`（已连接的 Range 迭代器）。
+  - `CallFunction`（字面量函数名与 List 参数）、`CallMethod`（对象引用 + 无参方法）、`ForeachNode`。
+  - `DestroyListener`、`WaitForThread`、`Wait`、`WaitForEvent`。
+  - `CreateNPC`（多参数）、`Translate`（空参数列表不输出额外参数）。
+- 修复生成器实现细节以支持测试：
+  - 补全 `Wait` / `WaitForEvent` 的 A 类生成臂。
+  - `ForeachNode` 与 `WaitForThread` 对 `threadVar` / `thread` 字符串参数去除 JSON 引号。
+  - 调整 `Goto` 参数拼接格式。
+- 所有生成器测试断言与 P0 fix 保持一致（`if (condition)` / `while (condition)` / `elseif (condition)`）。
+- `cargo test --lib` 191 项通过；`cargo clippy --lib` 0 warnings。
+
 ### 新增（FunctionExists / GetModVersion，P1.5）
 
 - 新增 `NodeType::FunctionExists`（C 类，Boolean 输出）与 `GetModVersion`（C 类，List 输出）。

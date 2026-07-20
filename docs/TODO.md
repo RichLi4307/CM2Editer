@@ -4,7 +4,7 @@
 > **日期**: 2026-07-17
 > **目标**: P0 语法硬缺口与 P1 高频 API 已全部补齐，当前重心转向 P2 使用体验优化与 P3 发布准备。
 > **旧版已归档**: `docs/archive/TODO_20260717_v10.md`（P0–P1 完成详情）
-> **当前节点**: `NodeType` 188 变体，173 项 lib tests 通过
+> **当前节点**: `NodeType` 188 变体，191 项 lib tests 通过
 
 ---
 
@@ -15,7 +15,7 @@
 - **P0 v0.3.0 issues 已修复**：IF/While 条件取消引号包裹并统一外层括号；新建 `.code` 文件默认空图；`elseif_*_condition` 使用条件模板编辑器。
 - P1 高频 API：Log 级别、Translate、List 六方法、NPC 五方法、FunctionExists / GetModVersion 已全部完成。
 - 节点库按场景分类（7 个顶层场景、20+ 子分类）；i18n zh/en/ja 已接入，188 个节点均有 zh/en 名称键。
-- `cargo test --lib`：**173** 项通过；`cargo clippy --lib`：**0** warnings。
+- `cargo test --lib`：**191** 项通过；`cargo clippy --lib`：**0** warnings。
 
 ---
 
@@ -76,7 +76,7 @@
   - `scene.data_process.math`（19 节点）拆分为 `trig` / `rounding` / `random`
   - 位置：`src/ui/panels/node_library/catalog.rs`
 
-- [ ] **P2.9 生成器专项测试补全**
+- [x] **P2.9 生成器专项测试补全**
   - 当前很多 A 类节点只有通用 `assert_flow_node_generates`，未验证完整语义
   - 目标：为所有 A 类节点增加完整语义测试（如 CreateNPC、Translate、多分支 If）
   - 位置：`src/code_gen/generator.rs` 测试模块
@@ -137,3 +137,4 @@
 | 2026-07-20 | P2.7 | 条件表达式实时校验：新增括号/token/空组/NOT 前缀校验，条件编辑器预览下方红字提示，`cargo test --lib` 165 项全过 | 已完成 |
 | 2026-07-20 | P2.10 | For 节点自带 start/stop/step：无 iterable 时自动 `Range(start, stop, step)`，`cargo test --lib` 173 项全过 | 已完成 |
 | 2026-07-20 | P2.11 | CreateArea cuboid 参数集：官方球体/圆柱体/长方体签名支持，按 shape 输出对应参数，`cargo test --lib` 173 项全过 | 已完成 |
+| 2026-07-20 | P2.9 | 生成器 A 类节点语义测试补全：覆盖 Goto/If/While/For/Break/Return/CallFunction/CallMethod/ForeachNode/DestroyListener/WaitForThread/Wait/WaitForEvent/CreateNPC/Translate，`cargo test --lib` 191 项全过 | 已完成 |

@@ -144,12 +144,13 @@ impl<'a> CodeGenerator<'a> {
             }
             NodeType::Goto => {
                 let label_param = self.require_param(label, node, "label")?;
-                let mut line = format!("thread.Goto({label_param})");
+                let mut line = format!("thread.Goto({label_param}");
                 if let Some(args) = self.resolve_param_opt(label, node, "args") {
                     if args != "null" && args != "[]" && !args.is_empty() {
                         line.push_str(&format!(", {args}"));
                     }
                 }
+                line.push(')');
                 self.formatter.write_line(&line);
                 self.formatter
                     .write_line(&format!("var_{node_id}_out_label = {label_param}"));
@@ -183,6 +184,7 @@ impl<'a> CodeGenerator<'a> {
                 let list = self.require_param(label, node, "list")?;
                 let thread = self.require_param(label, node, "threadVar")?;
                 let list = list.trim_matches('"');
+                let thread = thread.trim_matches('"');
                 let var = format!("var_{node_id}_idx");
                 self.formatter
                     .write_line(&format!("{var} = Foreach({list}, {thread})"));
@@ -199,8 +201,19 @@ impl<'a> CodeGenerator<'a> {
             }
             NodeType::WaitForThread => {
                 let thread = self.require_param(label, node, "thread")?;
+                let thread = thread.trim_matches('"');
                 self.formatter
                     .write_line(&format!("{thread}.WaitForFinish()"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
+            NodeType::Wait => {
+                let seconds = self.require_param(label, node, "seconds")?;
+                self.formatter.write_line(&format!("Wait({seconds})"));
+                self.follow_flow(label, node_id, "out_flow", stop_at)?;
+            }
+            NodeType::WaitForEvent => {
+                let event = self.require_param(label, node, "eventName")?;
+                self.formatter.write_line(&format!("WaitForEvent({event})"));
                 self.follow_flow(label, node_id, "out_flow", stop_at)?;
             }
             NodeType::StopAudio => {
@@ -1415,6 +1428,14 @@ mod tests {
         label.edges.insert(edge.id.clone(), edge);
     }
 
+    fn connect_flow(label: &mut LabelContainer, from_node: &str, from_port: &str, to_node: &str) {
+        let edge = Edge::new(
+            EdgeEndpoint::new(from_node, from_port),
+            EdgeEndpoint::new(to_node, "in_flow"),
+            PortType::Flow,
+        );
+        label.edges.insert(edge.id.clone(), edge);
+    }
     /// Insert a data node and wire it into a SetVariable so that
     /// `evaluate_data_output` is exercised during code generation.
     fn add_data_node_through_setvar(
@@ -2745,6 +2766,486 @@ mod tests {
         for ty in [NodeType::Meta, NodeType::Comment, NodeType::Group] {
             assert_flow_node_generates(ty, HashMap::new())?;
         }
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------
+    // P2.9: A-class node semantic generator tests
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn test_goto_generates_goto_with_label_and_args() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("g1", NodeType::Goto);
+        node.set_param("label", ParamValue::Literal(serde_json::json!("sub")));
+        node.set_param("args", ParamValue::Literal(serde_json::json!([1, 2])));
+        graph.threads[0].labels[0].nodes.insert("g1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"thread.Goto("sub", [1, 2])"#),
+            "Goto should emit thread.Goto with args, got:\n{code}"
+        );
+        assert!(
+            code.contains(r#"var_g1_out_label = "sub""#),
+            "Goto should expose out_label, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_return_generates_result_value_and_null() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("r1", NodeType::Return);
+        node.set_param("value", ParamValue::Literal(serde_json::json!(42)));
+        graph.threads[0].labels[0].nodes.insert("r1".to_string(), node);
+        let code = generate_code(&graph)?;
+        assert!(code.contains("_result = 42"), "Return should emit _result = value, got:\n{code}");
+
+        let mut graph2 = make_graph();
+        let mut node2 = make_node("r1", NodeType::Return);
+        node2.set_param("value", ParamValue::Null);
+        graph2.threads[0].labels[0].nodes.insert("r1".to_string(), node2);
+        let code2 = generate_code(&graph2)?;
+        assert!(
+            code2.contains("_result = null"),
+            "Return should emit _result = null when value is null, got:\n{code2}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_break_generates_break_inside_while() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut while_node = make_node("w1", NodeType::While);
+        while_node.set_param("condition", ParamValue::Literal(serde_json::json!(true)));
+        while_node.outputs.push(Port::new("out_break", PortType::Flow, "Break"));
+        graph.threads[0].labels[0].nodes.insert("w1".to_string(), while_node);
+
+        let break_node = make_node("b1", NodeType::Break);
+        graph.threads[0].labels[0].nodes.insert("b1".to_string(), break_node);
+
+        let mut after = make_node("log_after", NodeType::Log);
+        after.set_param("output", ParamValue::Literal(serde_json::json!("after")));
+        graph.threads[0].labels[0].nodes.insert("log_after".to_string(), after);
+
+        connect_flow(&mut graph.threads[0].labels[0], "w1", "out_flow", "b1");
+        connect_flow(&mut graph.threads[0].labels[0], "w1", "out_break", "log_after");
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("while (true)"), "missing while, got:\n{code}");
+        assert!(code.contains("break"), "missing break, got:\n{code}");
+        assert!(
+            code.contains("Log(\"after\")"),
+            "break target should be after loop, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_if_true_and_false_branches() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut if_node = make_node("if1", NodeType::If);
+        if_node.set_param("condition", ParamValue::Literal(serde_json::json!(true)));
+        if_node.outputs.retain(|p| p.port_type != PortType::Flow);
+        if_node.outputs.push(Port::new("out_true", PortType::Flow, "True"));
+        if_node.outputs.push(Port::new("out_false", PortType::Flow, "False"));
+        graph.threads[0].labels[0].nodes.insert("if1".to_string(), if_node);
+
+        let mut log_true = make_node("log_t", NodeType::Log);
+        log_true.set_param("output", ParamValue::Literal(serde_json::json!("T")));
+        graph.threads[0].labels[0].nodes.insert("log_t".to_string(), log_true);
+
+        let mut log_false = make_node("log_f", NodeType::Log);
+        log_false.set_param("output", ParamValue::Literal(serde_json::json!("F")));
+        graph.threads[0].labels[0].nodes.insert("log_f".to_string(), log_false);
+
+        connect_flow(&mut graph.threads[0].labels[0], "if1", "out_true", "log_t");
+        connect_flow(&mut graph.threads[0].labels[0], "if1", "out_false", "log_f");
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("if (true)"), "missing if, got:\n{code}");
+        assert!(code.contains("Log(\"T\")"), "missing true branch body, got:\n{code}");
+        assert!(code.contains("else"), "missing else, got:\n{code}");
+        assert!(code.contains("Log(\"F\")"), "missing false branch body, got:\n{code}");
+        Ok(())
+    }
+
+    #[test]
+    fn test_if_condition_from_data_edge() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut compare = make_data_node("cmp1", NodeType::CompareNumbers, "out_result");
+        compare.set_param("a", ParamValue::Literal(serde_json::json!(10)));
+        compare.set_param("b", ParamValue::Literal(serde_json::json!(5)));
+        compare.set_param("operator", ParamValue::Literal(serde_json::json!(">")));
+        graph.threads[0].labels[0].nodes.insert("cmp1".to_string(), compare);
+
+        let mut if_node = make_node("if1", NodeType::If);
+        if_node
+            .inputs
+            .push(Port::new("condition", PortType::Any, "Condition"));
+        if_node.outputs.retain(|p| p.port_type != PortType::Flow);
+        if_node.outputs.push(Port::new("out_true", PortType::Flow, "True"));
+        if_node.outputs.push(Port::new("out_false", PortType::Flow, "False"));
+        graph.threads[0].labels[0].nodes.insert("if1".to_string(), if_node);
+
+        let mut log_true = make_node("log_t", NodeType::Log);
+        log_true.set_param("output", ParamValue::Literal(serde_json::json!("yes")));
+        graph.threads[0].labels[0].nodes.insert("log_t".to_string(), log_true);
+
+        let mut log_false = make_node("log_f", NodeType::Log);
+        log_false.set_param("output", ParamValue::Literal(serde_json::json!("no")));
+        graph.threads[0].labels[0].nodes.insert("log_f".to_string(), log_false);
+
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "cmp1",
+            "out_result",
+            "if1",
+            "condition",
+            PortType::Any,
+        );
+        connect_flow(&mut graph.threads[0].labels[0], "if1", "out_true", "log_t");
+        connect_flow(&mut graph.threads[0].labels[0], "if1", "out_false", "log_f");
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("if (10 > 5)"),
+            "If condition should be resolved from Data edge, got:\n{code}"
+        );
+        assert!(
+            !code.contains("if \"10 > 5\""),
+            "If condition should not be quoted, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_if_dynamic_elseif_branches() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut if_node = make_node("if1", NodeType::If);
+        if_node.set_param("condition", ParamValue::Literal(serde_json::json!("a")));
+        if_node.set_param("elseif_0_condition", ParamValue::Literal(serde_json::json!("b")));
+        if_node.set_param("elseif_1_condition", ParamValue::Literal(serde_json::json!("c")));
+        if_node.outputs.retain(|p| p.port_type != PortType::Flow);
+        if_node.outputs.push(Port::new("out_true", PortType::Flow, "True"));
+        if_node.outputs.push(Port::new("elseif_0_branch", PortType::Flow, "ElseIf 0"));
+        if_node.outputs.push(Port::new("elseif_1_branch", PortType::Flow, "ElseIf 1"));
+        if_node.outputs.push(Port::new("out_false", PortType::Flow, "False"));
+        if_node.dynamic_ports.insert(
+            "elseif_branches".to_string(),
+            vec![
+                "elseif_0_branch".to_string(),
+                "elseif_0_condition".to_string(),
+                "elseif_1_branch".to_string(),
+                "elseif_1_condition".to_string(),
+            ],
+        );
+        graph.threads[0].labels[0].nodes.insert("if1".to_string(), if_node);
+
+        for (id, output) in [("log_a", "A"), ("log_b", "B"), ("log_c", "C"), ("log_d", "D")] {
+            let mut log = make_node(id, NodeType::Log);
+            log.set_param("output", ParamValue::Literal(serde_json::json!(output)));
+            graph.threads[0].labels[0].nodes.insert(id.to_string(), log);
+        }
+
+        let label = &mut graph.threads[0].labels[0];
+        connect_flow(label, "if1", "out_true", "log_a");
+        connect_flow(label, "if1", "elseif_0_branch", "log_b");
+        connect_flow(label, "if1", "elseif_1_branch", "log_c");
+        connect_flow(label, "if1", "out_false", "log_d");
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("if (a)"), "missing if, got:\n{code}");
+        assert!(code.contains("elseif (b)"), "missing first elseif, got:\n{code}");
+        assert!(code.contains("elseif (c)"), "missing second elseif, got:\n{code}");
+        assert!(code.contains("else"), "missing else, got:\n{code}");
+        assert!(
+            !code.contains("else\n\tif"),
+            "dynamic elseif should not produce nested else-if, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_while_body_and_break_targets() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut while_node = make_node("w1", NodeType::While);
+        while_node.set_param("condition", ParamValue::Literal(serde_json::json!(true)));
+        while_node.outputs.push(Port::new("out_break", PortType::Flow, "Break"));
+        graph.threads[0].labels[0].nodes.insert("w1".to_string(), while_node);
+
+        let mut log_body = make_node("log_body", NodeType::Log);
+        log_body.set_param("output", ParamValue::Literal(serde_json::json!("body")));
+        graph.threads[0].labels[0].nodes.insert("log_body".to_string(), log_body);
+
+        let mut log_after = make_node("log_after", NodeType::Log);
+        log_after.set_param("output", ParamValue::Literal(serde_json::json!("after")));
+        graph.threads[0].labels[0].nodes.insert("log_after".to_string(), log_after);
+
+        connect_flow(&mut graph.threads[0].labels[0], "w1", "out_flow", "log_body");
+        connect_flow(&mut graph.threads[0].labels[0], "w1", "out_break", "log_after");
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("while (true)"), "missing while, got:\n{code}");
+        assert!(
+            code.contains("Log(\"body\")"),
+            "missing while body, got:\n{code}"
+        );
+        assert!(
+            code.contains("Log(\"after\")"),
+            "break target should be after loop, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_while_condition_from_data_edge() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut compare = make_data_node("cmp1", NodeType::CompareNumbers, "out_result");
+        compare.set_param("a", ParamValue::Literal(serde_json::json!(1)));
+        compare.set_param("b", ParamValue::Literal(serde_json::json!(2)));
+        compare.set_param("operator", ParamValue::Literal(serde_json::json!("<")));
+        graph.threads[0].labels[0].nodes.insert("cmp1".to_string(), compare);
+
+        let mut while_node = make_node("w1", NodeType::While);
+        while_node
+            .inputs
+            .push(Port::new("condition", PortType::Any, "Condition"));
+        while_node.outputs.push(Port::new("out_break", PortType::Flow, "Break"));
+        graph.threads[0].labels[0].nodes.insert("w1".to_string(), while_node);
+
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "cmp1",
+            "out_result",
+            "w1",
+            "condition",
+            PortType::Any,
+        );
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("while (1 < 2)"),
+            "While condition should be resolved from Data edge, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_for_connected_iterable() -> Result<()> {
+        let mut graph = make_graph();
+
+        let mut range = make_data_node("r1", NodeType::Range, "out_list");
+        range.set_param("start", ParamValue::Literal(serde_json::json!(0)));
+        range.set_param("stop", ParamValue::Literal(serde_json::json!(10)));
+        graph.threads[0].labels[0].nodes.insert("r1".to_string(), range);
+
+        let mut for_node = make_node("f1", NodeType::For);
+        for_node
+            .inputs
+            .push(Port::new("iterable", PortType::Any, "Iterable"));
+        for_node.outputs.push(Port::new("out_break", PortType::Flow, "Break"));
+        graph.threads[0].labels[0].nodes.insert("f1".to_string(), for_node);
+
+        let mut log_body = make_node("log_body", NodeType::Log);
+        log_body.set_param("output", ParamValue::Literal(serde_json::json!("loop")));
+        graph.threads[0].labels[0].nodes.insert("log_body".to_string(), log_body);
+
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "r1",
+            "out_list",
+            "f1",
+            "iterable",
+            PortType::Any,
+        );
+        connect_flow(&mut graph.threads[0].labels[0], "f1", "out_flow", "log_body");
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("for i in Range(0, 10)"),
+            "For should use Range data output as iterable, got:\n{code}"
+        );
+        assert!(code.contains("Log(\"loop\")"), "missing for body, got:\n{code}");
+        Ok(())
+    }
+
+    #[test]
+    fn test_call_function_literal_and_list_args() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("cf1", NodeType::CallFunction);
+        node.set_param("function", ParamValue::Literal(serde_json::json!("MyFunc")));
+        node.set_param("params", ParamValue::Literal(serde_json::json!(["a", 1])));
+        graph.threads[0].labels[0].nodes.insert("cf1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"MyFunc(["a", 1])"#),
+            "CallFunction should emit literal function name and list args, got:\n{code}"
+        );
+        assert!(
+            !code.contains(r#""MyFunc""#),
+            "CallFunction function name should not be double quoted, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_call_method_no_args_and_with_object_reference() -> Result<()> {
+        let mut graph = make_graph();
+        let mut thread = make_node("thread1", NodeType::CreateThread);
+        thread.set_param("labelName", ParamValue::Literal(serde_json::json!("sub")));
+        thread.outputs.push(Port::new("out_thread", PortType::Any, "Thread"));
+        thread.outputs.push(Port::new("out_name", PortType::String, "Name"));
+        graph.threads[0].labels[0].nodes.insert("thread1".to_string(), thread);
+
+        let mut call_no_args = make_node("call1", NodeType::CallMethod);
+        call_no_args.inputs.push(Port::new("thread", PortType::Any, "Thread"));
+        call_no_args.set_param("method", ParamValue::Literal(serde_json::json!("Stop")));
+        call_no_args.outputs.push(Port::new("out_result", PortType::Any, "Result"));
+        graph.threads[0].labels[0]
+            .nodes
+            .insert("call1".to_string(), call_no_args);
+
+        connect_data(
+            &mut graph.threads[0].labels[0],
+            "thread1",
+            "out_thread",
+            "call1",
+            "thread",
+            PortType::Any,
+        );
+        connect_flow(&mut graph.threads[0].labels[0], "thread1", "out_flow", "call1");
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_call1_out_result = var_thread1_out_thread.Stop()"),
+            "CallMethod with no args should emit object.Method(), got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_foreach_node_generates_forecall() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("fe1", NodeType::ForeachNode);
+        node.set_param("list", ParamValue::Literal(serde_json::json!("myList")));
+        node.set_param("threadVar", ParamValue::Literal(serde_json::json!("t")));
+        graph.threads[0].labels[0].nodes.insert("fe1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("var_fe1_idx = Foreach(myList, t)"),
+            "ForeachNode should emit var = Foreach(list, thread), got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_destroy_listener_generates_listener_null() -> Result<()> {
+        let mut graph = make_graph();
+        let node = make_node("dl1", NodeType::DestroyListener);
+        graph.threads[0].labels[0].nodes.insert("dl1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("listener = null"),
+            "DestroyListener should emit listener = null, got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_wait_for_thread_generates_wait_for_finish() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("wt1", NodeType::WaitForThread);
+        node.set_param("thread", ParamValue::Literal(serde_json::json!("t")));
+        graph.threads[0].labels[0].nodes.insert("wt1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains("t.WaitForFinish()"),
+            "WaitForThread should emit thread.WaitForFinish(), got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_wait_generates_wait() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("w1", NodeType::Wait);
+        node.set_param("seconds", ParamValue::Literal(serde_json::json!(3.5)));
+        graph.threads[0].labels[0].nodes.insert("w1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("Wait(3.5)"), "Wait should emit Wait(seconds), got:\n{code}");
+        Ok(())
+    }
+
+    #[test]
+    fn test_wait_for_event_generates_wait_for_event() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("w1", NodeType::WaitForEvent);
+        node.set_param("eventName", ParamValue::Literal(serde_json::json!("done")));
+        graph.threads[0].labels[0].nodes.insert("w1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"WaitForEvent("done")"#),
+            "WaitForEvent should emit WaitForEvent(eventName), got:\n{code}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_create_npc_generates_with_params() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("npc1", NodeType::CreateNPC);
+        node.set_param("avatarType", ParamValue::Literal(serde_json::json!("Guard")));
+        node.set_param("position", ParamValue::Literal(serde_json::json!([1, 2, 3])));
+        node.set_param("rotation", ParamValue::Literal(serde_json::json!([0, 0, 0, 1])));
+        node.set_param("body", ParamValue::Literal(serde_json::json!(1)));
+        node.set_param("id", ParamValue::Literal(serde_json::json!(42)));
+        graph.threads[0].labels[0].nodes.insert("npc1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(code.contains("CreateNPC("), "CreateNPC should emit CreateNPC(...), got:\n{code}");
+        assert!(
+            code.contains(r#"avatarType="Guard""#),
+            "CreateNPC should include avatarType, got:\n{code}"
+        );
+        assert!(
+            code.contains(r#"position=[1, 2, 3]"#),
+            "CreateNPC should include position, got:\n{code}"
+        );
+        assert!(code.contains("id=42"), "CreateNPC should include id, got:\n{code}");
+        Ok(())
+    }
+
+    #[test]
+    fn test_translate_empty_params_list_emits_no_extra_args() -> Result<()> {
+        let mut graph = make_graph();
+        let mut node = make_node("t1", NodeType::Translate);
+        node.set_param("key", ParamValue::Literal(serde_json::json!("hello")));
+        node.set_param("params", ParamValue::Literal(serde_json::json!([])));
+        graph.threads[0].labels[0].nodes.insert("t1".to_string(), node);
+
+        let code = generate_code(&graph)?;
+        assert!(
+            code.contains(r#"Translate("hello")"#),
+            "Translate with empty params should not emit extra args, got:\n{code}"
+        );
+        assert!(
+            code.contains("var_t1_out_value = Translate"),
+            "Translate should assign out_value, got:\n{code}"
+        );
         Ok(())
     }
 }
