@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 文档
+
+- 新增 `docs/ui_design_spec.md`：完整 UI 设计规范与优化规划。涵盖设计令牌（间距/圆角/字号/颜色体系）、五区布局尺寸、控件规格（按钮三语义、ComboBox 宽度三档 100/160/200、选择器卡片统一 140×48）、画布节点/连线规范、弹窗统一模板、Toast 通知系统设计、P0-P2 优化清单与 A-D 四阶段实施路线图。
+
 ### 修复（P0 v0.3.0 issues）
 
 - 修复 `If` / `While` 条件代码生成被引号包裹：新增 `resolve_condition`，对字符串字面量条件去除 JSON 引号并直接作为 `.code` 表达式输出；Data 端口连接的条件仍走 `evaluate_data_output`。
