@@ -65,7 +65,6 @@
 | `radius_round` | 完全圆形 | 端口圆点、色点、徽标 |
 
 > **egui 0.31 落地约束**：`CornerRadius` 各角为 `u8`，**最大 255**，不存在 `999` 这种"足够大即圆"的写法。完全圆形的实现只有两条合法路径：(a) 用 `painter.circle_filled / circle_stroke` 直接画圆；(b) 圆角取 `min(width, height) / 2` 且 ≤ 255。实施时禁止写魔法大数。
-
 > 现状：节点圆角 8 ✔ 保留；选择器卡片 4 → 升为 6；欢迎卡片 12 → 降为 8（与节点统一）。
 
 ### 2.3 字号与文本层级
@@ -237,9 +236,9 @@
 | 最大弹出高度 | 300，超出滚动（现状搜索窗口 300 ✔ 推广） |
 
 > **egui 0.31 落地约束（防呆必读）**：
-> 1. 原生 `ComboBox::from_label` 的弹出列表**无内置最大高度**，长列表会直接冲出屏幕。规范实现必须用 `ComboBox::show_ui` + 内部 `ScrollArea::vertical().max_height(300.0)`，禁止裸 `selected_text` 快速用法处理长列表。
-> 2. 原生箭头**不可旋转、不可改色**（跟随 `Visuals`）。旋转箭头属"需自定义绘制"项：用 `Painter` 自绘箭头时，整个下拉框应抽成公共组件 `TokenComboBox`，禁止每个调用点各自画一份。
-> 3. 统一封装：阶段 B 必须先产出 `TokenComboBox` 公共组件（宽度档位、箭头、滚动、选中竖条全部内置），所有调用点只允许传 `DropdownWidth` 枚举，禁止传裸数值。
+> 原生 `ComboBox::from_label` 的弹出列表**无内置最大高度**，长列表会直接冲出屏幕。规范实现必须用 `ComboBox::show_ui` + 内部 `ScrollArea::vertical().max_height(300.0)`，禁止裸 `selected_text` 快速用法处理长列表。
+> 原生箭头**不可旋转、不可改色**（跟随 `Visuals`）。旋转箭头属"需自定义绘制"项：用 `Painter` 自绘箭头时，整个下拉框应抽成公共组件 `TokenComboBox`，禁止每个调用点各自画一份。
+> 统一封装：阶段 B 必须先产出 `TokenComboBox` 公共组件（宽度档位、箭头、滚动、选中竖条全部内置），所有调用点只允许传 `DropdownWidth` 枚举，禁止传裸数值。
 
 **宽度规则——只允许三档**（消除现状 5 种取值）：
 
