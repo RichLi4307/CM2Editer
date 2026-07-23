@@ -24,7 +24,7 @@
 - [x] **P3.1 手动冒烟测试（部分完成）**：按 `docs/test_checklist.md` 完成 1-5 章节，共 39 JM / 4 DN / 90 NT。详见「手动测试汇总」与「已知缺陷 / 改进项」。
 - [ ] **P3.1 手动冒烟测试（剩余）**：继续执行 6-10 章节（节点参数编辑、底部面板、代码生成、i18n、验证与错误处理）。
 - [x] **P3.2 构建与打包**：Release 构建，打包字体、命名空间、README、AGENTS.md、LICENSE。
-- [ ] **P3.3 发布预览版**：GitHub Release `v0.3.0-alpha`，附已知限制说明。
+- [x] **P3.3 发布预览版**：GitHub Release `v0.3.0-alpha`，附已知限制说明。
 - [x] **P3.4 UI 设计规范落地**：阶段 A/B/C 已完成（`tokens` 模块扩展、全库尺寸/颜色替换、`TokenButton`/`TokenComboBox` 封装替换、颜色守卫范围扩展、`i18n` 三语守卫）；吸附式窗口方案已移出 P3.4，作为 v0.4.0 分支/RFC 试点。
 
 ### P3.1 中发现的待修复/改进项（未排序）
@@ -40,6 +40,17 @@
 - [x] **属性面板坐标/面向输入**：Vector/Quaternion 参数在空数组时提供文本输入（JSON 数组），不再只能打开弹窗；Quaternion 不再打开坐标选择器。
 - [x] **NPCIsAlive 下拉选择**：Object 类型 `npc` 参数新增 NPC 输出端口专用下拉框，列出图中所有 `out_npc` / 标签为 "NPC" 的输出端口。
 - [x] **连线时端口灰化**：拖拽连线时，`NodeRenderer` 根据源端口类型将不兼容输入端口变灰（透明度 0.25）。
+- [ ] **MissionPanel / MissionMenuItem 节点化**：按 `AGENTS.md` 第10章设计决策落地，修复方法注册表、统一 `CallMethod` 参数名、放宽 `Global`/`Local` 类型、新增专用方法节点并更新节点库与 `docs/node_types.md`。测试版旧工程不兼容。
+  1. [ ] 修正 `src/api/method_registry.rs` 中 MissionPanel / MissionMenuItem 方法。
+  2. [ ] 将 `CallMethod` 参数 `thread` 改名为 `object`，同步 `definitions.rs` / `generator.rs` / `properties.rs` / 测试。
+  3. [ ] 将 `Global` / `Local` 的 `value` 参数和 `out_value` 端口类型从 `List` 改为 `Object`。
+  4. [ ] 在 `src/graph/types.rs` 新增专用方法 `NodeType` 变体。
+  5. [ ] 在 `src/api/definitions.rs` 新增对应 `NodeDefinition`（A 类：in_flow + object + 方法参数 → out_flow）。
+  6. [ ] 在 `src/code_gen/generator.rs` 为每个新增节点写 A 类生成分支。
+  7. [ ] 在 `src/ui/panels/node_library/catalog.rs` 更新节点库分类。
+  8. [ ] 同步更新 `docs/node_types.md`：新增 A 类节点表格、更新分类、说明生命周期用法。
+  9. [ ] 同步更新 `docs/analysis_mission_panel_workflows.md`：标记已修复项。
+  10. [ ] `cargo test` 全绿后提交。
 
 ---
 
