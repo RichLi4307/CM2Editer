@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **修复启动后无欢迎页/开始界面**：`App::update_canvas` 在 `selected_container` 为 `None` 时直接 `return`，导致欢迎卡片从未渲染。改为先绘制画布，再判断无当前标签/工程时显示 `draw_welcome_card`；同时提取开始界面卡片为独立方法，并改用 `tokens::BG_CARD` / `tokens::RADIUS_LARGE` / `tokens::BORDER_DEFAULT` 等设计令牌。
+
 ### 重构（P3.4 UI 设计规范落地 — 阶段 A 令牌化）
 
 - 在 `src/ui/theme.rs` 中新增 `tokens` 模块：统一提供间距、圆角、字号、背景/边框/文本/语义色等全部设计令牌。

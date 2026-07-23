@@ -2495,13 +2495,90 @@ impl App {
         }
     }
 
+    /// 绘制开始界面欢迎卡片（开屏）。
+    ///
+    /// 当无打开工程且画布为空时，在中央显示新建/打开工程入口。
+    fn draw_welcome_card(&mut self, ui: &mut egui::Ui, canvas_rect: egui::Rect) {
+        let center = canvas_rect.center();
+        let card_w = 320.0;
+        let card_h = 220.0;
+        let card = egui::Rect::from_center_size(center, egui::vec2(card_w, card_h));
+
+        ui.painter()
+            .rect_filled(card, tokens::RADIUS_LARGE, tokens::BG_CARD);
+        ui.painter().rect_stroke(
+            card,
+            tokens::RADIUS_LARGE,
+            egui::Stroke::new(1.0, tokens::BORDER_DEFAULT),
+            egui::StrokeKind::Middle,
+        );
+
+        let title_pos = center - egui::vec2(0.0, card_h / 2.0 - 28.0);
+        ui.painter().text(
+            title_pos,
+            Align2::CENTER_TOP,
+            self.i18n.format("welcome.title", &[env!("CARGO_PKG_VERSION")]),
+            FontId::proportional(tokens::TEXT_DISPLAY),
+            tokens::TEXT_PRIMARY,
+        );
+        ui.painter().text(
+            title_pos + egui::vec2(0.0, 28.0),
+            Align2::CENTER_TOP,
+            self.i18n.text("welcome.subtitle"),
+            FontId::proportional(tokens::TEXT_BODY),
+            tokens::TEXT_SECONDARY,
+        );
+
+        let btn_open = egui::Rect::from_center_size(
+            egui::pos2(center.x - 80.0, center.y + 20.0),
+            egui::vec2(140.0, 32.0),
+        );
+        let btn_new = egui::Rect::from_center_size(
+            egui::pos2(center.x + 80.0, center.y + 20.0),
+            egui::vec2(140.0, 32.0),
+        );
+
+        let open_clicked = ui
+            .put(btn_open, egui::Button::new(self.i18n.text("welcome.open_project")))
+            .clicked();
+        let new_clicked = ui
+            .put(btn_new, egui::Button::new(self.i18n.text("welcome.new_project")))
+            .clicked();
+
+        if open_clicked {
+            if let Some(path) = rfd::FileDialog::new().pick_folder() {
+                if let Err(e) = self.load_project(path) {
+                    self.status_message = self.i18n.format("status.open_failed", &[&e.to_string()]);
+                }
+            }
+            self.show_welcome_hint = false;
+        }
+        if new_clicked {
+            self.new_project_dialog_open = true;
+            self.show_welcome_hint = false;
+        }
+
+        ui.painter().text(
+            egui::pos2(center.x, center.y + 60.0),
+            Align2::CENTER_TOP,
+            self.i18n.text("welcome.space_hint"),
+            FontId::proportional(tokens::TEXT_CAPTION),
+            tokens::TEXT_SECONDARY,
+        );
+    }
+
     /// 更新画布内容并处理交互。
     fn update_canvas(&mut self, ctx: &egui::Context, ui: &mut egui::Ui) {
-        let Some(label) = Self::label_ref(&self.graph_doc, self.selected_container) else {
-            return;
-        };
         let canvas_response = self.canvas.update(ui);
         let canvas_rect = canvas_response.canvas_rect;
+
+        let Some(label) = Self::label_ref(&self.graph_doc, self.selected_container) else {
+            // 无打开工程/标签时显示开始界面
+            if self.show_welcome_hint && self.project.is_none() {
+                self.draw_welcome_card(ui, canvas_rect);
+            }
+            return;
+        };
         let cull_margin = 50.0;
         let cull_rect = canvas_rect.expand(cull_margin);
         let mut node_renderer = NodeRenderer::with_i18n(&self.i18n);
@@ -2728,72 +2805,7 @@ impl App {
             && self.current_label().map(|l| l.nodes.is_empty()).unwrap_or(true)
             && self.project.is_none()
         {
-            let center = canvas_rect.center();
-            let card_w = 320.0;
-            let card_h = 220.0;
-            let card = egui::Rect::from_center_size(center, egui::vec2(card_w, card_h));
-
-            ui.painter()
-                .rect_filled(card, 12.0, tokens::with_alpha(tokens::BG_APP, 220));
-            ui.painter().rect_stroke(
-                card,
-                12.0,
-                egui::Stroke::new(2.0, tokens::BORDER_SUBTLE),
-                egui::StrokeKind::Middle,
-            );
-
-            let title_pos = center - egui::vec2(0.0, card_h / 2.0 - 28.0);
-            ui.painter().text(
-                title_pos,
-                Align2::CENTER_TOP,
-                self.i18n.format("welcome.title", &[env!("CARGO_PKG_VERSION")]),
-                FontId::proportional(22.0),
-                tokens::TEXT_PRIMARY,
-            );
-            ui.painter().text(
-                title_pos + egui::vec2(0.0, 28.0),
-                Align2::CENTER_TOP,
-                self.i18n.text("welcome.subtitle"),
-                FontId::proportional(13.0),
-                tokens::TEXT_SECONDARY,
-            );
-
-            let btn_open = egui::Rect::from_center_size(
-                egui::pos2(center.x - 80.0, center.y + 20.0),
-                egui::vec2(140.0, 32.0),
-            );
-            let btn_new = egui::Rect::from_center_size(
-                egui::pos2(center.x + 80.0, center.y + 20.0),
-                egui::vec2(140.0, 32.0),
-            );
-
-            let open_clicked = ui
-                .put(btn_open, egui::Button::new(self.i18n.text("welcome.open_project")))
-                .clicked();
-            let new_clicked = ui
-                .put(btn_new, egui::Button::new(self.i18n.text("welcome.new_project")))
-                .clicked();
-
-            if open_clicked {
-                if let Some(path) = rfd::FileDialog::new().pick_folder() {
-                    if let Err(e) = self.load_project(path) {
-                        self.status_message = self.i18n.format("status.open_failed", &[&e.to_string()]);
-                    }
-                }
-                self.show_welcome_hint = false;
-            }
-            if new_clicked {
-                self.new_project_dialog_open = true;
-                self.show_welcome_hint = false;
-            }
-
-            ui.painter().text(
-                egui::pos2(center.x, center.y + 60.0),
-                Align2::CENTER_TOP,
-                self.i18n.text("welcome.space_hint"),
-                FontId::proportional(12.0),
-                tokens::TEXT_SECONDARY,
-            );
+            self.draw_welcome_card(ui, canvas_rect);
         }
 
         // 画布信息覆盖层
