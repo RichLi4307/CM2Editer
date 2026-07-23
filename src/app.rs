@@ -1376,13 +1376,16 @@ impl eframe::App for App {
                             .map(|p| Vec2::new(p.x, p.y));
                         // 节点库与工程文件树之间用可拖拽分隔条分割，
                         // 两者各自独立滚动，并可通过分隔条手动调整上下高度。
+                        // 优先级：工程树底部按钮必须可见，因此工程树高度不得低于最小值，
+                        // 极端情况下节点库优先压缩。
                         let total_height = ui.available_height();
                         let handle_height = 6.0;
-                        let min_tree_height = 120.0;
+                        const MIN_TREE_HEIGHT: f32 = 220.0;
+                        const MIN_NODE_LIBRARY: f32 = 100.0;
                         let max_node_height =
-                            (total_height - handle_height - min_tree_height).max(100.0);
+                            (total_height - handle_height - MIN_TREE_HEIGHT).max(MIN_NODE_LIBRARY);
                         self.node_library_height =
-                            self.node_library_height.clamp(100.0, max_node_height);
+                            self.node_library_height.clamp(MIN_NODE_LIBRARY, max_node_height);
 
                         // 节点库（上半部分，可滚动）
                         match NodeLibraryPanel::show(

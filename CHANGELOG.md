@@ -8,6 +8,7 @@
 
 ### 修复
 
+- **工程文件树底部按钮固定，禁止溢出左栏**：`project_tree.rs` 将「新建 .code / 保存 / 导出」三个按钮移出 `ScrollArea`，固定在最底部；`ScrollArea` 按可用高度扣除按钮区后限制最大高度，文件树过长时只滚动树内容。`app.rs` 调整左栏高度分配优先级：工程树最小高度从 120 提到 220，节点库可压缩，确保底部按钮始终可见。
 - **节点悬停描述 Tooltip 改为延迟 + 标题栏触发**：`app.rs` 新增 `hovered_node_id` / `hovered_node_start` 状态；只有鼠标悬停在节点标题栏（header 区域）并持续 0.5s 后才显示描述 Tooltip，避免移动鼠标时频繁弹出。
 - **修复启动后无欢迎页/开始界面**：`App::update_canvas` 在 `selected_container` 为 `None` 时直接 `return`，导致欢迎卡片从未渲染。改为先绘制画布，再判断无当前标签/工程时显示 `draw_welcome_card`；同时提取开始界面卡片为独立方法，并改用 `tokens::BG_CARD` / `tokens::RADIUS_LARGE` / `tokens::BORDER_DEFAULT` 等设计令牌。
 

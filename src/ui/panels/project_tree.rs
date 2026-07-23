@@ -47,9 +47,12 @@ impl ProjectTreePanel {
 
         ui.separator();
 
+        // 文件树滚动区：按钮固定在最底部，因此滚动区高度需扣除底部按钮区。
+        const FOOTER_HEIGHT: f32 = 86.0;
+        let scroll_max_h = (ui.available_height() - FOOTER_HEIGHT).max(40.0);
         egui::ScrollArea::vertical()
             .id_salt("project_tree_scroll")
-            .max_height(ui.available_height())
+            .max_height(scroll_max_h)
             .auto_shrink([false, true])
             .show(ui, |ui| {
                 ui.label(i18n.text("project_tree.code_files"));
@@ -99,18 +102,19 @@ impl ProjectTreePanel {
                         );
                     });
                 }
-
-                ui.separator();
-                if ui.button(i18n.text("project_tree.new_code")).clicked() {
-                    action = ProjectTreeAction::NewCodeDialog;
-                }
-                if ui.button(i18n.text("project_tree.save_project")).clicked() {
-                    action = ProjectTreeAction::SaveProject;
-                }
-                if ui.button(i18n.text("project_tree.export_project")).clicked() {
-                    action = ProjectTreeAction::ExportProjectDialog;
-                }
             });
+
+        // 底部操作按钮固定在最底部，不随文件树滚动。
+        ui.separator();
+        if ui.button(i18n.text("project_tree.new_code")).clicked() {
+            action = ProjectTreeAction::NewCodeDialog;
+        }
+        if ui.button(i18n.text("project_tree.save_project")).clicked() {
+            action = ProjectTreeAction::SaveProject;
+        }
+        if ui.button(i18n.text("project_tree.export_project")).clicked() {
+            action = ProjectTreeAction::ExportProjectDialog;
+        }
 
         action
     }
