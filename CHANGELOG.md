@@ -18,6 +18,21 @@
 - 在 `docs/ui_design_spec.md` 新增第 14 章「实际落地状态登记表」，按章节列出设计令牌、布局、控件、画布、面板、弹窗、反馈、守卫测试等项的已落地/部分落地/未落地状态，并标注当前偏差，供架构师审核。
 - 更新 `docs/ui_design_spec.md`：第 13 章偏差登记表补充 7 项（尺寸/字号/卡片未替换）；新增第 16 章「UX 审计报告（2026-07-23）」，记录已验证正确项、未达标项、架构防呆缺口（颜色守卫范围不足、缺少尺寸/i18n 守卫、Widget ID 规则等）、吸附式窗口方案 UX 风险与下一步建议。
 
+### 重构（P3.4 UI 设计规范落地 — 阶段 B/C 控件统一与 i18n 守卫）
+
+- 扩展 `src/ui/theme.rs::tokens` 模块：新增布局/尺寸常量（左/右/底栏默认与范围、节点库/欢迎卡片/拖拽虚影尺寸、分割条比例、按钮/节点几何、画布边距等）。
+- 替换 `src/app.rs` 左/右/底栏尺寸、`src/ui/node_renderer.rs` 字号与节点几何、`src/ui/panels/node_library/mod.rs` 节点库过滤宽度等硬编码值为 `tokens::*`。
+- 新增 `src/ui/token_widgets.rs`：封装 `TokenButton`（统一最小高度/圆角）与 `TokenComboBox`（三档宽度 100/160/200 + 语言选择器 96 例外），并替换 `src/ui` 与 `src/app.rs` 中全部原生 `ui.button()` 与 `ComboBox` 调用点。
+- 将 `no_bare_color32_outside_theme` 颜色守卫扫描范围从 `src/ui` 扩展到 `src/app.rs`。
+- 新增 i18n 守卫测试 `all_static_i18n_keys_exist_in_three_languages`：扫描 UI 业务代码中的静态 `i18n.text(...)` / `i18n.format(...)` key，并断言其在 `zh`/`en`/`ja` 三个翻译文件中均存在；补齐本次扫描发现的缺失 key（`tooltip.edit_condition`、`button.favorite`、`button.unfavorite`、`status.run_preview`、`node_library.favorites` 及 `project_tree.*` 系列）。
+- `cargo test --lib` 198 项通过；`cargo clippy --lib` 0 warnings。
+
+### 文档
+
+- 更新 `docs/ui_design_spec.md` 第 14 章「实际落地状态登记表」：标记阶段 A/B/C 相关项（颜色、尺寸、按钮、下拉框、字号、i18n 守卫）为已落地或部分落地；更新第 13 章偏差登记表，移除已解决的偏差项。
+- 更新 `docs/ui_design_spec.md` 第 15 章：吸附式窗口面板方案状态由「待架构师审核」改为「已移出 P3.4，计划 v0.4.0 分支试点 / RFC」，避免阻塞当前发布窗口。
+- 更新 `docs/TODO.md`：P3.4 标记阶段 A/B/C 完成，吸附式窗口移出 P3.4；追加工作日志条目；更新测试计数为 198 lib + 9 integration。
+
 ### 重构（P3.4 UI 设计规范落地 — 阶段 A 令牌化）
 
 - 在 `src/ui/theme.rs` 中新增 `tokens` 模块：统一提供间距、圆角、字号、背景/边框/文本/语义色等全部设计令牌。

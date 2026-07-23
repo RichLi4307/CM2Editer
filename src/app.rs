@@ -43,6 +43,7 @@ use crate::ui::panels::{
     condition_editor::{ConditionEditor, ConditionEditorState},
 };
 use crate::ui::theme::tokens;
+use crate::ui::token_widgets::{self, DropdownWidth};
 
 /// 左栏当前显示的标签页。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -440,11 +441,11 @@ impl App {
             cached_json: String::new(),
             cached_json_version: 0,
             graph_version: 0,
-            bottom_panel_height: 200.0,
+            bottom_panel_height: tokens::LAYOUT_BOTTOM_PANEL_DEFAULT,
             left_ns_multi: false,
             left_ns_selected: HashSet::new(),
             left_panel_tab: LeftPanelTab::default(),
-            node_library_height: 280.0,
+            node_library_height: tokens::NODE_LIBRARY_INITIAL_HEIGHT,
             new_project_dialog_open: false,
             new_project_parent: None,
             new_project_name: String::new(),
@@ -1251,12 +1252,12 @@ impl eframe::App for App {
         // 顶部工具栏
         egui::TopBottomPanel::top("toolbar").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui.button(self.i18n.text("button.new_project")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.new_project")).clicked() {
                     self.new_project_dialog_open = true;
                     self.new_project_parent = None;
                     self.new_project_name.clear();
                 }
-                if ui.button(self.i18n.text("button.open_project")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.open_project")).clicked() {
                     if let Some(path) = rfd::FileDialog::new().pick_folder() {
                         if let Err(e) = self.load_project(path) {
                             self.status_message = self.i18n.format("status.open_failed", &[&e.to_string()]);
@@ -1268,56 +1269,59 @@ impl eframe::App for App {
                         }
                     }
                 }
-                if ui.button(self.i18n.text("button.save_project")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.save_project")).clicked() {
                     if let Err(e) = self.save_project() {
                         self.status_message = self.i18n.format("status.save_failed", &[&e.to_string()]);
                     }
                 }
-                if ui.button(self.i18n.text("button.export_project")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.export_project")).clicked() {
                     self.export_project_dialog_open = true;
                     self.export_destination = None;
                 }
-                if ui.button(self.i18n.text("button.export_code")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.export_code")).clicked() {
                     if let Err(e) = self.export_code() {
                         self.status_message = self.i18n.format("status.export_code_failed", &[&e.to_string()]);
                     }
                 }
-                if ui.button(self.i18n.text("button.clear_graph")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.clear_graph")).clicked() {
                     self.confirm_new_graph();
                 }
-                if ui.button(self.i18n.text("button.run_preview")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.run_preview")).clicked() {
                     self.run_preview();
                 }
                 ui.separator();
-                if ui.button(self.i18n.text("button.undo")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.undo")).clicked() {
                     self.undo();
                 }
-                if ui.button(self.i18n.text("button.redo")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.redo")).clicked() {
                     self.redo();
                 }
                 ui.separator();
-                if ui.button(self.i18n.text("button.copy")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.copy")).clicked() {
                     self.copy_selected();
                 }
-                if ui.button(self.i18n.text("button.paste")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.paste")).clicked() {
                     if let Some(pos) = self.hover_world_pos(ctx, self.canvas_rect(ctx)) {
                         self.paste_at(Vec2::new(pos.x, pos.y));
                     }
                 }
-                if ui.button(self.i18n.text("button.delete")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.delete")).clicked() {
                     self.delete_selected();
                 }
-                if ui.button(self.i18n.text("button.search_node")).clicked() {
+                if token_widgets::button(ui, self.i18n.text("button.search_node")).clicked() {
                     self.search_window_open = !self.search_window_open;
                 }
                 ui.separator();
                 ui.label(self.i18n.text("i18n.language"));
                 let current_lang = self.i18n.current_language().to_string();
                 let current_lang_name = self.i18n.text(&format!("i18n.{}", current_lang));
-                egui::ComboBox::from_id_salt("language_selector")
-                    .width(100.0)
-                    .selected_text(&current_lang_name)
-                    .show_ui(ui, |ui| {
+                token_widgets::token_combo_box(
+                    ui,
+                    "language_selector",
+                    DropdownWidth::Language,
+                    &current_lang_name,
+                )
+                .show_ui(ui, |ui| {
                         for lang in ["zh", "en", "ja"] {
                             let lang_name = self.i18n.text(&format!("i18n.{}", lang));
                             if ui
@@ -1338,7 +1342,7 @@ impl eframe::App for App {
         let mut left_action = ProjectTreeAction::None;
         let mut overview_action = OverviewAction::None;
         egui::SidePanel::left("side_panel")
-            .width_range(180.0..=300.0)
+            .width_range(tokens::LAYOUT_LEFT_PANEL_MIN..=tokens::LAYOUT_LEFT_PANEL_MAX)
             .show(ctx, |ui| {
                 let active = self.left_panel_tab;
                 ui.horizontal(|ui| {
@@ -1379,9 +1383,9 @@ impl eframe::App for App {
                         // 优先级：工程树底部按钮必须可见，因此工程树高度不得低于最小值，
                         // 极端情况下节点库优先压缩。
                         let total_height = ui.available_height();
-                        let handle_height = 6.0;
-                        const MIN_TREE_HEIGHT: f32 = 220.0;
-                        const MIN_NODE_LIBRARY: f32 = 100.0;
+                        let handle_height = tokens::SPLITTER_HANDLE_HEIGHT;
+                        const MIN_TREE_HEIGHT: f32 = tokens::PROJECT_TREE_MIN_HEIGHT;
+                        const MIN_NODE_LIBRARY: f32 = tokens::NODE_LIBRARY_MIN_HEIGHT;
                         let max_node_height =
                             (total_height - handle_height - MIN_TREE_HEIGHT).max(MIN_NODE_LIBRARY);
                         self.node_library_height =
@@ -1456,7 +1460,7 @@ impl eframe::App for App {
                         ui.heading(self.i18n.text("panel.namespace"));
                         ui.separator();
                             ui.horizontal(|ui| {
-                                if ui.button(self.i18n.text("button.import")).clicked() {
+                                if token_widgets::button(ui, self.i18n.text("button.import")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .pick_file()
@@ -1472,7 +1476,7 @@ impl eframe::App for App {
                                         }
                                     }
                                 }
-                                if ui.button(self.i18n.text("button.export")).clicked() {
+                                if token_widgets::button(ui, self.i18n.text("button.export")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .save_file()
@@ -1492,7 +1496,7 @@ impl eframe::App for App {
                                         }
                                     }
                                 }
-                                if ui.button(self.i18n.text("button.add")).clicked() {
+                                if token_widgets::button(ui, self.i18n.text("button.add")).clicked() {
                                     let _ = ui.ctx();
                                 }
                                 ui.checkbox(&mut self.left_ns_multi, self.i18n.text("label.multi_select"));
@@ -1507,7 +1511,7 @@ impl eframe::App for App {
                         ui.horizontal(|ui| {
                             ui.label(self.i18n.text("label.name"));
                             ui.add_sized([90.0, 20.0], egui::TextEdit::singleline(&mut self.ns_add_name));
-                            if ui.button(self.i18n.text("button.confirm_add")).clicked()
+                            if token_widgets::button(ui, self.i18n.text("button.confirm_add")).clicked()
                                 && !self.ns_add_target.is_empty()
                                 && !self.ns_add_key.is_empty()
                             {
@@ -1549,7 +1553,7 @@ impl eframe::App for App {
                         ui.separator();
                         if self.left_ns_multi {
                             ui.horizontal(|ui| {
-                                if ui.button(self.i18n.format("button.copy_selected_count", &[&self.left_ns_selected.len().to_string()])).clicked() {
+                                if token_widgets::button(ui, self.i18n.format("button.copy_selected_count", &[&self.left_ns_selected.len().to_string()])).clicked() {
                                     let keys: Vec<_> = self.left_ns_selected.iter().cloned().collect();
                                     let text = if keys.len() == 1 {
                                         keys[0].clone()
@@ -1561,7 +1565,7 @@ impl eframe::App for App {
                                     });
                                     self.status_message = self.i18n.format("status.copied_items", &[&keys.len().to_string(), &text]);
                                 }
-                                if ui.button(self.i18n.text("button.clear")).clicked() {
+                                if token_widgets::button(ui, self.i18n.text("button.clear")).clicked() {
                                     self.left_ns_selected.clear();
                                 }
                             });
@@ -1645,7 +1649,7 @@ impl eframe::App for App {
                             }
                             ui.separator();
                             ui.horizontal(|ui| {
-                                if ui.button(self.i18n.text("button.import")).clicked() {
+                                if token_widgets::button(ui, self.i18n.text("button.import")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .pick_file()
@@ -1663,7 +1667,7 @@ impl eframe::App for App {
                                         }
                                     }
                                 }
-                                if ui.button(self.i18n.text("button.export")).clicked() {
+                                if token_widgets::button(ui, self.i18n.text("button.export")).clicked() {
                                     if let Some(path) = rfd::FileDialog::new()
                                         .add_filter("JSON", &["json"])
                                         .save_file()
@@ -1682,7 +1686,7 @@ impl eframe::App for App {
                                         }
                                     }
                                 }
-                                if ui.button(self.i18n.text("button.add")).clicked() {
+                                if token_widgets::button(ui, self.i18n.text("button.add")).clicked() {
                                     let _ = ui.ctx();
                                 }
                             });
@@ -1702,7 +1706,7 @@ impl eframe::App for App {
                                 ui.add_sized([40.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_y));
                                 ui.label("z:");
                                 ui.add_sized([40.0, 20.0], egui::TextEdit::singleline(&mut self.coord_add_z));
-                                if ui.button(self.i18n.text("button.confirm_add")).clicked()
+                                if token_widgets::button(ui, self.i18n.text("button.confirm_add")).clicked()
                                     && !self.coord_add_id.is_empty()
                                     && !self.coord_add_stage.is_empty()
                                 {
@@ -1763,7 +1767,7 @@ impl eframe::App for App {
         // 右栏：属性面板 / meta 编辑器
         let mut edited_node_id = None;
         egui::SidePanel::right("properties")
-            .width_range(200.0..=400.0)
+            .width_range(tokens::LAYOUT_RIGHT_PANEL_MIN..=tokens::LAYOUT_RIGHT_PANEL_MAX)
             .show(ctx, |ui| {
                 if self.show_meta_editor {
                     if let Some(project) = self.project.as_mut() {
@@ -1996,10 +2000,10 @@ impl eframe::App for App {
 
         egui::TopBottomPanel::bottom("bottom_main")
             .resizable(true)
-            .default_height(260.0)
-            .min_height(140.0)
+            .default_height(tokens::LAYOUT_BOTTOM_PANEL_DEFAULT)
+            .min_height(tokens::LAYOUT_BOTTOM_PANEL_MIN)
             .show(ctx, |ui| {
-                let panel_w = ui.available_width().max(200.0);
+                let panel_w = ui.available_width().max(tokens::MIN_BOTTOM_PANEL_CONTENT_WIDTH);
                 let panel_h = ui.available_height().max(20.0);
 
                 // 两个可拖拽分隔线的比例（左/（左+中+右）总宽）
@@ -2013,9 +2017,9 @@ impl eframe::App for App {
                 let mut split2 = data.1;
 
                 // 保证两条分隔线不交叉、不超出边界。先归一化再计算列宽。
-                const MIN_SPLIT: f32 = 0.15;
-                const MAX_SPLIT: f32 = 0.85;
-                const GAP: f32 = 0.15;
+                const MIN_SPLIT: f32 = tokens::SPLITTER_MIN;
+                const MAX_SPLIT: f32 = tokens::SPLITTER_MAX;
+                const GAP: f32 = tokens::SPLITTER_GAP;
                 if split2 < split1 + GAP {
                     let mid = (split1 + split2).clamp(MIN_SPLIT + GAP / 2.0, MAX_SPLIT - GAP / 2.0);
                     split1 = mid - GAP / 2.0;
@@ -2139,7 +2143,7 @@ impl eframe::App for App {
             egui::Window::new(self.i18n.text("search.title"))
                 .collapsible(false)
                 .show(ctx, |ui| {
-                    if ui.button(self.i18n.text("search.close")).clicked() {
+                    if token_widgets::button(ui, self.i18n.text("search.close")).clicked() {
                         self.search_window_open = false;
                         return;
                     }
@@ -2178,7 +2182,7 @@ impl eframe::App for App {
                     .order(egui::Order::Foreground)
                     .fixed_pos(pos)
                     .show(ctx, |ui| {
-                        ui.set_min_width(140.0);
+                        ui.set_min_width(tokens::DRAG_GHOST_MIN_WIDTH);
                         ui.add(
                             egui::Label::new(
                                 egui::RichText::new(self.i18n.node_display_name(nt))
@@ -2301,7 +2305,7 @@ impl App {
                 .show(ctx, |ui| {
                     ui.label(self.i18n.text("dialog.export_instructions"));
                     ui.horizontal(|ui| {
-                        if ui.button(self.i18n.text("dialog.select_folder")).clicked() {
+                        if token_widgets::button(ui, self.i18n.text("dialog.select_folder")).clicked() {
                             if let Some(path) = rfd::FileDialog::new().pick_folder() {
                                 self.export_destination = Some(path);
                             }
@@ -2324,7 +2328,7 @@ impl App {
                             }
                             self.export_project_dialog_open = false;
                         }
-                        if ui.button(self.i18n.text("button.cancel")).clicked() {
+                        if token_widgets::button(ui, self.i18n.text("button.cancel")).clicked() {
                             self.export_project_dialog_open = false;
                         }
                     });
@@ -2509,8 +2513,8 @@ impl App {
     /// 当无打开工程且画布为空时，在中央显示新建/打开工程入口。
     fn draw_welcome_card(&mut self, ui: &mut egui::Ui, canvas_rect: egui::Rect) {
         let center = canvas_rect.center();
-        let card_w = 320.0;
-        let card_h = 220.0;
+        let card_w = tokens::WELCOME_CARD_WIDTH;
+        let card_h = tokens::WELCOME_CARD_HEIGHT;
         let card = egui::Rect::from_center_size(center, egui::vec2(card_w, card_h));
 
         ui.painter()
@@ -2540,11 +2544,11 @@ impl App {
 
         let btn_open = egui::Rect::from_center_size(
             egui::pos2(center.x - 80.0, center.y + 20.0),
-            egui::vec2(140.0, 32.0),
+            egui::vec2(tokens::WELCOME_BUTTON_WIDTH, tokens::WELCOME_BUTTON_HEIGHT),
         );
         let btn_new = egui::Rect::from_center_size(
             egui::pos2(center.x + 80.0, center.y + 20.0),
-            egui::vec2(140.0, 32.0),
+            egui::vec2(tokens::WELCOME_BUTTON_WIDTH, tokens::WELCOME_BUTTON_HEIGHT),
         );
 
         let open_clicked = ui

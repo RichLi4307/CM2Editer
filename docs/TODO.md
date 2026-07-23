@@ -2,7 +2,7 @@
 
 > **版本**: 0.4.0
 > **日期**: 2026-07-23
-> **目标**: v0.3.0-alpha 已发布，当前进入 v0.4.0 开发；P3.4 UI 设计规范落地阶段 A（令牌化）已完成。
+> **目标**: v0.3.0-alpha 已发布，当前进入 v0.4.0 开发；P3.4 UI 设计规范落地阶段 A/B/C 已完成，吸附式窗口方案已移出 P3.4。
 > **旧版已归档**: `docs/archive/TODO_20260720_v11.md`（Phase2 完成详情）、`docs/archive/TODO_20260720_v12.md`（纳入自动化测试归纳的上版）
 
 ---
@@ -10,9 +10,9 @@
 ## 当前状态
 
 - v0.3.0-alpha 已发布，当前进入 **v0.4.0** 开发。
-- P3.4 UI 设计规范落地：**阶段 A 令牌化**已完成，令牌模块、全库颜色替换、守卫测试已合入。
+- P3.4 UI 设计规范落地：**阶段 A（令牌化）、B（TokenButton/TokenComboBox）、C（i18n 守卫）**已完成；吸附式窗口方案已移出 P3.4，作为 v0.4.0 分支/RFC 试点。
 - P3.1 手动冒烟测试：因当前 UX 仍在重构中，暂不继续执行，待 B/C/D 阶段完成后再复测。
-- 自动化测试：`cargo test --lib` **196 项通过**；`cargo test` 完整套件（196 lib + 9 integration）全部通过。
+- 自动化测试：`cargo test --lib` **198 项通过**；`cargo test` 完整套件（198 lib + 9 integration）全部通过。
 - `cargo clippy --lib` **0 warnings**。
 
 ---
@@ -25,7 +25,7 @@
 - [ ] **P3.1 手动冒烟测试（剩余）**：继续执行 6-10 章节（节点参数编辑、底部面板、代码生成、i18n、验证与错误处理）。
 - [x] **P3.2 构建与打包**：Release 构建，打包字体、命名空间、README、AGENTS.md、LICENSE。
 - [ ] **P3.3 发布预览版**：GitHub Release `v0.3.0-alpha`，附已知限制说明。
-- [x] **P3.4 UI 设计规范落地**：阶段 A 令牌化已完成（`src/ui/theme.rs` 新增 `tokens` 模块、全库颜色替换、守卫测试）。阶段 B/C/D 待执行。
+- [x] **P3.4 UI 设计规范落地**：阶段 A/B/C 已完成（`tokens` 模块扩展、全库尺寸/颜色替换、`TokenButton`/`TokenComboBox` 封装替换、颜色守卫范围扩展、`i18n` 三语守卫）；吸附式窗口方案已移出 P3.4，作为 v0.4.0 分支/RFC 试点。
 
 ### P3.1 中发现的待修复/改进项（未排序）
 
@@ -110,7 +110,7 @@
 | 2026-07-23 | 文档 | 在 `docs/ui_design_spec.md` 新增第 15 章「吸附式窗口面板方案」，把左/右/底栏从布局面板改为 egui 吸附窗口的候选架构，待架构师审核 | 已完成 |
 | 2026-07-23 | 文档 | 在 `docs/ui_design_spec.md` 新增第 14 章「实际落地状态登记表」，列出全部规范项的落地状态与偏差，供架构师审核 | 已完成 |
 | 2026-07-23 | 修复 | 修复启动后无欢迎页/开始界面：`update_canvas` 在 `selected_container` 为 `None` 时直接返回，导致欢迎卡片未渲染；改为先绘制画布再显示 `draw_welcome_card`，并提取为独立方法、套用设计令牌 | 已完成 |
-| 2026-07-23 | P3.4 | 完成 UI 设计规范阶段 A 令牌化：在 `src/ui/theme.rs` 新增 `tokens` 模块，替换 `src/ui` 与 `src/app.rs` 中全部硬编码 `Color32`；新增 `tokens_values_match_spec` 与 `no_bare_color32_outside_theme` 守卫测试；`cargo test --lib` 196 通过，`clippy --lib` 0 warnings | 已完成 |
+| 2026-07-23 | P3.4 | 按 `docs/ui_design_spec.md` 16.7 执行阶段 A/B/C：扩展 `tokens` 布局/尺寸常量，替换 `app.rs` 左/右/底栏尺寸、`node_renderer.rs` 字号、`node_library` 下拉宽度；封装 `TokenButton` 与 `TokenComboBox` 并替换全库调用点；扩展颜色守卫至 `src/app.rs`；新增 i18n 静态 key 三语守卫并补齐 zh/en/ja 缺失翻译；吸附式窗口方案移出 P3.4，第 15 章状态更新为 v0.4.0 RFC 试点；`cargo test --lib` 198 通过 | 已完成 |
 | 2026-07-20 22:45 | P3.1 | 修复 P3.1 检查单中 9 项待修复/改进项：默认线程策略、搜索大小写不敏感、描述悬停、文件树底部控件、节点分类审计、坐标标签中文显示、Vector/Quaternion 手动输入、NPC 下拉选择、连线端口灰化；新增 192 项 lib tests | 已完成 |
 | 2026-07-20 | P2 | Phase2 全部完成并合并到 `main`：P2.4–P2.11 + checklist UI 缺陷；`cargo test --lib` 191 项通过；`cargo test` 9 项 integration 通过；`cargo clippy --lib` 0 warnings | 已完成 |
 | 2026-07-20 | 修复 | 修复 `If` 节点属性面板中条件模板 ComboBox 的 egui duplicate widget ID 警告；`cargo test --lib` 191 项通过 | 已完成 |

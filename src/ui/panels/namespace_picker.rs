@@ -9,6 +9,7 @@ use std::collections::HashSet;
 use crate::api::namespace::NamespaceRegistry;
 use crate::ui::i18n::I18n;
 use crate::ui::theme::tokens;
+use crate::ui::token_widgets;
 
 /// Persistent state for the namespace picker window.
 #[derive(Debug, Clone)]
@@ -181,13 +182,13 @@ impl NamespacePicker {
 
                 ui.separator();
                 ui.horizontal(|ui| {
-                    if ui.button(i18n.text("button.confirm")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.confirm")).clicked() {
                         confirmed = true;
                     }
-                    if ui.button(i18n.text("button.cancel")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.cancel")).clicked() {
                         cancelled = true;
                     }
-                    if ui.button(i18n.text("button.clear")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.clear")).clicked() {
                         state.selected.clear();
                     }
                 });

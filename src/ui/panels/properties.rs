@@ -7,6 +7,7 @@ use crate::graph::node::{Node, ParamValue};
 use crate::graph::types::{DynamicPortTemplate, NodeType, PortType};
 use crate::ui::i18n::I18n;
 use crate::ui::theme::tokens;
+use crate::ui::token_widgets::{self, DropdownWidth};
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::ui::panels::condition_editor::ConditionEditorState;
@@ -223,7 +224,7 @@ impl PropertiesPanel {
         if let Some((namespace, multi)) = namespace_for_param(node.node_type, key) {
             if registry.get(namespace).is_some() {
                 let current = selected_keys_from_value(value);
-                if ui.button(i18n.text("button.select")).clicked() {
+                if token_widgets::button(ui, i18n.text("button.select")).clicked() {
                     *picker = Some(
                         NamespacePickerState::new(namespace, key, multi)
                             .with_selected(&current),
@@ -249,7 +250,7 @@ impl PropertiesPanel {
                 ParamValue::Literal(v) => v.as_str().unwrap_or_default().to_string(),
                 _ => String::new(),
             };
-            if ui.button(i18n.text("button.edit_condition"))
+            if token_widgets::button(ui, i18n.text("button.edit_condition"))
                 .on_hover_text(i18n.text("tooltip.edit_condition"))
                 .clicked()
             {
@@ -287,7 +288,7 @@ impl PropertiesPanel {
             .and_then(|def| def.params.iter().find(|p| p.name == key))
         {
             if param_def.param_type == ParamType::Vector
-                && ui.button("...").on_hover_text(i18n.text("tooltip.coord_picker")).clicked()
+                && token_widgets::button(ui, "...").on_hover_text(i18n.text("tooltip.coord_picker")).clicked()
             {
                 *coord_picker = Some(CoordinatePickerState::new(key));
             }
@@ -295,7 +296,7 @@ impl PropertiesPanel {
 
         // GetPosition 节点：coord_id 字段也提供坐标选择器。
         if node.node_type == NodeType::GetPosition && key == "coord_id"
-            && ui.button(i18n.text("button.coord_select")).on_hover_text(i18n.text("tooltip.coord_picker")).clicked()
+            && token_widgets::button(ui, i18n.text("button.coord_select")).on_hover_text(i18n.text("tooltip.coord_picker")).clicked()
         {
             *coord_picker = Some(CoordinatePickerState::new("__getposition__"));
         }
@@ -303,7 +304,7 @@ impl PropertiesPanel {
         // GetStateBool / GetStateNumber：_state 探针选择器。
         if (node.node_type == NodeType::GetStateBool || node.node_type == NodeType::GetStateNumber)
             && key == "stateKey"
-            && ui.button(i18n.text("button.state_select")).on_hover_text(i18n.text("tooltip.state_picker")).clicked()
+            && token_widgets::button(ui, i18n.text("button.state_select")).on_hover_text(i18n.text("tooltip.state_picker")).clicked()
         {
             *state_picker = Some(StatePickerState::new(key));
         }
@@ -352,9 +353,7 @@ impl PropertiesPanel {
         };
 
         let mut changed = None;
-        egui::ComboBox::from_id_salt(format!("{}_enum", key))
-            .width(120.0)
-            .selected_text(selected.clone())
+        token_widgets::token_combo_box(ui, format!("{}_enum", key), DropdownWidth::Medium, selected.clone())
             .show_ui(ui, |ui| {
                 for option in options {
                     if ui.selectable_label(selected == *option, option).clicked() {
@@ -388,10 +387,13 @@ impl PropertiesPanel {
         };
 
         let mut picked_source = None;
-        egui::ComboBox::from_id_salt(format!("{}_source", key))
-            .width(100.0)
-            .selected_text(&selected_label)
-            .show_ui(ui, |ui| {
+        token_widgets::token_combo_box(
+            ui,
+            format!("{}_source", key),
+            DropdownWidth::Small,
+            &selected_label,
+        )
+        .show_ui(ui, |ui| {
                 if ui
                     .selectable_label(selected_label == i18n.text("label.literal"), i18n.text("label.literal"))
                     .clicked()
@@ -528,12 +530,12 @@ impl PropertiesPanel {
             let can_remove = count > group.min_count;
             ui.horizontal(|ui| {
                 ui.label(&group.label);
-                if ui.button("+").on_hover_text(i18n.text("tooltip.add_dynamic_port")).clicked() && can_add {
+                if token_widgets::button(ui, "+").on_hover_text(i18n.text("tooltip.add_dynamic_port")).clicked() && can_add {
                     actions.push(PropertiesPanelAction::AddDynamicPort {
                         group_id: group.id.clone(),
                     });
                 }
-                if ui.button("-").on_hover_text(i18n.text("tooltip.remove_dynamic_port")).clicked() && can_remove {
+                if token_widgets::button(ui, "-").on_hover_text(i18n.text("tooltip.remove_dynamic_port")).clicked() && can_remove {
                     // 删除该组最后一个成员（flat list 中的最后一个 ID 即可触发整组删除）
                     let ids = node.dynamic_port_ids(&group.id);
                     if let Some(last_id) = ids.get(ids.len().saturating_sub(1)) {
@@ -706,10 +708,13 @@ impl PropertiesPanel {
         };
 
         let mut picked = None;
-        egui::ComboBox::from_id_salt(format!("if_condition_template_{key}"))
-            .width(160.0)
-            .selected_text(if current.is_empty() { i18n.text("label.select_template") } else { current.clone() })
-            .show_ui(ui, |ui| {
+        token_widgets::token_combo_box(
+            ui,
+            format!("if_condition_template_{key}"),
+            DropdownWidth::Medium,
+            if current.is_empty() { i18n.text("label.select_template") } else { current.clone() },
+        )
+        .show_ui(ui, |ui| {
                 for &(label_key, expr) in IF_CONDITION_TEMPLATES {
                     let label = i18n.text(label_key);
                     if expr.is_empty() {
@@ -812,14 +817,17 @@ impl PropertiesPanel {
         }
 
         let mut picked = None;
-        egui::ComboBox::from_id_salt(format!("call_method_method_{key}"))
-            .width(180.0)
-            .selected_text(if current.is_empty() {
+        token_widgets::token_combo_box(
+            ui,
+            format!("call_method_method_{key}"),
+            DropdownWidth::Large,
+            if current.is_empty() {
                 i18n.text("label.select_method")
             } else {
                 current.clone()
-            })
-            .show_ui(ui, |ui| {
+            },
+        )
+        .show_ui(ui, |ui| {
                 let mut last_object_type = "";
                 for method in methods {
                     if method.object_type != last_object_type {
@@ -876,10 +884,13 @@ impl PropertiesPanel {
         };
 
         let mut picked = None;
-        egui::ComboBox::from_id_salt(format!("npc_editor_{key}"))
-            .width(180.0)
-            .selected_text(&current_label)
-            .show_ui(ui, |ui| {
+        token_widgets::token_combo_box(
+            ui,
+            format!("npc_editor_{key}"),
+            DropdownWidth::Large,
+            &current_label,
+        )
+        .show_ui(ui, |ui| {
                 if ui
                     .selectable_label(current_label == literal_label, &literal_label)
                     .clicked()

@@ -5,6 +5,7 @@
 
 use crate::ui::i18n::I18n;
 use crate::ui::theme::tokens;
+use crate::ui::token_widgets;
 
 /// 状态字段的数据类型。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -262,7 +263,7 @@ impl StatePicker {
                 }
 
                 ui.separator();
-                if ui.button(i18n.text("button.close")).clicked() {
+                if token_widgets::button(ui, i18n.text("button.close")).clicked() {
                     closed = true;
                 }
             });

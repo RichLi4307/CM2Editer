@@ -2,7 +2,9 @@ use crate::api::registry::all_node_definitions;
 use crate::graph::types::NodeType;
 use crate::ui::i18n::I18n;
 use crate::ui::panels::node_library::catalog::SceneCatalog;
+use crate::ui::theme::tokens;
 use crate::ui::theme::scene_category_color;
+use crate::ui::token_widgets::{self, DropdownWidth};
 
 mod catalog;
 
@@ -76,7 +78,9 @@ impl NodeLibraryPanel {
                 // 过滤下拉框：标签 + 下拉框，下拉框占满剩余宽度。
                 ui.horizontal(|ui| {
                     ui.label(i18n.text("node_library.filter_label"));
-                    let combo_width = ui.available_width().clamp(80.0, 160.0);
+                    let combo_width = ui
+                        .available_width()
+                        .clamp(tokens::NODE_LIBRARY_FILTER_MIN_WIDTH, tokens::NODE_LIBRARY_FILTER_MAX_WIDTH);
                     egui::ComboBox::from_id_salt("node_library_scene_filter")
                         .width(combo_width)
                         .selected_text(selected_filter_label(i18n, &filter.scene_filter))
@@ -193,22 +197,22 @@ impl NodeLibraryPanel {
                                             };
                                             let resp = ui.horizontal(|ui| {
                                                 ui.painter().circle_filled(
-                                                    ui.cursor().min + egui::vec2(8.0, 8.0),
-                                                    6.0,
+                                                    ui.cursor().min + egui::vec2(tokens::NODE_LIBRARY_SCENE_CIRCLE_RADIUS, tokens::NODE_LIBRARY_SCENE_CIRCLE_RADIUS),
+                                                    tokens::NODE_LIBRARY_SCENE_CIRCLE_RADIUS,
                                                     color,
                                                 );
-                                                ui.add_space(16.0);
+                                                ui.add_space(tokens::NODE_LIBRARY_SCENE_CIRCLE_PADDING);
                                                 let name_resp = ui
                                                     .add(
                                                         egui::Button::new(egui::RichText::new(
                                                             &display_name,
                                                         ))
                                                         .sense(egui::Sense::drag())
-                                                        .min_size(egui::vec2(120.0, 24.0))
+                                                        .min_size(egui::vec2(tokens::NODE_LIBRARY_BUTTON_MIN_WIDTH, tokens::NODE_LIBRARY_BUTTON_MIN_HEIGHT))
                                                         .wrap_mode(egui::TextWrapMode::Truncate),
                                                     )
                                                     .on_hover_text(i18n.node_description(node_type));
-                                                let star_resp = ui.button(fav_text);
+                                                let star_resp = token_widgets::button(ui, fav_text);
                                                 (name_resp, star_resp)
                                             });
                                             if resp.inner.0.clicked() {
@@ -227,7 +231,7 @@ impl NodeLibraryPanel {
                 }
             });
 
-        if ui.button(i18n.text("button.search_add")).clicked() {
+        if token_widgets::button(ui, i18n.text("button.search_add")).clicked() {
             *search_window_open = !*search_window_open;
         }
 
@@ -247,10 +251,13 @@ impl NodeLibraryPanel {
         let categories = SceneCatalog::categories();
         ui.horizontal(|ui| {
             ui.label(i18n.text("node_library.filter_label"));
-            egui::ComboBox::from_id_salt("node_search_scene_filter")
-                .width(160.0)
-                .selected_text(selected_filter_label(i18n, &filter.scene_filter))
-                .show_ui(ui, |ui| {
+        token_widgets::token_combo_box(
+            ui,
+            "node_search_scene_filter",
+            DropdownWidth::Large,
+            selected_filter_label(i18n, &filter.scene_filter),
+        )
+        .show_ui(ui, |ui| {
                     if ui
                         .selectable_label(
                             filter.scene_filter.is_empty(),
@@ -313,7 +320,7 @@ impl NodeLibraryPanel {
                     for &node_type in favorite_node_types {
                         let display_name = i18n.node_display_name(node_type);
                         ui.horizontal(|ui| {
-                            if ui.button(i18n.text("button.unfavorite")).clicked() {
+                            if token_widgets::button(ui, i18n.text("button.unfavorite")).clicked() {
                                 action = NodeLibraryAction::ToggleFavorite(node_type);
                             }
                             if ui
@@ -339,7 +346,7 @@ impl NodeLibraryPanel {
                     for &node_type in &recent_not_favorite {
                         let display_name = i18n.node_display_name(node_type);
                         ui.horizontal(|ui| {
-                            if ui.button(i18n.text("button.favorite")).clicked() {
+                            if token_widgets::button(ui, i18n.text("button.favorite")).clicked() {
                                 action = NodeLibraryAction::ToggleFavorite(node_type);
                             }
                             if ui
@@ -362,7 +369,7 @@ impl NodeLibraryPanel {
                         i18n.text("button.favorite")
                     };
                     ui.horizontal(|ui| {
-                        if ui.button(fav_text).clicked() {
+                        if token_widgets::button(ui, fav_text).clicked() {
                             action = NodeLibraryAction::ToggleFavorite(def.node_type);
                         }
                         if ui

@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::graph::container::{LabelContainer, ListenerContainer, ThreadContainer};
 use crate::project::Project;
 use crate::ui::i18n::I18n;
+use crate::ui::token_widgets;
 
 /// 左栏工程文件树面板。
 pub struct ProjectTreePanel;
@@ -106,13 +107,13 @@ impl ProjectTreePanel {
 
         // 底部操作按钮固定在最底部，不随文件树滚动。
         ui.separator();
-        if ui.button(i18n.text("project_tree.new_code")).clicked() {
+        if token_widgets::button(ui, i18n.text("project_tree.new_code")).clicked() {
             action = ProjectTreeAction::NewCodeDialog;
         }
-        if ui.button(i18n.text("project_tree.save_project")).clicked() {
+        if token_widgets::button(ui, i18n.text("project_tree.save_project")).clicked() {
             action = ProjectTreeAction::SaveProject;
         }
-        if ui.button(i18n.text("project_tree.export_project")).clicked() {
+        if token_widgets::button(ui, i18n.text("project_tree.export_project")).clicked() {
             action = ProjectTreeAction::ExportProjectDialog;
         }
 
@@ -328,11 +329,11 @@ impl ProjectTreePanel {
                 ui.label(i18n.text("dialog.new_code_name"));
                 ui.text_edit_singleline(name);
                 ui.horizontal(|ui| {
-                    if ui.button(i18n.text("button.create")).clicked() && !name.trim().is_empty() {
+                    if token_widgets::button(ui, i18n.text("button.create")).clicked() && !name.trim().is_empty() {
                         result = Some(name.trim().to_string());
                         close = true;
                     }
-                    if ui.button(i18n.text("button.cancel")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.cancel")).clicked() {
                         close = true;
                     }
                 });
@@ -360,11 +361,11 @@ impl ProjectTreePanel {
                 ui.label(i18n.text("dialog.new_name"));
                 ui.text_edit_singleline(new_name);
                 ui.horizontal(|ui| {
-                    if ui.button(i18n.text("button.rename")).clicked() && !new_name.trim().is_empty() {
+                    if token_widgets::button(ui, i18n.text("button.rename")).clicked() && !new_name.trim().is_empty() {
                         result = Some((old_name.to_string(), new_name.trim().to_string()));
                         close = true;
                     }
-                    if ui.button(i18n.text("button.cancel")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.cancel")).clicked() {
                         close = true;
                     }
                 });
@@ -391,7 +392,7 @@ impl ProjectTreePanel {
                 ui.label(i18n.text("dialog.project_name"));
                 ui.text_edit_singleline(name);
                 ui.horizontal(|ui| {
-                    if ui.button(i18n.text("dialog.select_parent_folder")).clicked() {
+                    if token_widgets::button(ui, i18n.text("dialog.select_parent_folder")).clicked() {
                         if let Some(path) = rfd::FileDialog::new().pick_folder() {
                             *parent = Some(path);
                         }
@@ -411,7 +412,7 @@ impl ProjectTreePanel {
                         }
                         close = true;
                     }
-                    if ui.button(i18n.text("button.cancel")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.cancel")).clicked() {
                         close = true;
                     }
                 });

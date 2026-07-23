@@ -1,6 +1,7 @@
 use crate::ui::i18n::I18n;
 use crate::graph::container::ContainerGraph;
 use crate::project::Project;
+use crate::ui::token_widgets;
 
 /// 底部 `.code` 文本编辑器面板。内容放入 ScrollArea 防止撑高父容器。
 pub struct CodeEditorPanel;
@@ -40,7 +41,7 @@ impl CodeEditorPanel {
                     }
 
                     ui.horizontal(|ui| {
-                        if ui.button(i18n.text("code_editor.regenerate")).clicked() {
+                        if token_widgets::button(ui, i18n.text("code_editor.regenerate")).clicked() {
                             code_file.graph_doc.graph = graph.clone();
                             let _ = code_file.regenerate_code();
                             changed = true;

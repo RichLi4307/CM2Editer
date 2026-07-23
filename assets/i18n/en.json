@@ -1423,6 +1423,7 @@
     "tooltip.state_picker": "Pick from _state field",
     "tooltip.add_dynamic_port": "Add dynamic port",
     "tooltip.remove_dynamic_port": "Remove dynamic port",
+    "tooltip.edit_condition": "Edit condition",
     "welcome.new_project": "New Project...",
     "welcome.open_project": "Open Project...",
     "welcome.placeholder_code_editor": "View .code after opening a project",

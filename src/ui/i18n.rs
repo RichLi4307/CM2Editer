@@ -279,23 +279,23 @@ mod tests {
     fn test_i18n_fallback_to_en() {
         let mut i18n = I18n::new();
         let mut map = HashMap::new();
-        map.insert("hello".to_string(), "Hello".to_string());
+        map.insert("label.name".to_string(), "Name".to_string());
         i18n.translations.insert("en".to_string(), map);
         i18n.set_language("zh");
-        assert_eq!(i18n.text("hello"), "Hello");
+        assert_eq!(i18n.text("label.name"), "Name");
     }
 
     #[test]
     fn test_i18n_current_language_wins() {
         let mut i18n = I18n::new();
         let mut en = HashMap::new();
-        en.insert("hello".to_string(), "Hello".to_string());
+        en.insert("label.name".to_string(), "Name".to_string());
         let mut zh = HashMap::new();
-        zh.insert("hello".to_string(), "你好".to_string());
+        zh.insert("label.name".to_string(), "名称".to_string());
         i18n.translations.insert("en".to_string(), en);
         i18n.translations.insert("zh".to_string(), zh);
         i18n.set_language("zh");
-        assert_eq!(i18n.text("hello"), "你好");
+        assert_eq!(i18n.text("label.name"), "名称");
     }
 
     #[test]
@@ -319,5 +319,89 @@ mod tests {
         );
         assert_eq!(i18n.text("button.export_project"), "导出工程");
         assert_eq!(i18n.text("canvas.help_text"), "左键拖拽节点 | 中键平移 | 滚轮缩放 | Space 搜索");
+    }
+
+    /// 扫描 UI 业务代码中所有静态 i18n key，断言 zh/en/ja 三个翻译文件均存在。
+    ///
+    /// 动态 key（如 `node.{:?}.name`、由 `format!` 拼接的 key）通过字符串字面量
+    /// 检测规则自动排除，仅检查 `i18n.text(KEY)` / `i18n.format(KEY, ...)` 中的
+    /// 纯静态 key。
+    #[test]
+    fn all_static_i18n_keys_exist_in_three_languages() {
+        let i18n = I18n::load_bundled();
+        let keys = collect_static_i18n_keys();
+        let mut missing = Vec::new();
+        for key in &keys {
+            for lang in ["zh", "en", "ja"] {
+                let map = i18n.translations.get(lang);
+                if map.map(|m| !m.contains_key(key)).unwrap_or(true) {
+                    missing.push(format!("{} missing key: {}", lang, key));
+                }
+            }
+        }
+        if !missing.is_empty() {
+            panic!(
+                "发现以下 i18n key 在三种语言中未全部提供：\n{}",
+                missing.join("\n")
+            );
+        }
+    }
+
+    fn collect_static_i18n_keys() -> std::collections::HashSet<String> {
+        use std::collections::HashSet;
+        use std::path::Path;
+
+        let manifest = env!("CARGO_MANIFEST_DIR");
+        let mut files = Vec::new();
+        collect_rs_files(&Path::new(manifest).join("src").join("app.rs"), &mut files);
+        collect_rs_files(&Path::new(manifest).join("src").join("ui"), &mut files);
+
+        let mut keys = HashSet::new();
+        for file in files {
+            let content = std::fs::read_to_string(&file).unwrap();
+            for line in content.lines() {
+                for prefix in ["i18n.text(\"", "i18n.format(\""] {
+                    for (idx, _) in line.match_indices(prefix) {
+                        let after = &line[idx + prefix.len()..];
+                        if let Some(end) = after.find("\")") {
+                            let key = &after[..end];
+                            if is_static_i18n_key(key) {
+                                keys.insert(key.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        keys
+    }
+
+    fn collect_rs_files(path: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("rs") {
+            out.push(path.to_path_buf());
+        } else if path.is_dir() {
+            if let Ok(entries) = std::fs::read_dir(path) {
+                for entry in entries.flatten() {
+                    collect_rs_files(&entry.path(), out);
+                }
+            }
+        }
+    }
+
+    fn is_static_i18n_key(key: &str) -> bool {
+        // 排除空串、含转义或引号的残片、以及明显由 format! 拼接的动态 key。
+        if key.is_empty() {
+            return false;
+        }
+        if key.contains('\\') || key.contains('"') {
+            return false;
+        }
+        // 以 node./stage. 开头的 key 由 node/stage 相关 API 动态生成，
+        // 其翻译存在性由 generate_node_templates 与 stage 数据保证，不在此处检查。
+        if key.starts_with("node.") || key.starts_with("stage.") {
+            return false;
+        }
+        // 只接受点分小写 key，过滤掉 `{}` 等格式残片。
+        key.chars().all(|c| c.is_ascii_lowercase() || c == '.' || c == '_' || c.is_ascii_digit())
     }
 }

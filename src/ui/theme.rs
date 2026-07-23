@@ -33,6 +33,62 @@ pub mod tokens {
     pub const TEXT_CAPTION: f32 = 12.0;
     pub const TEXT_MICRO: f32 = 11.0;
 
+    // Layout & sizing
+    pub const LAYOUT_LEFT_PANEL_DEFAULT: f32 = 240.0;
+    pub const LAYOUT_LEFT_PANEL_MIN: f32 = 200.0;
+    pub const LAYOUT_LEFT_PANEL_MAX: f32 = 320.0;
+    pub const LAYOUT_RIGHT_PANEL_DEFAULT: f32 = 280.0;
+    pub const LAYOUT_RIGHT_PANEL_MIN: f32 = 240.0;
+    pub const LAYOUT_RIGHT_PANEL_MAX: f32 = 400.0;
+    pub const LAYOUT_BOTTOM_PANEL_DEFAULT: f32 = 240.0;
+    pub const LAYOUT_BOTTOM_PANEL_MIN: f32 = 140.0;
+    pub const LAYOUT_BOTTOM_PANEL_MAX: f32 = 480.0;
+    pub const NODE_LIBRARY_INITIAL_HEIGHT: f32 = 280.0;
+    pub const WELCOME_CARD_WIDTH: f32 = 320.0;
+    pub const WELCOME_CARD_HEIGHT: f32 = 220.0;
+    pub const WELCOME_BUTTON_WIDTH: f32 = 140.0;
+    pub const WELCOME_BUTTON_HEIGHT: f32 = 32.0;
+    pub const DRAG_GHOST_MIN_WIDTH: f32 = 140.0;
+    pub const NODE_LIBRARY_FILTER_MIN_WIDTH: f32 = 120.0;
+    pub const NODE_LIBRARY_FILTER_MAX_WIDTH: f32 = 200.0;
+    pub const DROPDOWN_SM: f32 = 100.0;
+    pub const DROPDOWN_MD: f32 = 160.0;
+    pub const DROPDOWN_LG: f32 = 200.0;
+    pub const NODE_LIBRARY_BUTTON_MIN_WIDTH: f32 = 120.0;
+    pub const NODE_LIBRARY_BUTTON_MIN_HEIGHT: f32 = 24.0;
+    pub const NODE_LIBRARY_SCENE_CIRCLE_RADIUS: f32 = 6.0;
+    pub const NODE_LIBRARY_SCENE_CIRCLE_PADDING: f32 = 16.0;
+    pub const PROJECT_TREE_MIN_HEIGHT: f32 = 220.0;
+    pub const NODE_LIBRARY_MIN_HEIGHT: f32 = 100.0;
+    pub const SPLITTER_HANDLE_HEIGHT: f32 = 6.0;
+    pub const SPLITTER_MIN: f32 = 0.15;
+    pub const SPLITTER_MAX: f32 = 0.85;
+    pub const SPLITTER_GAP: f32 = 0.15;
+    pub const MIN_BOTTOM_PANEL_CONTENT_WIDTH: f32 = 200.0;
+    pub const MIN_BOTTOM_PANEL_COLUMN_WIDTH: f32 = 140.0;
+    pub const LANGUAGE_COMBO_WIDTH: f32 = 96.0;
+    pub const TOOLBAR_HEIGHT: f32 = 40.0;
+    pub const TOOLBAR_BUTTON_HEIGHT: f32 = 28.0;
+    pub const TOOLBAR_SEPARATOR_HEIGHT: f32 = 20.0;
+    pub const STATUS_BAR_HEIGHT: f32 = 28.0;
+    pub const TAB_BAR_HEIGHT: f32 = 32.0;
+
+    // Node geometry
+    pub const NODE_HEADER_HEIGHT: f32 = 32.0;
+    pub const NODE_CORNER_RADIUS: f32 = 8.0;
+    pub const NODE_PORT_RADIUS: f32 = 6.0;
+    pub const NODE_PORT_PADDING: f32 = 8.0;
+    pub const NODE_PORT_SPACING: f32 = 20.0;
+    pub const NODE_MIN_WIDTH: f32 = 180.0;
+    pub const NODE_MIN_HEIGHT: f32 = 80.0;
+    pub const NODE_GLOW_WIDTH: f32 = 4.0;
+    pub const NODE_PORT_LABEL_OFFSET: f32 = 4.0;
+    pub const PARAM_PREVIEW_LEFT_MARGIN: f32 = 4.0;
+    pub const PARAM_PREVIEW_FONT_SIZE: f32 = TEXT_MICRO;
+    pub const SELECTED_GLOW_ALPHA: u8 = 128;
+    pub const NODE_BORDER_WIDTH: f32 = 1.0;
+    pub const NODE_ERROR_BORDER_WIDTH: f32 = 2.0;
+
     // Colors
     pub const BG_APP: Color32 = Color32::from_rgb(30, 30, 30);
     pub const BG_PANEL: Color32 = Color32::from_rgb(37, 37, 38);
@@ -324,40 +380,63 @@ mod tests {
     #[test]
     fn no_bare_color32_outside_theme() {
         let manifest = env!("CARGO_MANIFEST_DIR");
-        let ui_dir = std::path::Path::new(manifest).join("src").join("ui");
         let mut offenders = Vec::new();
-        for entry in walk_dir(&ui_dir) {
-            let path = entry.path();
-            if !path.is_file() {
-                continue;
-            }
-            if path.extension().and_then(|s| s.to_str()) != Some("rs") {
-                continue;
-            }
-            if path.file_name().and_then(|s| s.to_str()) == Some("theme.rs") {
-                continue;
-            }
-            let content = std::fs::read_to_string(&path).unwrap();
-            for (line_no, line) in content.lines().enumerate() {
-                for pat in &[
-                    "Color32::from_rgb",
-                    "Color32::from_rgba",
-                    "Color32::from_gray",
-                    "Color32::from_rgba_premultiplied",
-                ] {
-                    if line.contains(pat) {
-                        offenders.push(format!(
-                            "{}:{}: {}",
-                            path.display(),
-                            line_no + 1,
-                            line.trim()
-                        ));
+        let paths_to_scan = [
+            std::path::Path::new(manifest).join("src").join("ui"),
+            std::path::Path::new(manifest).join("src").join("app.rs"),
+        ];
+        for path in paths_to_scan {
+            for entry in walk_dir_or_file(&path) {
+                let path = entry.path();
+                if !path.is_file() {
+                    continue;
+                }
+                if path.extension().and_then(|s| s.to_str()) != Some("rs") {
+                    continue;
+                }
+                if path.file_name().and_then(|s| s.to_str()) == Some("theme.rs") {
+                    continue;
+                }
+                let content = std::fs::read_to_string(&path).unwrap();
+                for (line_no, line) in content.lines().enumerate() {
+                    for pat in &[
+                        "Color32::from_rgb",
+                        "Color32::from_rgba",
+                        "Color32::from_gray",
+                        "Color32::from_rgba_premultiplied",
+                    ] {
+                        if line.contains(pat) {
+                            offenders.push(format!(
+                                "{}:{}: {}",
+                                path.display(),
+                                line_no + 1,
+                                line.trim()
+                            ));
+                        }
                     }
                 }
             }
         }
         if !offenders.is_empty() {
             panic!("发现 UI 业务代码中硬编码 Color32：\n{}", offenders.join("\n"));
+        }
+    }
+
+    fn walk_dir_or_file(path: &std::path::Path) -> Vec<std::fs::DirEntry> {
+        if path.is_file() {
+            // 构造一个假的 DirEntry：通过读取父目录并匹配文件名。
+            if let Some(parent) = path.parent() {
+                if let Ok(entries) = std::fs::read_dir(parent) {
+                    for entry in entries.flatten() {
+                        if entry.path() == path {
+                            return vec![entry];
+                        }
+                    }
+                }
+            }
+            Vec::new()
+        } else {
+            walk_dir(path)
         }
     }
 

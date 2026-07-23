@@ -13,6 +13,7 @@ use crate::graph::node::ParamValue;
 use crate::graph::types::NodeType;
 use crate::ui::i18n::I18n;
 use crate::ui::theme::tokens;
+use crate::ui::token_widgets;
 
 /// Persistent state for the condition editor window.
 #[derive(Debug, Clone)]
@@ -219,7 +220,7 @@ impl ConditionEditor {
                         state.last_insert_pos = insert_not(&mut state.value, cursor);
                         state.cursor_range = Some((state.last_insert_pos, state.last_insert_pos));
                     }
-                    if ui.button(i18n.text("condition_editor.clear")).clicked() {
+                    if token_widgets::button(ui, i18n.text("condition_editor.clear")).clicked() {
                         state.value.clear();
                         state.last_insert_pos = 0;
                         state.cursor_range = Some((0, 0));
@@ -346,10 +347,10 @@ impl ConditionEditor {
                         .color(tokens::TEXT_SECONDARY),
                 );
                 ui.horizontal(|ui| {
-                    if ui.button(i18n.text("button.confirm")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.confirm")).clicked() {
                         confirmed = true;
                     }
-                    if ui.button(i18n.text("button.cancel")).clicked() {
+                    if token_widgets::button(ui, i18n.text("button.cancel")).clicked() {
                         cancelled = true;
                     }
                 });

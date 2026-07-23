@@ -9,3 +9,4 @@ pub mod interaction;
 pub mod node_renderer;
 pub mod panels;
 pub mod theme;
+pub mod token_widgets;

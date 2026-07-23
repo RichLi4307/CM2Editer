@@ -11,6 +11,7 @@ use crate::ui::canvas::Canvas;
 use crate::ui::canvas::CanvasResponse;
 use crate::ui::i18n::I18n;
 use crate::ui::theme::tokens;
+use crate::ui::token_widgets;
 
 /// 端口悬停/命中判定半径（像素）。
 const PORT_HIT_RADIUS: f32 = 16.0;
@@ -664,13 +665,13 @@ impl InteractionController {
             .collapsible(false)
             .title_bar(false)
             .show(ctx, |ui| {
-                if ui.button(i18n.text("context_menu.collapse")).clicked() {
+                if token_widgets::button(ui, i18n.text("context_menu.collapse")).clicked() {
                     if let Some(node) = label.nodes.get_mut(node_id) {
                         node.collapsed = !node.collapsed;
                     }
                     self.context_menu = None;
                 }
-                if ui.button(i18n.text("context_menu.copy")).clicked() {
+                if token_widgets::button(ui, i18n.text("context_menu.copy")).clicked() {
                     // 若右键节点不在当前选区，则只复制该节点；否则复制整个选区
                     if !selected_nodes.contains(node_id) {
                         selected_nodes.clear();
@@ -681,11 +682,11 @@ impl InteractionController {
                     commands.push(Command::CopySelected);
                     self.context_menu = None;
                 }
-                if !clipboard.nodes.is_empty() && ui.button(i18n.text("context_menu.paste")).clicked() {
+                if !clipboard.nodes.is_empty() && token_widgets::button(ui, i18n.text("context_menu.paste")).clicked() {
                     commands.push(Command::PasteAt { screen_pos: pos });
                     self.context_menu = None;
                 }
-                if ui.button(i18n.text("context_menu.delete")).clicked() {
+                if token_widgets::button(ui, i18n.text("context_menu.delete")).clicked() {
                     if let Some(node) = label.nodes.get(node_id).cloned() {
                         // 收集该节点关联的边，支持撤销时恢复
                         let edges: Vec<Edge> = label
@@ -719,7 +720,7 @@ impl InteractionController {
             .title_bar(false)
             .show(ctx, |ui| {
                 ui.add_enabled_ui(!clipboard.nodes.is_empty(), |ui| {
-                    if ui.button(i18n.text("context_menu.paste")).clicked() {
+                    if token_widgets::button(ui, i18n.text("context_menu.paste")).clicked() {
                         commands.push(Command::PasteAt { screen_pos: pos });
                         self.context_menu = None;
                     }

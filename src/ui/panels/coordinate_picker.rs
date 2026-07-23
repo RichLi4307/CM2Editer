@@ -5,6 +5,7 @@
 use crate::api::coordinate::{CoordinateEntry, CoordinateRegistry};
 use crate::ui::i18n::I18n;
 use crate::ui::theme::{tokens, stage_palette_color};
+use crate::ui::token_widgets;
 
 /// 坐标选择器持久状态。
 #[derive(Debug, Clone)]
@@ -94,7 +95,7 @@ impl CoordinatePicker {
                     });
 
                 ui.separator();
-                if ui.button(i18n.text("button.close")).clicked() {
+                if token_widgets::button(ui, i18n.text("button.close")).clicked() {
                     closed = true;
                 }
             });

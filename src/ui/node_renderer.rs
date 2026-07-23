@@ -34,14 +34,14 @@ pub struct NodeRenderer {
 impl Default for NodeRenderer {
     fn default() -> Self {
         Self {
-            port_radius: 6.0,
-            header_height: 32.0,
-            corner_radius: 8.0,
-            font_size: 12.0,
-            port_padding: 8.0,
-            port_spacing: 20.0,
-            min_width: 180.0,
-            min_height: 80.0,
+            port_radius: tokens::NODE_PORT_RADIUS,
+            header_height: tokens::NODE_HEADER_HEIGHT,
+            corner_radius: tokens::NODE_CORNER_RADIUS,
+            font_size: tokens::TEXT_BODY,
+            port_padding: tokens::NODE_PORT_PADDING,
+            port_spacing: tokens::NODE_PORT_SPACING,
+            min_width: tokens::NODE_MIN_WIDTH,
+            min_height: tokens::NODE_MIN_HEIGHT,
             i18n: I18n::new(),
             drag_source_port_type: None,
         }
@@ -211,8 +211,8 @@ impl NodeRenderer {
 
         // 绘制选中状态的发光外框
         if is_selected {
-            let glow_rect = rect.expand(4.0);
-            let glow_faded = tokens::with_alpha(tokens::ACCENT, 128);
+            let glow_rect = rect.expand(tokens::NODE_GLOW_WIDTH);
+            let glow_faded = tokens::with_alpha(tokens::ACCENT, tokens::SELECTED_GLOW_ALPHA);
             ui.painter()
                 .rect_filled(glow_rect, self.corner_radius, glow_faded);
         }
@@ -223,7 +223,14 @@ impl NodeRenderer {
         } else {
             tokens::BORDER_DEFAULT
         };
-        let border_stroke = Stroke::new(if has_errors { 2.0 } else { 1.0 }, border_color);
+        let border_stroke = Stroke::new(
+            if has_errors {
+                tokens::NODE_ERROR_BORDER_WIDTH
+            } else {
+                tokens::NODE_BORDER_WIDTH
+            },
+            border_color,
+        );
 
         // 绘制节点主体
         ui.painter()
@@ -307,9 +314,9 @@ impl NodeRenderer {
         };
         ui.painter().circle_filled(center, self.port_radius, color);
         let label_pos = if is_input {
-            Pos2::new(center.x + self.port_radius + 4.0, center.y)
+            Pos2::new(center.x + self.port_radius + tokens::NODE_PORT_LABEL_OFFSET, center.y)
         } else {
-            Pos2::new(center.x - self.port_radius - 4.0, center.y)
+            Pos2::new(center.x - self.port_radius - tokens::NODE_PORT_LABEL_OFFSET, center.y)
         };
         let label_align = if is_input {
             Align2::LEFT_CENTER
@@ -320,7 +327,7 @@ impl NodeRenderer {
             label_pos,
             label_align,
             &port.label,
-            FontId::proportional(self.font_size - 1.0),
+            FontId::proportional(tokens::TEXT_MICRO),
             tokens::TEXT_SECONDARY,
         );
     }
@@ -329,7 +336,7 @@ impl NodeRenderer {
     fn paint_param_preview(&self, ui: &egui::Ui, node: &Node, rect: Rect, label: Option<&crate::graph::container::LabelContainer>) {
         let port_count = node.inputs.len().max(node.outputs.len()) as f32;
         let body_top = rect.min.y + self.header_height;
-        let params_x = rect.min.x + self.port_radius * 2.0 + 4.0;
+        let params_x = rect.min.x + self.port_radius * 2.0 + tokens::PARAM_PREVIEW_LEFT_MARGIN;
         let mut params_y = body_top
             + self.port_padding
             + self.port_radius
@@ -356,7 +363,7 @@ impl NodeRenderer {
                 Pos2::new(params_x, params_y),
                 Align2::LEFT_CENTER,
                 text,
-                FontId::proportional(self.font_size - 1.0),
+                FontId::proportional(tokens::TEXT_MICRO),
                 tokens::TEXT_SECONDARY,
             );
             params_y += self.port_spacing * 0.8;
