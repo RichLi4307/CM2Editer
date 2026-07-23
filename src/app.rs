@@ -296,6 +296,10 @@ pub struct App {
     pub status_message: String,
     /// 是否显示空画布欢迎提示
     pub show_welcome_hint: bool,
+    /// 当前用于显示悬停描述的节点 id（仅在标题栏悬停 0.5s 后显示）。
+    pub hovered_node_id: Option<String>,
+    /// 当前悬停开始时间（秒）。
+    pub hovered_node_start: f64,
     /// JSON 预览缓存，避免每帧序列化
     pub cached_json: String,
     /// 缓存对应的图版本号
@@ -431,6 +435,8 @@ impl App {
             },
             status_message: String::new(),
             show_welcome_hint: true,
+            hovered_node_id: None,
+            hovered_node_start: 0.0,
             cached_json: String::new(),
             cached_json_version: 0,
             graph_version: 0,
@@ -2719,26 +2725,41 @@ impl App {
             }
         }
 
-        // 节点悬停描述提示（仅在未拖拽连线时显示）
+        // 节点悬停描述提示（仅在未拖拽连线时显示；需悬停在标题栏文本 0.5s 后触发）
         if self.interaction.edge_source().is_none() {
             if let Some(pos) = canvas_response.response.hover_pos() {
-                if let Some((node_id, _)) = node_hits.iter().find(|(_, rect)| rect.contains(pos)) {
-                    if let Some(node) = label.nodes.get(node_id) {
-                        let description = self.i18n.node_description(node.node_type);
-                        if !description.is_empty() {
-                            egui::show_tooltip_at_pointer(
-                                ui.ctx(),
-                                egui::LayerId::new(
-                                    egui::Order::Tooltip,
+                let header_h = node_renderer.header_height;
+                let hovered = node_hits.iter().find(|(_, rect)| {
+                    let header_rect =
+                        egui::Rect::from_min_size(rect.min, egui::vec2(rect.width(), header_h));
+                    header_rect.contains(pos)
+                });
+                let current_time = ui.ctx().input(|i| i.time);
+                if let Some((node_id, _)) = hovered {
+                    if self.hovered_node_id.as_deref() != Some(node_id) {
+                        self.hovered_node_id = Some(node_id.clone());
+                        self.hovered_node_start = current_time;
+                    }
+                    if current_time - self.hovered_node_start >= 0.5 {
+                        if let Some(node) = label.nodes.get(node_id) {
+                            let description = self.i18n.node_description(node.node_type);
+                            if !description.is_empty() {
+                                egui::show_tooltip_at_pointer(
+                                    ui.ctx(),
+                                    egui::LayerId::new(
+                                        egui::Order::Tooltip,
+                                        ui.id().with("node_tooltip").with(node_id),
+                                    ),
                                     ui.id().with("node_tooltip").with(node_id),
-                                ),
-                                ui.id().with("node_tooltip").with(node_id),
-                                |ui| {
-                                    ui.label(description);
-                                },
-                            );
+                                    |ui| {
+                                        ui.label(description);
+                                    },
+                                );
+                            }
                         }
                     }
+                } else {
+                    self.hovered_node_id = None;
                 }
             }
         }

@@ -8,7 +8,12 @@
 
 ### 修复
 
+- **节点悬停描述 Tooltip 改为延迟 + 标题栏触发**：`app.rs` 新增 `hovered_node_id` / `hovered_node_start` 状态；只有鼠标悬停在节点标题栏（header 区域）并持续 0.5s 后才显示描述 Tooltip，避免移动鼠标时频繁弹出。
 - **修复启动后无欢迎页/开始界面**：`App::update_canvas` 在 `selected_container` 为 `None` 时直接 `return`，导致欢迎卡片从未渲染。改为先绘制画布，再判断无当前标签/工程时显示 `draw_welcome_card`；同时提取开始界面卡片为独立方法，并改用 `tokens::BG_CARD` / `tokens::RADIUS_LARGE` / `tokens::BORDER_DEFAULT` 等设计令牌。
+
+### 文档
+
+- 在 `docs/ui_design_spec.md` 新增第 14 章「实际落地状态登记表」，按章节列出设计令牌、布局、控件、画布、面板、弹窗、反馈、守卫测试等项的已落地/部分落地/未落地状态，并标注当前偏差，供架构师审核。
 
 ### 重构（P3.4 UI 设计规范落地 — 阶段 A 令牌化）
 

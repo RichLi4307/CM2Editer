@@ -105,6 +105,8 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
+| 2026-07-23 | 修复 | 节点悬停描述 Tooltip 改为仅标题栏悬停且 0.5s 延迟后触发，避免移动鼠标时频繁弹出；`app.rs` 新增 `hovered_node_id` / `hovered_node_start` | 已完成 |
+| 2026-07-23 | 文档 | 在 `docs/ui_design_spec.md` 新增第 14 章「实际落地状态登记表」，列出全部规范项的落地状态与偏差，供架构师审核 | 已完成 |
 | 2026-07-23 | 修复 | 修复启动后无欢迎页/开始界面：`update_canvas` 在 `selected_container` 为 `None` 时直接返回，导致欢迎卡片未渲染；改为先绘制画布再显示 `draw_welcome_card`，并提取为独立方法、套用设计令牌 | 已完成 |
 | 2026-07-23 | P3.4 | 完成 UI 设计规范阶段 A 令牌化：在 `src/ui/theme.rs` 新增 `tokens` 模块，替换 `src/ui` 与 `src/app.rs` 中全部硬编码 `Color32`；新增 `tokens_values_match_spec` 与 `no_bare_color32_outside_theme` 守卫测试；`cargo test --lib` 196 通过，`clippy --lib` 0 warnings | 已完成 |
 | 2026-07-20 22:45 | P3.1 | 修复 P3.1 检查单中 9 项待修复/改进项：默认线程策略、搜索大小写不敏感、描述悬停、文件树底部控件、节点分类审计、坐标标签中文显示、Vector/Quaternion 手动输入、NPC 下拉选择、连线端口灰化；新增 192 项 lib tests | 已完成 |
