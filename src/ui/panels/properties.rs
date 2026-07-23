@@ -6,6 +6,7 @@ use crate::graph::container::LabelContainer;
 use crate::graph::node::{Node, ParamValue};
 use crate::graph::types::{DynamicPortTemplate, NodeType, PortType};
 use crate::ui::i18n::I18n;
+use crate::ui::theme::tokens;
 use crate::ui::panels::namespace_picker::NamespacePickerState;
 use crate::ui::panels::coordinate_picker::CoordinatePickerState;
 use crate::ui::panels::condition_editor::ConditionEditorState;
@@ -54,10 +55,10 @@ impl PropertiesPanel {
             let description = i18n.node_description(node.node_type);
             ui.heading(display_name);
             ui.label(egui::RichText::new(format!("{:?}", node.node_type))
-                .color(egui::Color32::from_gray(150))
+                .color(tokens::TEXT_SECONDARY)
                 .size(11.0));
             ui.label(egui::RichText::new(description)
-                .color(egui::Color32::from_gray(130))
+                .color(tokens::TEXT_SECONDARY)
                 .size(11.0));
         } else {
             ui.heading(i18n.text("panel.properties"));
@@ -257,7 +258,7 @@ impl PropertiesPanel {
             ui.label(
                 egui::RichText::new(i18n.text("condition_editor.inline_preview"))
                     .size(11.0)
-                    .color(egui::Color32::from_gray(140)),
+                    .color(tokens::TEXT_SECONDARY),
             );
             if let ParamValue::Literal(v) = value {
                 if let Some(s) = v.as_str() {
@@ -272,7 +273,7 @@ impl PropertiesPanel {
             ui.label(
                 egui::RichText::new(i18n.text("condition_editor.id_hint"))
                     .size(11.0)
-                    .color(egui::Color32::from_gray(140)),
+                    .color(tokens::TEXT_SECONDARY),
             );
         }
 

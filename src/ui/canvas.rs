@@ -1,7 +1,7 @@
 use egui::{Pos2, Rect, Response};
 
 use crate::graph::container::Viewport;
-use crate::ui::theme::Theme;
+use crate::ui::theme::tokens;
 
 /// 画布视口与交互状态。
 ///
@@ -51,7 +51,7 @@ impl Canvas {
 
         // 绘制背景
         ui.painter()
-            .rect_filled(canvas_rect, 0.0, Theme::BACKGROUND);
+            .rect_filled(canvas_rect, 0.0, tokens::BG_APP);
 
         // 处理交互
         let response = ui.interact(
@@ -125,7 +125,7 @@ impl Canvas {
         let y_start = (world_min.y / grid_size).floor() * grid_size;
         let y_end = (world_max.y / grid_size).ceil() * grid_size;
 
-        let color = Theme::GRID;
+        let color = tokens::GRID;
         let mut x = x_start;
         while x <= x_end {
             let p0 = self.world_to_screen(Pos2::new(x, world_min.y), canvas_rect);

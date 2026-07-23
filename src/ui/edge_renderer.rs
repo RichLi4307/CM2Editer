@@ -1,7 +1,7 @@
 use egui::{Color32, Pos2, Rect, Stroke};
 
 use crate::graph::types::PortType;
-use crate::ui::theme::Theme;
+use crate::ui::theme::tokens;
 
 /// 连线渲染器配置。
 pub struct EdgeRenderer {
@@ -51,7 +51,7 @@ impl EdgeRenderer {
 
         if is_highlighted {
             let glow_stroke: egui::Stroke =
-                Stroke::new(width + 6.0, Theme::SELECTED_GLOW.gamma_multiply(0.4));
+                Stroke::new(width + 6.0, tokens::ACCENT.gamma_multiply(0.4));
             for window in points.windows(2) {
                 let segment_from = window[0];
                 let segment_to = window[1];
@@ -68,7 +68,7 @@ impl EdgeRenderer {
                         ui.painter(),
                         segment_from,
                         segment_to,
-                        Theme::SELECTED_GLOW.gamma_multiply(0.4),
+                        tokens::ACCENT.gamma_multiply(0.4),
                         width + 6.0,
                         5.0,
                         3.0,
@@ -185,11 +185,11 @@ fn cubic_bezier(p0: Pos2, p1: Pos2, p2: Pos2, p3: Pos2, t: f32) -> Pos2 {
 /// 根据连线类型和高亮状态返回颜色。
 fn edge_color(edge_type: &PortType, is_highlighted: bool) -> Color32 {
     let base = match edge_type {
-        PortType::Flow => Theme::WIRE_DEFAULT,
+        PortType::Flow => tokens::WIRE_DEFAULT,
         _ => crate::ui::theme::port_color(edge_type),
     };
     if is_highlighted {
-        Theme::SELECTED_GLOW
+        tokens::ACCENT
     } else {
         base
     }

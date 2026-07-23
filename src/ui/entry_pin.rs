@@ -6,7 +6,7 @@ use crate::graph::types::PortType;
 use crate::ui::canvas::Canvas;
 use crate::ui::edge_renderer::EdgeRenderer;
 use crate::ui::i18n::I18n;
-use crate::ui::theme::Theme;
+use crate::ui::theme::tokens;
 
 /// 入口钉渲染器。
 ///
@@ -59,12 +59,12 @@ impl EntryPinRenderer {
 
     /// 绘制入口钉本体。
     pub fn render_pin(&self, ui: &mut egui::Ui, screen_pos: Pos2, label_name: &str, i18n: &I18n) {
-        let color = Theme::ENTRY_PIN;
+        let color = tokens::ENTRY_AMBER;
         ui.painter().circle_filled(screen_pos, self.radius, color);
         ui.painter().circle_stroke(
             screen_pos,
             self.radius,
-            Stroke::new(1.5, Theme::TEXT),
+            Stroke::new(1.5, tokens::TEXT_PRIMARY),
         );
         let label_pos = screen_pos + Vec2::new(self.radius + self.label_offset, 0.0);
         ui.painter().text(
@@ -72,7 +72,7 @@ impl EntryPinRenderer {
             Align2::LEFT_CENTER,
             i18n.format("entry_pin.label", &[label_name]),
             FontId::proportional(self.font_size),
-            Theme::TEXT_DIM,
+            tokens::TEXT_SECONDARY,
         );
     }
 }

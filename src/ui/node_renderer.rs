@@ -5,7 +5,7 @@ use crate::graph::node::{Node, ParamValue, Port};
 use crate::graph::types::PortType;
 use crate::ui::canvas::Canvas;
 use crate::ui::i18n::I18n;
-use crate::ui::theme::{Theme, category_color, port_color};
+use crate::ui::theme::{tokens, category_color, port_color};
 
 /// 节点渲染器配置。
 pub struct NodeRenderer {
@@ -207,23 +207,21 @@ impl NodeRenderer {
             &node.category
         };
         let title_color = category_color(category);
-        let body_color = Theme::NODE_BACKGROUND;
+        let body_color = tokens::BG_CARD;
 
         // 绘制选中状态的发光外框
         if is_selected {
             let glow_rect = rect.expand(4.0);
-            let glow = Theme::SELECTED_GLOW;
-            let glow_faded =
-                egui::Color32::from_rgba_premultiplied(glow.r(), glow.g(), glow.b(), 128);
+            let glow_faded = tokens::with_alpha(tokens::ACCENT, 128);
             ui.painter()
                 .rect_filled(glow_rect, self.corner_radius, glow_faded);
         }
 
         // 绘制错误状态边框
         let border_color = if has_errors {
-            Theme::ERROR
+            tokens::ERROR
         } else {
-            Theme::NODE_BORDER
+            tokens::BORDER_DEFAULT
         };
         let border_stroke = Stroke::new(if has_errors { 2.0 } else { 1.0 }, border_color);
 
@@ -259,7 +257,7 @@ impl NodeRenderer {
             Align2::CENTER_CENTER,
             title,
             FontId::proportional(self.font_size),
-            Theme::TEXT,
+            tokens::TEXT_PRIMARY,
         );
 
         // 渲染端口
@@ -323,7 +321,7 @@ impl NodeRenderer {
             label_align,
             &port.label,
             FontId::proportional(self.font_size - 1.0),
-            Theme::TEXT_DIM,
+            tokens::TEXT_SECONDARY,
         );
     }
 
@@ -359,7 +357,7 @@ impl NodeRenderer {
                 Align2::LEFT_CENTER,
                 text,
                 FontId::proportional(self.font_size - 1.0),
-                Theme::TEXT_DIM,
+                tokens::TEXT_SECONDARY,
             );
             params_y += self.port_spacing * 0.8;
         }

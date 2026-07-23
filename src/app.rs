@@ -42,7 +42,7 @@ use crate::ui::panels::{
     status_bar::{ErrorDetailWindow, StatusBarEvent},
     condition_editor::{ConditionEditor, ConditionEditorState},
 };
-use crate::ui::theme::Theme;
+use crate::ui::theme::tokens;
 
 /// 左栏当前显示的标签页。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -1415,9 +1415,9 @@ impl eframe::App for App {
                         let handle_response = ui.allocate_rect(handle_rect, egui::Sense::drag());
                         let handle_color = if handle_response.hovered() || handle_response.dragged() {
                             ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeVertical);
-                            egui::Color32::from_rgb(100, 180, 255)
+                            tokens::ACCENT
                         } else {
-                            egui::Color32::from_gray(70)
+                            tokens::BORDER_SUBTLE
                         };
                         ui.painter().line_segment(
                             [handle_rect.left_center(), handle_rect.right_center()],
@@ -2040,9 +2040,9 @@ impl eframe::App for App {
                 let r1 = ui.allocate_rect(rs1, egui::Sense::drag());
                 let sep_color = if r1.hovered() || r1.dragged() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
-                    egui::Color32::from_rgb(100, 180, 255)
+                    tokens::ACCENT
                 } else {
-                    egui::Color32::from_gray(70)
+                    tokens::BORDER_SUBTLE
                 };
                 ui.painter().line_segment(
                     [rs1.center_top(), rs1.center_bottom()],
@@ -2070,9 +2070,9 @@ impl eframe::App for App {
                 let r2 = ui.allocate_rect(rs2, egui::Sense::drag());
                 let sep2_color = if r2.hovered() || r2.dragged() {
                     ui.ctx().set_cursor_icon(egui::CursorIcon::ResizeHorizontal);
-                    egui::Color32::from_rgb(100, 180, 255)
+                    tokens::ACCENT
                 } else {
-                    egui::Color32::from_gray(70)
+                    tokens::BORDER_SUBTLE
                 };
                 ui.painter().line_segment(
                     [rs2.center_top(), rs2.center_bottom()],
@@ -2113,7 +2113,7 @@ impl eframe::App for App {
 
         // 中央画布
         egui::CentralPanel::default()
-            .frame(egui::Frame::central_panel(&ctx.style()).fill(Theme::BACKGROUND))
+            .frame(egui::Frame::central_panel(&ctx.style()).fill(tokens::BG_APP))
             .show(ctx, |ui| {
                 if self.show_meta_editor {
                     self.show_meta_editor_view(ui);
@@ -2173,7 +2173,7 @@ impl eframe::App for App {
                         ui.add(
                             egui::Label::new(
                                 egui::RichText::new(self.i18n.node_display_name(nt))
-                                    .color(egui::Color32::from_rgb(150, 200, 255)),
+                                    .color(tokens::TEXT_LINK),
                             )
                             .wrap_mode(egui::TextWrapMode::Truncate),
                         );
@@ -2207,7 +2207,7 @@ impl App {
             ui.label(
                 egui::RichText::new(self.i18n.text("meta_editor.editing_hint"))
                     .size(18.0)
-                    .color(Theme::TEXT_DIM),
+                    .color(tokens::TEXT_SECONDARY),
             );
         });
     }
@@ -2672,7 +2672,7 @@ impl App {
                 let end_pos = ctx
                     .input(|i| i.pointer.hover_pos())
                     .unwrap_or(canvas_rect.center());
-                let target_color = self.interaction.edge_target_color(&Theme::WIRE_DEFAULT);
+                let target_color = self.interaction.edge_target_color(&tokens::WIRE_DEFAULT);
                 edge_renderer.render_edge_with_color(ui, start_pos, end_pos, target_color, &[]);
                 if let Some(status) = self
                     .interaction
@@ -2734,11 +2734,11 @@ impl App {
             let card = egui::Rect::from_center_size(center, egui::vec2(card_w, card_h));
 
             ui.painter()
-                .rect_filled(card, 12.0, egui::Color32::from_rgba_premultiplied(20, 20, 20, 220));
+                .rect_filled(card, 12.0, tokens::with_alpha(tokens::BG_APP, 220));
             ui.painter().rect_stroke(
                 card,
                 12.0,
-                egui::Stroke::new(2.0, egui::Color32::from_gray(60)),
+                egui::Stroke::new(2.0, tokens::BORDER_SUBTLE),
                 egui::StrokeKind::Middle,
             );
 
@@ -2748,14 +2748,14 @@ impl App {
                 Align2::CENTER_TOP,
                 self.i18n.format("welcome.title", &[env!("CARGO_PKG_VERSION")]),
                 FontId::proportional(22.0),
-                Theme::TEXT,
+                tokens::TEXT_PRIMARY,
             );
             ui.painter().text(
                 title_pos + egui::vec2(0.0, 28.0),
                 Align2::CENTER_TOP,
                 self.i18n.text("welcome.subtitle"),
                 FontId::proportional(13.0),
-                Theme::TEXT_DIM,
+                tokens::TEXT_SECONDARY,
             );
 
             let btn_open = egui::Rect::from_center_size(
@@ -2792,7 +2792,7 @@ impl App {
                 Align2::CENTER_TOP,
                 self.i18n.text("welcome.space_hint"),
                 FontId::proportional(12.0),
-                Theme::TEXT_DIM,
+                tokens::TEXT_SECONDARY,
             );
         }
 
@@ -2811,9 +2811,9 @@ impl App {
             canvas_rect.min + EVec2::new(10.0, 10.0),
             Align2::LEFT_TOP,
             text,
-            FontId::proportional(14.0),
-            Theme::TEXT,
-        );
+                FontId::proportional(14.0),
+                tokens::TEXT_PRIMARY,
+            );
     }
 }
 

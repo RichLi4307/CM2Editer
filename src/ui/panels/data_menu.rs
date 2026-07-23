@@ -1,7 +1,7 @@
 use crate::graph::container::LabelContainer;
 use crate::graph::types::PortType;
 use crate::ui::i18n::I18n;
-use crate::ui::theme::port_color;
+use crate::ui::theme::{port_color, tokens};
 use std::collections::HashSet;
 
 /// 数据菜单面板。按节点分组，小方块（巧克力板）水平换行排列。点击选中节点。
@@ -55,7 +55,7 @@ impl DataMenuPanel {
                     let is_selected = selected_nodes.contains(node_id);
                     ui.horizontal(|ui| {
                         if is_selected {
-                            ui.colored_label(egui::Color32::from_rgb(100, 180, 255), "▶");
+                            ui.colored_label(tokens::ACCENT, "▶");
                         }
                         ui.label(node_id);
                     });
@@ -89,7 +89,7 @@ fn tile_button(tile: &DataTile, is_node_selected: bool) -> impl egui::Widget + '
 
         let color = port_color(&tile.port_type);
         let stroke_color = if is_node_selected {
-            egui::Color32::from_rgb(100, 180, 255)
+            tokens::ACCENT
         } else {
             color.gamma_multiply(0.7)
         };
@@ -112,7 +112,7 @@ fn tile_button(tile: &DataTile, is_node_selected: bool) -> impl egui::Widget + '
             egui::Align2::CENTER_CENTER,
             text,
             egui::FontId::proportional(11.0),
-            if is_node_selected || response.hovered() { egui::Color32::WHITE } else { egui::Color32::LIGHT_GRAY },
+            if is_node_selected || response.hovered() { tokens::TEXT_PRIMARY } else { tokens::TEXT_SECONDARY },
         );
 
         if response.hovered() {

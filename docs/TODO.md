@@ -1,20 +1,19 @@
 # CM2Editer 项目 TODO
 
-> **版本**: 0.3.0
-> **日期**: 2026-07-20（22:00 更新，已纳入部分手动测试结果）
-> **目标**: Phase2 已全部完成；P3.1 手动冒烟测试已执行部分（1-5 章节），结果已整理。
+> **版本**: 0.4.0
+> **日期**: 2026-07-23
+> **目标**: v0.3.0-alpha 已发布，当前进入 v0.4.0 开发；P3.4 UI 设计规范落地阶段 A（令牌化）已完成。
 > **旧版已归档**: `docs/archive/TODO_20260720_v11.md`（Phase2 完成详情）、`docs/archive/TODO_20260720_v12.md`（纳入自动化测试归纳的上版）
 
 ---
 
 ## 当前状态
 
-- Phase2 所有任务（P2.1–P2.11 + checklist UI 缺陷）已完成并合并到 `main`。
-- 自动化测试：`cargo test --lib` **192 项通过**；`cargo test` 完整套件（192 lib + 9 integration）全部通过。
+- v0.3.0-alpha 已发布，当前进入 **v0.4.0** 开发。
+- P3.4 UI 设计规范落地：**阶段 A 令牌化**已完成，令牌模块、全库颜色替换、守卫测试已合入。
+- P3.1 手动冒烟测试：因当前 UX 仍在重构中，暂不继续执行，待 B/C/D 阶段完成后再复测。
+- 自动化测试：`cargo test --lib` **196 项通过**；`cargo test` 完整套件（196 lib + 9 integration）全部通过。
 - `cargo clippy --lib` **0 warnings**。
-- 手动测试检查单 `docs/test_checklist.md` 已部分执行：用户完成 **1-5 章节**（欢迎页、节点库、工程树、命名空间/坐标、画布操作、连线），其余章节（6-10）仍为 **NT**。
-- 手动测试结果汇总：**JM 39 项通过，DN 4 项不通过，NT 90 项未测**。
-- 本地 `main` 领先 `origin/main`。
 
 ---
 
@@ -26,7 +25,7 @@
 - [ ] **P3.1 手动冒烟测试（剩余）**：继续执行 6-10 章节（节点参数编辑、底部面板、代码生成、i18n、验证与错误处理）。
 - [x] **P3.2 构建与打包**：Release 构建，打包字体、命名空间、README、AGENTS.md、LICENSE。
 - [ ] **P3.3 发布预览版**：GitHub Release `v0.3.0-alpha`，附已知限制说明。
-- [ ] **P3.4 UI 设计规范落地**：按 `docs/ui_design_spec.md` 分四阶段实施（A 令牌化 → B 控件统一 → C 反馈系统 → D 打磨）。设计文档已定稿全部尺寸/颜色/控件规格，coder 按文档执行即可。
+- [x] **P3.4 UI 设计规范落地**：阶段 A 令牌化已完成（`src/ui/theme.rs` 新增 `tokens` 模块、全库颜色替换、守卫测试）。阶段 B/C/D 待执行。
 
 ### P3.1 中发现的待修复/改进项（未排序）
 
@@ -106,6 +105,7 @@
 
 | 日期 | 任务编号 | 说明 | 状态 |
 |------|----------|------|------|
+| 2026-07-23 | P3.4 | 完成 UI 设计规范阶段 A 令牌化：在 `src/ui/theme.rs` 新增 `tokens` 模块，替换 `src/ui` 与 `src/app.rs` 中全部硬编码 `Color32`；新增 `tokens_values_match_spec` 与 `no_bare_color32_outside_theme` 守卫测试；`cargo test --lib` 196 通过，`clippy --lib` 0 warnings | 已完成 |
 | 2026-07-20 22:45 | P3.1 | 修复 P3.1 检查单中 9 项待修复/改进项：默认线程策略、搜索大小写不敏感、描述悬停、文件树底部控件、节点分类审计、坐标标签中文显示、Vector/Quaternion 手动输入、NPC 下拉选择、连线端口灰化；新增 192 项 lib tests | 已完成 |
 | 2026-07-20 | P2 | Phase2 全部完成并合并到 `main`：P2.4–P2.11 + checklist UI 缺陷；`cargo test --lib` 191 项通过；`cargo test` 9 项 integration 通过；`cargo clippy --lib` 0 warnings | 已完成 |
 | 2026-07-20 | 修复 | 修复 `If` 节点属性面板中条件模板 ComboBox 的 egui duplicate widget ID 警告；`cargo test --lib` 191 项通过 | 已完成 |

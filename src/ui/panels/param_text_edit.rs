@@ -1,5 +1,6 @@
 use crate::graph::node::ParamValue;
 use crate::ui::i18n::I18n;
+use crate::ui::theme::tokens;
 use std::collections::HashMap;
 
 /// 持久编辑缓冲区：在失焦/回车时才提交文本到 ParamValue。
@@ -49,7 +50,7 @@ impl ParamTextEdit {
         if !json_ok {
             ui.label(
                 egui::RichText::new(i18n.text("param_text_edit.json_error"))
-                    .color(egui::Color32::from_rgb(240, 80, 80))
+                    .color(tokens::ERROR)
                     .size(10.0),
             );
         }

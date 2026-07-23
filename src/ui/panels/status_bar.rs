@@ -1,5 +1,6 @@
 use crate::error::FlowError;
 use crate::ui::i18n::I18n;
+use crate::ui::theme::tokens;
 use egui::Pos2;
 
 /// 状态栏面板。
@@ -41,7 +42,7 @@ impl StatusBarPanel {
                 if ui
                     .link(
                         egui::RichText::new(label)
-                            .color(egui::Color32::from_rgb(244, 67, 54)),
+                            .color(tokens::ERROR),
                     )
                     .clicked()
                 {
@@ -81,9 +82,9 @@ impl ErrorDetailWindow {
                     for err in errors {
                         let severity = if err.is_warning() { "⚠" } else { "❌" };
                         let color = if err.is_warning() {
-                            egui::Color32::from_rgb(255, 180, 0)
+                            tokens::WARNING
                         } else {
-                            egui::Color32::from_rgb(244, 67, 54)
+                            tokens::ERROR
                         };
                         ui.colored_label(color, format!("{} {}", severity, err));
                     }

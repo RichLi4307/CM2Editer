@@ -8,6 +8,7 @@ use std::collections::HashSet;
 
 use crate::api::namespace::NamespaceRegistry;
 use crate::ui::i18n::I18n;
+use crate::ui::theme::tokens;
 
 /// Persistent state for the namespace picker window.
 #[derive(Debug, Clone)]
@@ -216,14 +217,14 @@ fn ns_picker_card<'a>(
         let (rect, response) =
             ui.allocate_exact_size(egui::vec2(130.0, 40.0), egui::Sense::click());
         let accent = if is_selected {
-            egui::Color32::from_rgb(100, 180, 255)
+            tokens::ACCENT
         } else {
-            egui::Color32::from_gray(55)
+            tokens::BORDER_SUBTLE
         };
         let fill = if response.hovered() || is_selected {
             accent.gamma_multiply(0.12)
         } else {
-            egui::Color32::from_gray(26)
+            tokens::BG_CARD
         };
         ui.painter().rect_filled(rect, 4.0, fill);
         ui.painter().rect_stroke(rect, 4.0, egui::Stroke::new(1.2, accent), egui::StrokeKind::Middle);
@@ -234,7 +235,7 @@ fn ns_picker_card<'a>(
             egui::Align2::CENTER_CENTER,
             zh,
             egui::FontId::proportional(12.0),
-            if is_selected { egui::Color32::WHITE } else { egui::Color32::from_gray(200) },
+            tokens::TEXT_PRIMARY,
         );
         response
     }

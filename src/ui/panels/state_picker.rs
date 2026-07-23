@@ -4,6 +4,7 @@
 //! 返回完整点分路径（如 `Position.x`、`AdultToys.Handcuff`）。
 
 use crate::ui::i18n::I18n;
+use crate::ui::theme::tokens;
 
 /// 状态字段的数据类型。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -284,14 +285,14 @@ fn state_leaf_card(leaf: &StateLeaf, expected_type: StateType) -> impl egui::Wid
             ui.allocate_exact_size(egui::vec2(130.0, 46.0), egui::Sense::click());
 
         let accent = if type_mismatch {
-            egui::Color32::from_rgb(255, 152, 0)
+            tokens::WARNING
         } else {
-            egui::Color32::from_rgb(100, 180, 255)
+            tokens::ACCENT
         };
         let fill = if response.hovered() {
             accent.gamma_multiply(0.15)
         } else {
-            egui::Color32::from_gray(32)
+            tokens::BG_CARD
         };
 
         ui.painter().rect_filled(rect, 4.0, fill);
@@ -307,7 +308,7 @@ fn state_leaf_card(leaf: &StateLeaf, expected_type: StateType) -> impl egui::Wid
             egui::Align2::LEFT_TOP,
             &leaf.display,
             egui::FontId::proportional(12.0),
-            egui::Color32::WHITE,
+            tokens::TEXT_PRIMARY,
         );
 
         ui.painter().text(
@@ -315,7 +316,7 @@ fn state_leaf_card(leaf: &StateLeaf, expected_type: StateType) -> impl egui::Wid
             egui::Align2::LEFT_TOP,
             format!("{} [{}]", leaf.path, leaf.state_type.label()),
             egui::FontId::proportional(9.0),
-            egui::Color32::from_gray(170),
+            tokens::TEXT_SECONDARY,
         );
 
         response

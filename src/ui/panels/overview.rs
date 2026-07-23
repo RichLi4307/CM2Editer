@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use crate::graph::container::{ContainerGraph, LabelContainer};
 use crate::graph::node::ParamValue;
 use crate::graph::types::NodeType;
-use crate::ui::theme::Theme;
+use crate::ui::theme::tokens;
 
 /// 概览图节点。
 #[derive(Debug, Clone)]
@@ -91,15 +91,15 @@ impl OverviewPanel {
             }
             let response = ui.interact(node_rect, ui.id().with(&node.id), egui::Sense::click());
             let bg = if response.hovered() {
-                Theme::ENTRY_PIN.gamma_multiply(0.3)
+                tokens::ENTRY_AMBER.gamma_multiply(0.3)
             } else {
-                Theme::NODE_BACKGROUND
+                tokens::BG_CARD
             };
             painter.rect_filled(node_rect, 6_u8, bg);
             painter.rect_stroke(
                 node_rect,
                 6_u8,
-                Stroke::new(1.0, Theme::NODE_BORDER),
+                Stroke::new(1.0, tokens::BORDER_DEFAULT),
                 egui::StrokeKind::Middle,
             );
             painter.text(
@@ -107,7 +107,7 @@ impl OverviewPanel {
                 Align2::CENTER_CENTER,
                 &node.name,
                 FontId::proportional(11.0),
-                Theme::TEXT,
+                tokens::TEXT_PRIMARY,
             );
             if response.double_clicked() {
                 action = OverviewAction::SelectContainer {
@@ -297,13 +297,13 @@ fn literal_string_param(value: Option<&ParamValue>) -> Option<String> {
 /// 绘制概览图边。
 fn draw_edge(painter: &egui::Painter, from: Pos2, to: Pos2, kind: OverviewEdgeKind) {
     let (color, width, dashed) = match kind {
-        OverviewEdgeKind::Goto => (Theme::WIRE_DEFAULT, 2.0, false),
-        OverviewEdgeKind::CreateThread => (Theme::SELECTED_GLOW, 1.5, true),
-        OverviewEdgeKind::CreateListener => (Theme::WIRE_OCCUPIED, 1.5, true),
-        OverviewEdgeKind::CreateListenerLocal => (Theme::WIRE_OCCUPIED, 1.5, true),
-        OverviewEdgeKind::CreateEventListener => (Theme::WIRE_OCCUPIED, 1.5, true),
-        OverviewEdgeKind::CreateEventListenerLocal => (Theme::WIRE_OCCUPIED, 1.5, true),
-        OverviewEdgeKind::Foreach => (Theme::TEXT_DIM, 1.5, true),
+        OverviewEdgeKind::Goto => (tokens::WIRE_DEFAULT, 2.0, false),
+        OverviewEdgeKind::CreateThread => (tokens::ACCENT, 1.5, true),
+        OverviewEdgeKind::CreateListener => (tokens::WARNING, 1.5, true),
+        OverviewEdgeKind::CreateListenerLocal => (tokens::WARNING, 1.5, true),
+        OverviewEdgeKind::CreateEventListener => (tokens::WARNING, 1.5, true),
+        OverviewEdgeKind::CreateEventListenerLocal => (tokens::WARNING, 1.5, true),
+        OverviewEdgeKind::Foreach => (tokens::TEXT_SECONDARY, 1.5, true),
     };
 
     let from = edge_anchor(from, to, NODE_SIZE * 0.5);

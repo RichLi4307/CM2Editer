@@ -12,6 +12,7 @@ use crate::graph::container::LabelContainer;
 use crate::graph::node::ParamValue;
 use crate::graph::types::NodeType;
 use crate::ui::i18n::I18n;
+use crate::ui::theme::tokens;
 
 /// Persistent state for the condition editor window.
 #[derive(Debug, Clone)]
@@ -232,10 +233,10 @@ impl ConditionEditor {
                 ui.horizontal(|ui| {
                     ui.label(i18n.text("condition_editor.preview"));
                     if preview.is_empty() {
-                        ui.label(egui::RichText::new(i18n.text("condition_editor.empty_preview")).color(egui::Color32::from_gray(120)));
+                        ui.label(egui::RichText::new(i18n.text("condition_editor.empty_preview")).color(tokens::TEXT_DISABLED));
                     } else {
                         ui.add(egui::Label::new(
-                            egui::RichText::new(preview.clone()).monospace().color(egui::Color32::from_rgb(160, 220, 160)),
+                            egui::RichText::new(preview.clone()).monospace().color(tokens::SUCCESS),
                         ));
                     }
                 });
@@ -243,14 +244,14 @@ impl ConditionEditor {
                     ui.label(
                         egui::RichText::new(err)
                             .size(11.0)
-                            .color(egui::Color32::from_rgb(255, 120, 120)),
+                            .color(tokens::ERROR),
                     );
                 }
                 if let Some(flash) = state.flash.as_ref() {
                     ui.label(
                         egui::RichText::new(flash)
                             .size(11.0)
-                            .color(egui::Color32::from_rgb(255, 220, 120)),
+                            .color(tokens::WARNING),
                     );
                     if state.flash_frames == 0 {
                         state.flash = None;
@@ -332,7 +333,7 @@ impl ConditionEditor {
                         if existing_ids.is_empty() && query.is_empty() {
                             ui.label(
                                 egui::RichText::new(i18n.text("condition_editor.no_existing_ids"))
-                                    .color(egui::Color32::from_gray(120))
+                                    .color(tokens::TEXT_DISABLED)
                                     .size(11.0),
                             );
                         }
@@ -342,7 +343,7 @@ impl ConditionEditor {
                 ui.label(
                     egui::RichText::new(i18n.text("condition_editor.syntax_help"))
                         .size(11.0)
-                        .color(egui::Color32::from_gray(140)),
+                        .color(tokens::TEXT_SECONDARY),
                 );
                 ui.horizontal(|ui| {
                     if ui.button(i18n.text("button.confirm")).clicked() {
@@ -383,7 +384,7 @@ fn condition_token_button(
         0.0,
         egui::TextFormat {
             font_id: egui::FontId::proportional(13.0),
-            color: egui::Color32::from_gray(220),
+            color: tokens::TEXT_PRIMARY,
             ..Default::default()
         },
     );
@@ -394,7 +395,7 @@ fn condition_token_button(
             0.0,
             egui::TextFormat {
                 font_id: egui::FontId::proportional(10.0),
-                color: egui::Color32::from_gray(140),
+                color: tokens::TEXT_SECONDARY,
                 ..Default::default()
             },
         );
@@ -402,8 +403,8 @@ fn condition_token_button(
 
     ui.add(
         egui::Button::new(job)
-            .fill(egui::Color32::from_gray(45))
-            .stroke(egui::Stroke::new(1.0, egui::Color32::from_gray(90)))
+            .fill(tokens::BG_CARD)
+            .stroke(egui::Stroke::new(1.0, tokens::BORDER_DEFAULT))
             .min_size(egui::vec2(90.0, 40.0)),
     )
 }

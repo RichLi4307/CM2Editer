@@ -4,6 +4,7 @@
 
 use crate::api::coordinate::{CoordinateEntry, CoordinateRegistry};
 use crate::ui::i18n::I18n;
+use crate::ui::theme::{tokens, stage_palette_color};
 
 /// 坐标选择器持久状态。
 #[derive(Debug, Clone)]
@@ -118,7 +119,7 @@ fn coordinate_card(entry: &CoordinateEntry) -> impl egui::Widget + '_ {
         let fill = if response.hovered() {
             stage_color.gamma_multiply(0.15)
         } else {
-            egui::Color32::from_gray(32)
+            tokens::BG_CARD
         };
 
         ui.painter().rect_filled(rect, 4.0, fill);
@@ -134,7 +135,7 @@ fn coordinate_card(entry: &CoordinateEntry) -> impl egui::Widget + '_ {
             egui::Align2::LEFT_TOP,
             entry.name.to_string(),
             egui::FontId::proportional(13.0),
-            egui::Color32::WHITE,
+            tokens::TEXT_PRIMARY,
         );
 
         ui.painter().text(
@@ -142,7 +143,7 @@ fn coordinate_card(entry: &CoordinateEntry) -> impl egui::Widget + '_ {
             egui::Align2::LEFT_TOP,
             entry.coord_text(),
             egui::FontId::proportional(10.0),
-            egui::Color32::from_gray(180),
+            tokens::TEXT_SECONDARY,
         );
 
         response
@@ -153,15 +154,5 @@ fn stage_tint(stage: &str) -> egui::Color32 {
     let h = stage
         .bytes()
         .fold(0u32, |a, b| a.wrapping_mul(31).wrapping_add(b as u32));
-    let palette: [egui::Color32; 8] = [
-        egui::Color32::from_rgb(33, 150, 243),
-        egui::Color32::from_rgb(76, 175, 80),
-        egui::Color32::from_rgb(255, 152, 0),
-        egui::Color32::from_rgb(156, 39, 176),
-        egui::Color32::from_rgb(0, 188, 212),
-        egui::Color32::from_rgb(233, 30, 99),
-        egui::Color32::from_rgb(255, 235, 59),
-        egui::Color32::from_rgb(121, 85, 72),
-    ];
-    palette[(h as usize) % palette.len()]
+    stage_palette_color(h as usize)
 }

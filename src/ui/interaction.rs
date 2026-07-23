@@ -10,7 +10,7 @@ use crate::graph::types::PortType;
 use crate::ui::canvas::Canvas;
 use crate::ui::canvas::CanvasResponse;
 use crate::ui::i18n::I18n;
-use crate::ui::theme::Theme;
+use crate::ui::theme::tokens;
 
 /// 端口悬停/命中判定半径（像素）。
 const PORT_HIT_RADIUS: f32 = 16.0;
@@ -74,9 +74,9 @@ impl PortTargetStatus {
     /// 返回对应视觉颜色。
     pub fn color(self) -> Color32 {
         match self {
-            Self::Compatible => Theme::WIRE_DEFAULT,
-            Self::Incompatible | Self::Cycle => Theme::WIRE_INVALID,
-            Self::Occupied => Theme::WIRE_OCCUPIED,
+            Self::Compatible => tokens::WIRE_DEFAULT,
+            Self::Incompatible | Self::Cycle => tokens::ERROR,
+            Self::Occupied => tokens::WARNING,
         }
     }
 }
@@ -534,7 +534,7 @@ impl InteractionController {
             .iter()
             .find(|(_, _, c, _, _)| c.distance(mouse_pos) <= PORT_HIT_RADIUS)
         {
-            let color = target_status.map_or(Theme::WIRE_DEFAULT, |s| s.color());
+            let color = target_status.map_or(tokens::WIRE_DEFAULT, |s| s.color());
             ui.painter()
                 .circle_stroke(*center, PORT_HIT_RADIUS, Stroke::new(2.0, color));
         }
@@ -554,7 +554,7 @@ impl InteractionController {
             ui.painter().circle_stroke(
                 *center,
                 PORT_HIT_RADIUS,
-                Stroke::new(2.0, Theme::SELECTED_GLOW),
+                Stroke::new(2.0, tokens::ACCENT),
             );
         }
     }
@@ -586,12 +586,12 @@ impl InteractionController {
             let rect = Rect::from_two_pos(start, current);
             let (stroke_color, fill_color) = match mode {
                 BoxSelectMode::Window => (
-                    Theme::BOX_SELECT_WINDOW,
-                    Theme::BOX_SELECT_WINDOW.gamma_multiply(0.15),
+                    tokens::ACCENT,
+                    tokens::ACCENT.gamma_multiply(0.15),
                 ),
                 BoxSelectMode::Crossing => (
-                    Theme::BOX_SELECT_CROSSING,
-                    Theme::BOX_SELECT_CROSSING.gamma_multiply(0.15),
+                    tokens::SUCCESS,
+                    tokens::SUCCESS.gamma_multiply(0.15),
                 ),
             };
             ui.painter().rect_filled(rect, 0.0, fill_color);

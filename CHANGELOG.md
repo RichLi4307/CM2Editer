@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+### 重构（P3.4 UI 设计规范落地 — 阶段 A 令牌化）
+
+- 在 `src/ui/theme.rs` 中新增 `tokens` 模块：统一提供间距、圆角、字号、背景/边框/文本/语义色等全部设计令牌。
+- 将 `src/ui` 与 `src/app.rs` 中所有硬编码 `Color32` 字面量替换为 `tokens::*`；移除旧的 `Theme::BACKGROUND` 等常量。
+- 新增 `tokens::with_alpha` 助手与 `stage_palette_color` 函数，用于选择器卡片等需要按场景名稳定着色的场景。
+- 新增守卫测试：
+  - `tokens_values_match_spec`：断言所有令牌数值与 `docs/ui_design_spec.md` 第 2 节一致。
+  - `no_bare_color32_outside_theme`：扫描 `src/ui` 业务代码，禁止 `Color32::from_rgb/from_rgba/from_gray/from_rgba_premultiplied` 裸调用。
+- `cargo test --lib` 196 项通过；`cargo clippy --lib` 0 warnings。
+
 ### 文档
 
 - 新增 `docs/ui_design_spec.md`：完整 UI 设计规范与优化规划。涵盖设计令牌（间距/圆角/字号/颜色体系）、五区布局尺寸、控件规格（按钮三语义、ComboBox 宽度三档 100/160/200、选择器卡片统一 140×48）、画布节点/连线规范、弹窗统一模板、Toast 通知系统设计、P0-P2 优化清单与 A-D 四阶段实施路线图。
