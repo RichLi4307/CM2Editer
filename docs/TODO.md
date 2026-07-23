@@ -107,6 +107,7 @@
 |------|----------|------|------|
 | 2026-07-23 | 修复 | 工程文件树底部按钮固定，禁止溢出左栏：`project_tree.rs` 将三个按钮移出 `ScrollArea` 并固定底部；`app.rs` 调整左栏高度分配优先级，工程树最小高度 220，节点库可压缩 | 已完成 |
 | 2026-07-23 | 修复 | 节点悬停描述 Tooltip 改为仅标题栏悬停且 0.5s 延迟后触发，避免移动鼠标时频繁弹出；`app.rs` 新增 `hovered_node_id` / `hovered_node_start` | 已完成 |
+| 2026-07-23 | 文档 | 在 `docs/ui_design_spec.md` 新增第 15 章「吸附式窗口面板方案」，把左/右/底栏从布局面板改为 egui 吸附窗口的候选架构，待架构师审核 | 已完成 |
 | 2026-07-23 | 文档 | 在 `docs/ui_design_spec.md` 新增第 14 章「实际落地状态登记表」，列出全部规范项的落地状态与偏差，供架构师审核 | 已完成 |
 | 2026-07-23 | 修复 | 修复启动后无欢迎页/开始界面：`update_canvas` 在 `selected_container` 为 `None` 时直接返回，导致欢迎卡片未渲染；改为先绘制画布再显示 `draw_welcome_card`，并提取为独立方法、套用设计令牌 | 已完成 |
 | 2026-07-23 | P3.4 | 完成 UI 设计规范阶段 A 令牌化：在 `src/ui/theme.rs` 新增 `tokens` 模块，替换 `src/ui` 与 `src/app.rs` 中全部硬编码 `Color32`；新增 `tokens_values_match_spec` 与 `no_bare_color32_outside_theme` 守卫测试；`cargo test --lib` 196 通过，`clippy --lib` 0 warnings | 已完成 |
